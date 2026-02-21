@@ -5,6 +5,7 @@ import type { ExplorationScene } from '../game/Scenes/ExplorationScene';
 import type { CasinoScene } from '../game/Scenes/CasinoScene';
 import type { GameOverScene } from '../game/Scenes/GameOverScene';
 import { BichoManager } from '../game/BichoManager';
+import MobileControls from './MobileControls';
 
 const GameCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -150,18 +151,21 @@ const GameCanvas = () => {
 
 
     return (
-        <canvas
-            ref={canvasRef}
-            style={{
-                display: 'block',
-                width: '100vw',
-                height: '100vh',
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                cursor: 'none',
-            }}
-        />
+        <>
+            <canvas
+                ref={canvasRef}
+                style={{
+                    display: 'block',
+                    width: '100vw',
+                    height: '100vh',
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    cursor: 'none',
+                }}
+            />
+            <MobileControls />
+        </>
     );
 };
 

@@ -44,6 +44,21 @@ export class InputManager {
         this.justReleased.set(e.code, true);
     };
 
+    /** Allows external systems (like mobile UI) to trigger key states */
+    public setKeyState(code: string, isPressed: boolean) {
+        if (isPressed) {
+            if (!this.keys.get(code)) {
+                this.justPressed.set(code, true);
+            }
+            this.keys.set(code, true);
+        } else {
+            if (this.keys.get(code)) {
+                this.justReleased.set(code, true);
+            }
+            this.keys.set(code, false);
+        }
+    }
+
     private onMouseMove = (e: MouseEvent) => {
         const dpr = window.devicePixelRatio || 1;
         this.mouseX = e.clientX * dpr;
