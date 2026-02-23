@@ -1,5 +1,6 @@
 import type { Scene } from '../Core/Loop';
 import { InputManager } from '../Core/InputManager';
+import { UIScale } from '../Core/UIScale';
 
 export class GameOverScene implements Scene {
     public name = 'gameover';
@@ -49,6 +50,8 @@ export class GameOverScene implements Scene {
     }
 
     public render(ctx: CanvasRenderingContext2D) {
+        const s = UIScale.s.bind(UIScale);
+
         // Dark background
         ctx.fillStyle = '#050208';
         ctx.fillRect(0, 0, this.screenW, this.screenH);
@@ -60,7 +63,7 @@ export class GameOverScene implements Scene {
         for (let i = 0; i < 50; i++) {
             const gx = Math.random() * this.screenW;
             const gy = Math.random() * this.screenH;
-            const gw = Math.random() * 100;
+            const gw = Math.random() * s(100);
             const gh = 1;
             ctx.fillStyle = `rgba(255, 0, 0, ${Math.random() * 0.1})`;
             ctx.fillRect(gx, gy, gw, gh);
@@ -69,27 +72,27 @@ export class GameOverScene implements Scene {
         // --- END GAME text ---
         const pulse = Math.sin(this.time * 5) * 0.1 + 0.9;
         ctx.save();
-        ctx.translate(centerX, centerY - 60);
+        ctx.translate(centerX, centerY - s(60));
         ctx.scale(pulse, pulse);
 
         ctx.fillStyle = '#ff0000';
-        ctx.font = 'bold 82px "Press Start 2P", Courier, monospace';
+        ctx.font = `bold ${UIScale.r(82)}px "Press Start 2P", Courier, monospace`;
         ctx.textAlign = 'center';
         ctx.shadowColor = '#880000';
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = s(20);
         ctx.fillText('END GAME', 0, 0);
         ctx.restore();
 
         // --- Sarcastic Phrase ---
         ctx.fillStyle = '#ccc';
-        ctx.font = '20px "Press Start 2P", Courier, monospace';
+        ctx.font = `${UIScale.r(20)}px "Press Start 2P", Courier, monospace`;
         ctx.textAlign = 'center';
         ctx.shadowBlur = 0;
 
         // Wrap text if needed
         const words = this.currentPhrase.split(' ');
         let line = '';
-        let y = centerY + 40;
+        let y = centerY + s(40);
         const maxWidth = this.screenW * 0.8;
 
         for (const word of words) {
@@ -98,7 +101,7 @@ export class GameOverScene implements Scene {
             if (metrics.width > maxWidth && line !== '') {
                 ctx.fillText(line, centerX, y);
                 line = word + ' ';
-                y += 30;
+                y += s(30);
             } else {
                 line = testLine;
             }
@@ -108,8 +111,8 @@ export class GameOverScene implements Scene {
         // --- Restart Hint ---
         if (Math.floor(this.time * 2) % 2 === 0) {
             ctx.fillStyle = '#ffcc00';
-            ctx.font = '16px "Press Start 2P", Courier, monospace';
-            ctx.fillText('PRESSIONE [ESPAÇO] PARA TENTAR NOVAMENTE', centerX, this.screenH - 100);
+            ctx.font = `${UIScale.r(16)}px "Press Start 2P", Courier, monospace`;
+            ctx.fillText('PRESSIONE [ESPAÇO] PARA TENTAR NOVAMENTE', centerX, this.screenH - s(100));
         }
     }
 }

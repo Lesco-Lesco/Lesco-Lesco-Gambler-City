@@ -7,9 +7,10 @@ import { Camera } from '../Core/Camera';
 import { TileMap } from './TileMap';
 import { TILE_TYPES, MAP_WIDTH } from './MapData';
 import { isMobile } from '../Core/MobileDetect';
+import { UIScale } from '../Core/UIScale';
 
-const MINIMAP_SIZE = 160;
-const MINIMAP_PADDING = 15;
+const MINIMAP_BASE_SIZE = 160;
+const MINIMAP_BASE_PADDING = 15;
 
 const MINIMAP_COLORS: Record<number, string> = {
     [TILE_TYPES.VOID]: '#050508',
@@ -35,8 +36,8 @@ export class Minimap {
 
     constructor(tileMap: TileMap) {
         this.minimapCanvas = document.createElement('canvas');
-        this.minimapCanvas.width = MINIMAP_SIZE;
-        this.minimapCanvas.height = MINIMAP_SIZE;
+        this.minimapCanvas.width = MINIMAP_BASE_SIZE;
+        this.minimapCanvas.height = MINIMAP_BASE_SIZE;
         const ctx = this.minimapCanvas.getContext('2d');
         if (!ctx) throw new Error('Minimap canvas context failed');
         this.minimapCtx = ctx;
@@ -48,10 +49,10 @@ export class Minimap {
         const mapW = tileMap.getWidth();
         const mapH = tileMap.getHeight();
         const data = tileMap.getData();
-        const tileSize = MINIMAP_SIZE / Math.max(mapW, mapH);
+        const tileSize = MINIMAP_BASE_SIZE / Math.max(mapW, mapH);
 
         this.minimapCtx.fillStyle = '#050508';
-        this.minimapCtx.fillRect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
+        this.minimapCtx.fillRect(0, 0, MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE);
 
         for (let y = 0; y < mapH; y++) {
             for (let x = 0; x < mapW; x++) {
@@ -66,10 +67,12 @@ export class Minimap {
     }
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number, playerX: number, playerY: number, _camera: Camera, npcs: any[]) {
+        const s = UIScale.s.bind(UIScale);
+
         // Detect mobile using shared helper
         const mobile = isMobile();
-        const mmSize = mobile ? 200 : MINIMAP_SIZE;
-        const mmPad = mobile ? 10 : MINIMAP_PADDING;
+        const mmSize = mobile ? s(200) : s(MINIMAP_BASE_SIZE);
+        const mmPad = mobile ? s(10) : s(MINIMAP_BASE_PADDING);
 
         // On mobile, position top-right to avoid action buttons. On desktop, bottom-right.
         const mmX = screenW - mmSize - mmPad;
@@ -77,15 +80,16 @@ export class Minimap {
 
         // Background with border
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(mmX - 3, mmY - 3, mmSize + 6, mmSize + 6);
+        ctx.fillRect(mmX - s(3), mmY - s(3), mmSize + s(6), mmSize + s(6));
         ctx.strokeStyle = '#4a4a55';
         ctx.lineWidth = 1;
-        ctx.strokeRect(mmX - 3, mmY - 3, mmSize + 6, mmSize + 6);
+        ctx.strokeRect(mmX - s(3), mmY - s(3), mmSize + s(6), mmSize + s(6));
 
-        // Draw pre-rendered map (scale from MINIMAP_SIZE to mmSize)
-        ctx.drawImage(this.minimapCanvas, 0, 0, MINIMAP_SIZE, MINIMAP_SIZE, mmX, mmY, mmSize, mmSize);
+        // Draw pre-rendered map (scale from MINIMAP_BASE_SIZE to mmSize)
+        ctx.drawImage(this.minimapCanvas, 0, 0, MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE, mmX, mmY, mmSize, mmSize);
 
         const tileSize = mmSize / MAP_WIDTH;
+        const blipSize = Math.max(s(2), 2);
 
         // Draw NPCs if they are Gamblers
         if (npcs) {
@@ -99,26 +103,26 @@ export class Minimap {
                 // Color code by minigame
                 if (npc.minigameType === 'dice') {
                     ctx.fillStyle = '#3333ff'; // Blue
-                    ctx.fillRect(nx - 1, ny - 1, 2, 2);
+                    ctx.fillRect(nx - blipSize / 2, ny - blipSize / 2, blipSize, blipSize);
                 } else if (npc.minigameType === 'ronda') {
                     ctx.fillStyle = '#33ff33'; // Green
-                    ctx.fillRect(nx - 1, ny - 1, 2, 2);
+                    ctx.fillRect(nx - blipSize / 2, ny - blipSize / 2, blipSize, blipSize);
                 } else if (npc.minigameType === 'purrinha') {
                     ctx.fillStyle = '#ffff33'; // Yellow
-                    ctx.fillRect(nx - 1, ny - 1, 2, 2);
+                    ctx.fillRect(nx - blipSize / 2, ny - blipSize / 2, blipSize, blipSize);
                 } else if (npc.minigameType === 'heads_tails') {
                     ctx.fillStyle = '#ff9933'; // Orange
-                    ctx.fillRect(nx - 1, ny - 1, 2, 2);
+                    ctx.fillRect(nx - blipSize / 2, ny - blipSize / 2, blipSize, blipSize);
                 } else if (npc.minigameType === 'palitinho') {
                     ctx.fillStyle = '#ff66cc'; // Pink
-                    ctx.fillRect(nx - 1, ny - 1, 2, 2);
+                    ctx.fillRect(nx - blipSize / 2, ny - blipSize / 2, blipSize, blipSize);
                 } else if (npc.minigameType === 'fan_tan') {
                     ctx.fillStyle = '#dc143c'; // Crimson
-                    ctx.fillRect(nx - 1, ny - 1, 2, 2);
+                    ctx.fillRect(nx - blipSize / 2, ny - blipSize / 2, blipSize, blipSize);
                 } else {
                     // Fallback for generic gamblers
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(nx, ny, 1, 1);
+                    ctx.fillRect(nx, ny, Math.max(s(1), 1), Math.max(s(1), 1));
                 }
             }
         }
@@ -132,18 +136,18 @@ export class Minimap {
 
         ctx.fillStyle = '#ff3366';
         ctx.beginPath();
-        ctx.arc(blipX, blipY, 2 * pulse, 0, Math.PI * 2);
+        ctx.arc(blipX, blipY, s(2) * pulse, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(blipX, blipY, 1, 0, Math.PI * 2);
+        ctx.arc(blipX, blipY, Math.max(s(1), 1), 0, Math.PI * 2);
         ctx.fill();
 
         // Label
         ctx.fillStyle = '#888';
-        ctx.font = '8px monospace';
+        ctx.font = `${UIScale.r(8)}px monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText('SANTA CRUZ', mmX + mmSize / 2, mmY - 6);
+        ctx.fillText('SANTA CRUZ', mmX + mmSize / 2, mmY - s(6));
     }
 }

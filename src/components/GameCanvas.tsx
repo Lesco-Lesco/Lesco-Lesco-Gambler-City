@@ -5,6 +5,7 @@ import type { ExplorationScene } from '../game/Scenes/ExplorationScene';
 import type { CasinoScene } from '../game/Scenes/CasinoScene';
 import type { GameOverScene } from '../game/Scenes/GameOverScene';
 import { EconomyManager } from '../game/Core/EconomyManager';
+import { UIScale } from '../game/Core/UIScale';
 import MobileControls from './MobileControls';
 
 const GameCanvas = () => {
@@ -93,6 +94,9 @@ const GameCanvas = () => {
                     const dpr = window.devicePixelRatio || 1;
                     const rw = window.innerWidth * dpr;
                     const rh = window.innerHeight * dpr;
+
+                    // Update UI scale factor for responsive sizing
+                    UIScale.update(rw, rh);
 
                     // Update canvas internal resolution
                     if (canvas) {

@@ -96,9 +96,9 @@ canvas {
 /* D-Pad — bottom-left */
 .d-pad {
   display: grid;
-  grid-template-columns: repeat(3, 52px);
-  grid-template-rows: repeat(3, 52px);
-  gap: 4px;
+  grid-template-columns: repeat(3, min(7vw, 7vh));
+  grid-template-rows: repeat(3, min(7vw, 7vh));
+  gap: 0.5vh;
   pointer-events: auto;
 }
 
@@ -110,11 +110,11 @@ canvas {
 /* Action Buttons — bottom-right, 2×2 grid, above minimap */
 .action-buttons {
   display: grid;
-  grid-template-columns: 56px 56px;
-  grid-template-rows: 56px 56px;
-  gap: 8px;
+  grid-template-columns: min(7.5vw, 7.5vh) min(7.5vw, 7.5vh);
+  grid-template-rows: min(7.5vw, 7.5vh) min(7.5vw, 7.5vh);
+  gap: 1vh;
   pointer-events: auto;
-  margin-bottom: 4px;
+  margin-bottom: 0.5vh;
 }
 
 /* Shared mobile button style */
@@ -123,14 +123,14 @@ canvas {
   height: 100%;
   background: rgba(0, 0, 0, 0.55);
   border: 2px solid rgba(255, 255, 255, 0.25);
-  border-radius: 10px;
+  border-radius: min(1.5vw, 1.5vh);
   display: flex;
   justify-content: center;
   align-items: center;
   color: white;
   font-family: monospace;
   font-weight: bold;
-  font-size: 22px;
+  font-size: min(2.8vw, 2.8vh);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -150,7 +150,7 @@ canvas {
 .action-interact {
   background: rgba(255, 204, 0, 0.2);
   border-color: rgba(255, 204, 0, 0.5);
-  font-size: 20px;
+  font-size: min(2.5vw, 2.5vh);
   font-weight: 900;
   color: #ffcc00;
 }
@@ -162,7 +162,7 @@ canvas {
 .action-confirm {
   background: rgba(50, 200, 80, 0.2);
   border-color: rgba(50, 200, 80, 0.5);
-  font-size: 14px;
+  font-size: min(1.8vw, 1.8vh);
   color: #44dd66;
 }
 
@@ -173,7 +173,7 @@ canvas {
 .action-run {
   background: rgba(100, 150, 255, 0.15);
   border-color: rgba(100, 150, 255, 0.4);
-  font-size: 22px;
+  font-size: min(2.8vw, 2.8vh);
 }
 
 .action-run:active {
@@ -184,7 +184,7 @@ canvas {
 .action-back {
   background: rgba(255, 60, 60, 0.15);
   border-color: rgba(255, 60, 60, 0.4);
-  font-size: 20px;
+  font-size: min(2.5vw, 2.5vh);
   color: #ff6666;
 }
 

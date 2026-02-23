@@ -1,6 +1,7 @@
 import { HeadsTailsGame } from './HeadsTailsGame';
 import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
+import { UIScale } from '../Core/UIScale';
 
 export class HeadsTailsUI {
     private game: HeadsTailsGame;
@@ -53,6 +54,8 @@ export class HeadsTailsUI {
     }
 
     public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+        const s = UIScale.s.bind(UIScale);
+
         // Dark Overlay
         ctx.fillStyle = 'rgba(10, 10, 20, 0.95)';
         ctx.fillRect(0, 0, screenW, screenH);
@@ -62,9 +65,9 @@ export class HeadsTailsUI {
 
         // Title
         ctx.fillStyle = '#ff9933';
-        ctx.font = 'bold 36px "Segoe UI", sans-serif';
+        ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('CARA OU COROA', centerX, 100);
+        ctx.fillText('CARA OU COROA', centerX, s(100));
 
         const phase = this.game.phase;
 
@@ -75,55 +78,62 @@ export class HeadsTailsUI {
         } else if (phase === 'flipping' || phase === 'result') {
             this.drawCoin(ctx, centerX, centerY);
             if (phase === 'result') {
-                this.drawResultUI(ctx, centerX, centerY + 150);
+                this.drawResultUI(ctx, centerX, centerY + s(150));
             }
         }
 
         // Hints
         ctx.fillStyle = '#888';
-        ctx.font = '14px monospace';
+        ctx.font = `${UIScale.r(14)}px monospace`;
         const hint = isMobile()
             ? '[E] CONFIRMAR | [✕] SAIR'
             : 'ENTER - CONFIRMAR | ESC - SAIR';
-        ctx.fillText(hint, centerX, screenH - 50);
+        ctx.fillText(hint, centerX, screenH - s(50));
     }
 
     private drawBettingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = '#fff';
-        ctx.font = '24px sans-serif';
-        ctx.fillText('QUANTO VAI APOSTAR?', centerX, centerY - 60);
+        ctx.font = `${UIScale.r(24)}px sans-serif`;
+        ctx.fillText('QUANTO VAI APOSTAR?', centerX, centerY - s(60));
 
         ctx.fillStyle = '#ff9933';
-        ctx.font = 'bold 64px sans-serif';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, centerX, centerY + 20);
+        ctx.font = `bold ${UIScale.r(64)}px sans-serif`;
+        ctx.fillText(`R$ ${this.game.selectedBet}`, centerX, centerY + s(20));
     }
 
     private drawChoosingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
-        ctx.fillStyle = '#fff';
-        ctx.font = '24px sans-serif';
-        ctx.fillText('ESCOLHA UM LADO', centerX, centerY - 150);
+        const s = UIScale.s.bind(UIScale);
 
-        this.drawOption(ctx, centerX - 100, centerY, 'CARA', this.game.humanChoice === 'heads');
-        this.drawOption(ctx, centerX + 100, centerY, 'COROA', this.game.humanChoice === 'tails');
+        ctx.fillStyle = '#fff';
+        ctx.font = `${UIScale.r(24)}px sans-serif`;
+        ctx.fillText('ESCOLHA UM LADO', centerX, centerY - s(150));
+
+        this.drawOption(ctx, centerX - s(100), centerY, 'CARA', this.game.humanChoice === 'heads');
+        this.drawOption(ctx, centerX + s(100), centerY, 'COROA', this.game.humanChoice === 'tails');
     }
 
     private drawOption(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, selected: boolean) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = selected ? '#ff9933' : 'rgba(255,255,255,0.1)';
         ctx.beginPath();
-        ctx.roundRect(x - 60, y - 40, 120, 80, 10);
+        ctx.roundRect(x - s(60), y - s(40), s(120), s(80), s(10));
         ctx.fill();
         ctx.strokeStyle = selected ? '#fff' : 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = s(2);
         ctx.stroke();
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillText(label, x, y + 8);
+        ctx.font = `bold ${UIScale.r(20)}px sans-serif`;
+        ctx.fillText(label, x, y + s(8));
     }
 
     private drawCoin(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        const s = UIScale.s.bind(UIScale);
         const scaleX = Math.cos(this.game.currentRotation);
-        const size = 100;
+        const size = s(100);
 
         ctx.save();
         ctx.translate(x, y);
@@ -135,27 +145,29 @@ export class HeadsTailsUI {
         ctx.arc(0, 0, size, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = '#e6b800';
-        ctx.lineWidth = 5;
+        ctx.lineWidth = s(5);
         ctx.stroke();
 
         // Symbol
         ctx.fillStyle = '#e6b800';
-        ctx.font = 'bold 40px sans-serif';
+        ctx.font = `bold ${UIScale.r(40)}px sans-serif`;
         const sideSymbol = Math.abs(scaleX) < 0.1 ? '' : (scaleX > 0 ? '🪙' : '💰');
-        ctx.fillText(sideSymbol, 0, 15);
+        ctx.fillText(sideSymbol, 0, s(15));
 
         ctx.restore();
     }
 
     private drawResultUI(ctx: CanvasRenderingContext2D, centerX: number, y: number) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 28px sans-serif';
+        ctx.font = `bold ${UIScale.r(28)}px sans-serif`;
         ctx.fillText(this.game.resultMessage, centerX, y);
 
-        ctx.font = '16px monospace';
+        ctx.font = `${UIScale.r(16)}px monospace`;
         const resultHint = isMobile()
             ? '[OK] JOGAR NOVAMENTE | [E] CONTINUAR'
             : 'ESPAÇO JOGAR NOVAMENTE | ENTER CONTINUAR';
-        ctx.fillText(resultHint, centerX, y + 50);
+        ctx.fillText(resultHint, centerX, y + s(50));
     }
 }

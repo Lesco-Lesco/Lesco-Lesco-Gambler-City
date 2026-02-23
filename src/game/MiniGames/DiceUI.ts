@@ -6,6 +6,7 @@ import { DiceGame } from './DiceGame';
 import { BichoManager } from '../BichoManager';
 import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
+import { UIScale } from '../Core/UIScale';
 
 export class DiceUI {
     private game: DiceGame;
@@ -22,8 +23,10 @@ export class DiceUI {
     }
 
     public draw(ctx: CanvasRenderingContext2D, width: number, height: number) {
+        const s = UIScale.s.bind(UIScale);
+
         // Overlay Background
-        const grad = ctx.createRadialGradient(width / 2, height / 2, 100, width / 2, height / 2, width);
+        const grad = ctx.createRadialGradient(width / 2, height / 2, s(100), width / 2, height / 2, width);
         grad.addColorStop(0, 'rgba(20, 25, 35, 0.92)');
         grad.addColorStop(1, 'rgba(10, 10, 15, 0.98)');
         ctx.fillStyle = grad;
@@ -32,59 +35,60 @@ export class DiceUI {
         const cx = width / 2;
 
         // Title
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = s(15);
         ctx.shadowColor = '#00aaff';
         ctx.fillStyle = '#00aaff';
-        ctx.font = 'bold 48px "Segoe UI", "Roboto", sans-serif';
+        ctx.font = `bold ${UIScale.r(48)}px "Segoe UI", "Roboto", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText("DADOS DE RUA", cx, 80);
+        ctx.fillText("DADOS DE RUA", cx, s(80));
         ctx.shadowBlur = 0;
 
         // Dice Visuals (MUCH LARGER)
-        const diceSize = 140;
-        this.drawDie(ctx, cx - 120, 250, this.game.dice1, diceSize);
-        this.drawDie(ctx, cx + 120, 250, this.game.dice2, diceSize);
+        const diceSize = s(140);
+        this.drawDie(ctx, cx - s(120), s(250), this.game.dice1, diceSize);
+        this.drawDie(ctx, cx + s(120), s(250), this.game.dice2, diceSize);
 
         // Status Message
         ctx.fillStyle = this.game.winner?.isHuman ? '#44ff44' : '#ffffff';
-        ctx.font = '600 24px "Segoe UI", sans-serif';
-        ctx.fillText(this.game.message, cx, 380);
+        ctx.font = `600 ${UIScale.r(24)}px "Segoe UI", sans-serif`;
+        ctx.fillText(this.game.message, cx, s(380));
 
         // Players List
-        this.drawPlayersList(ctx, cx, 450);
+        this.drawPlayersList(ctx, cx, s(450));
 
         if (this.game.phase === 'betting') {
-            this.drawBettingInterface(ctx, cx, height - 150);
+            this.drawBettingInterface(ctx, cx, height - s(150));
         } else if (this.game.phase === 'result') {
             ctx.fillStyle = '#ffff66';
-            ctx.font = 'bold 18px "Segoe UI", sans-serif';
+            ctx.font = `bold ${UIScale.r(18)}px "Segoe UI", sans-serif`;
             const resultHint = isMobile()
                 ? '[OK] Jogar Novamente   [✕] Sair'
                 : '[ESPAÇO] Jogar Novamente   [ESC] Sair';
-            ctx.fillText(resultHint, cx, height - 60);
+            ctx.fillText(resultHint, cx, height - s(60));
         }
     }
 
     private drawDie(ctx: CanvasRenderingContext2D, x: number, y: number, value: number, size: number) {
+        const s = UIScale.s.bind(UIScale);
+
         // Shake effect if rolling
         if (this.game.isRolling) {
-            x += (Math.random() - 0.5) * 20;
-            y += (Math.random() - 0.5) * 20;
+            x += (Math.random() - 0.5) * s(20);
+            y += (Math.random() - 0.5) * s(20);
             value = Math.floor(Math.random() * 6) + 1;
         }
 
         // Box
         ctx.fillStyle = '#f0f0f5';
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = s(25);
         ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
-        // Rounded Rect manually or just fillRect for dice
         ctx.beginPath();
-        ctx.roundRect(x - size / 2, y - size / 2, size, size, 16);
+        ctx.roundRect(x - size / 2, y - size / 2, size, size, s(16));
         ctx.fill();
         ctx.shadowBlur = 0;
 
         ctx.strokeStyle = '#e0e0ea';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = s(2);
         ctx.stroke();
 
         // Pips (Dots)
@@ -105,9 +109,10 @@ export class DiceUI {
     }
 
     private drawPlayersList(ctx: CanvasRenderingContext2D, cx: number, y: number) {
+        const s = UIScale.s.bind(UIScale);
         const players = this.game.players;
-        const cardW = 180;
-        const spacing = 200;
+        const cardW = s(180);
+        const spacing = s(200);
         const startX = cx - (players.length - 1) * spacing / 2;
 
         players.forEach((p, i) => {
@@ -119,16 +124,16 @@ export class DiceUI {
             if (p.isHuman && this.game.phase === 'betting') ctx.fillStyle = 'rgba(0, 170, 255, 0.1)';
 
             ctx.beginPath();
-            ctx.roundRect(px - cardW / 2, y, cardW, 140, 12);
+            ctx.roundRect(px - cardW / 2, y, cardW, s(140), s(12));
             ctx.fill();
 
             ctx.strokeStyle = isWinner ? '#44dd66' : '#444';
             if (p.isHuman && !isWinner) ctx.strokeStyle = '#00aaff';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = s(2);
             ctx.stroke();
 
             if (isWinner) {
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = s(20);
                 ctx.shadowColor = '#44dd66';
                 ctx.stroke();
                 ctx.shadowBlur = 0;
@@ -136,66 +141,67 @@ export class DiceUI {
 
             // Name
             ctx.fillStyle = p.isHuman ? '#fff' : '#aaa';
-            ctx.font = 'bold 16px "Segoe UI", sans-serif';
+            ctx.font = `bold ${UIScale.r(16)}px "Segoe UI", sans-serif`;
             ctx.textAlign = 'center';
-            ctx.fillText(p.name, px, y + 30);
+            ctx.fillText(p.name, px, y + s(30));
 
             // Choices
             ctx.fillStyle = '#fff';
 
             if (this.game.phase !== 'betting' || !p.isHuman) {
-                ctx.font = '32px "Segoe UI", sans-serif';
-                ctx.fillText(`${p.choices[0]} & ${p.choices[1]}`, px, y + 75);
+                ctx.font = `${UIScale.r(32)}px "Segoe UI", sans-serif`;
+                ctx.fillText(`${p.choices[0]} & ${p.choices[1]}`, px, y + s(75));
             } else {
                 // In betting phase, highlight active human choice
-                // Using bigger fonts for selection
-                const c1Size = this.activeChoice === 0 ? '42px' : '32px';
-                const c2Size = this.activeChoice === 1 ? '42px' : '32px';
+                const c1Size = this.activeChoice === 0 ? UIScale.r(42) : UIScale.r(32);
+                const c2Size = this.activeChoice === 1 ? UIScale.r(42) : UIScale.r(32);
                 const c1Color = this.activeChoice === 0 ? '#00aaff' : '#888';
                 const c2Color = this.activeChoice === 1 ? '#00aaff' : '#888';
 
-                ctx.font = `bold ${c1Size} "Segoe UI", sans-serif`;
+                ctx.font = `bold ${c1Size}px "Segoe UI", sans-serif`;
                 ctx.fillStyle = c1Color;
-                ctx.fillText(`${this.humanChoices[0]}`, px - 30, y + 80);
+                ctx.fillText(`${this.humanChoices[0]}`, px - s(30), y + s(80));
 
-                ctx.font = `bold ${c2Size} "Segoe UI", sans-serif`;
+                ctx.font = `bold ${c2Size}px "Segoe UI", sans-serif`;
                 ctx.fillStyle = c2Color;
-                ctx.fillText(`${this.humanChoices[1]}`, px + 30, y + 80);
+                ctx.fillText(`${this.humanChoices[1]}`, px + s(30), y + s(80));
 
                 // Helper text
                 ctx.fillStyle = '#aaa';
-                ctx.font = '12px "Segoe UI", sans-serif';
-                ctx.fillText('Seus Números', px, y + 110);
+                ctx.font = `${UIScale.r(12)}px "Segoe UI", sans-serif`;
+                ctx.fillText('Seus Números', px, y + s(110));
             }
 
             // Score/Error
             if (this.game.phase === 'result') {
                 ctx.fillStyle = isWinner ? '#44dd66' : '#ff4444';
-                ctx.font = 'bold 14px "Segoe UI", sans-serif';
-                ctx.fillText(`Erro: ${p.score}`, px, y + 120);
+                ctx.font = `bold ${UIScale.r(14)}px "Segoe UI", sans-serif`;
+                ctx.fillText(`Erro: ${p.score}`, px, y + s(120));
             }
         });
     }
 
     private drawBettingInterface(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = '#ccc';
-        ctx.font = '300 24px "Segoe UI", sans-serif';
+        ctx.font = `300 ${UIScale.r(24)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('A SUA APOSTA', x, y - 40);
+        ctx.fillText('A SUA APOSTA', x, y - s(40));
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 64px "Segoe UI", sans-serif';
-        ctx.shadowBlur = 15;
+        ctx.font = `bold ${UIScale.r(64)}px "Segoe UI", sans-serif`;
+        ctx.shadowBlur = s(15);
         ctx.shadowColor = 'rgba(255,255,255,0.2)';
-        ctx.fillText(`R$ ${this.betAmount}`, x, y + 30);
+        ctx.fillText(`R$ ${this.betAmount}`, x, y + s(30));
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#aaa';
-        ctx.font = '14px "Segoe UI", sans-serif';
+        ctx.font = `${UIScale.r(14)}px "Segoe UI", sans-serif`;
         const betHint = isMobile()
             ? '[🏃] Trocar Dado  [D-Pad] Ajustar  [OK] JOGAR'
             : '[SHIFT/Q] Trocar Dado  [SETAS] Ajustar Valor/Número  [ESPAÇO] JOGAR';
-        ctx.fillText(betHint, x, y + 80);
+        ctx.fillText(betHint, x, y + s(80));
     }
 
     public update(_dt: number) {
@@ -227,7 +233,6 @@ export class DiceUI {
                     // Animation delay
                     setTimeout(() => {
                         this.game.resolve();
-                        // We don't update money here directly, we wait for the result phase or settle it
                     }, 1500);
                 }
             }

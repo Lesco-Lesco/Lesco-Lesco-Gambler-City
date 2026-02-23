@@ -6,6 +6,7 @@
 import { PurrinhaGame } from './PurrinhaGame';
 import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
+import { UIScale } from '../Core/UIScale';
 
 export class PurrinhaUI {
     private game: PurrinhaGame;
@@ -76,6 +77,8 @@ export class PurrinhaUI {
     }
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+        const s = UIScale.s.bind(UIScale);
+
         // Dark Overlay with subtle gradient
         const bgGrad = ctx.createLinearGradient(0, 0, 0, screenH);
         bgGrad.addColorStop(0, 'rgba(10, 15, 25, 0.95)');
@@ -87,45 +90,46 @@ export class PurrinhaUI {
         const centerY = screenH / 2;
 
         // Title with Glow
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = s(20);
         ctx.shadowColor = '#ffcc00';
         ctx.fillStyle = '#ffcc00';
-        ctx.font = 'bold 48px "Segoe UI", sans-serif';
+        ctx.font = `bold ${UIScale.r(48)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('PURRINHA', centerX, 80);
+        ctx.fillText('PURRINHA', centerX, s(80));
         ctx.shadowBlur = 0;
 
         // Players display
-        this.drawPlayers(ctx, centerX, 150, screenW);
+        this.drawPlayers(ctx, centerX, s(150), screenW);
 
         // Phase-specific UI
         const phase = this.game.phase;
 
         if (phase === 'betting') {
-            this.drawBettingUI(ctx, centerX, centerY + 80);
+            this.drawBettingUI(ctx, centerX, centerY + s(80));
         } else if (phase === 'choosing') {
-            this.drawChoosingUI(ctx, centerX, centerY + 80);
+            this.drawChoosingUI(ctx, centerX, centerY + s(80));
         } else if (phase === 'guessing') {
-            this.drawGuessingUI(ctx, centerX, centerY + 80);
+            this.drawGuessingUI(ctx, centerX, centerY + s(80));
         } else if (phase === 'reveal') {
-            this.drawRevealUI(ctx, centerX, centerY + 80);
+            this.drawRevealUI(ctx, centerX, centerY + s(80));
         } else if (phase === 'result') {
-            this.drawResultUI(ctx, centerX, centerY + 80);
+            this.drawResultUI(ctx, centerX, centerY + s(80));
         }
 
         // Controls hint
         ctx.fillStyle = '#888';
-        ctx.font = '600 14px "Segoe UI", sans-serif';
+        ctx.font = `600 ${UIScale.r(14)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
         const ctrlHint = isMobile()
             ? '[D-Pad] SELECIONAR  |  [E] CONFIRMAR  |  [✕] SAIR'
             : '↑↓ SELECIONAR  |  ENTER CONFIRMAR  |  ESC SAIR';
-        ctx.fillText(ctrlHint, centerX, screenH - 40);
+        ctx.fillText(ctrlHint, centerX, screenH - s(40));
     }
 
     private drawPlayers(ctx: CanvasRenderingContext2D, centerX: number, y: number, screenW: number) {
+        const s = UIScale.s.bind(UIScale);
         const players = this.game.players;
-        const spacing = Math.min(240, (screenW - 100) / players.length);
+        const spacing = Math.min(s(240), (screenW - s(100)) / players.length);
         const startX = centerX - (players.length - 1) * spacing / 2;
 
         for (let i = 0; i < players.length; i++) {
@@ -137,56 +141,56 @@ export class PurrinhaUI {
             const isWinner = this.game.winner === p;
 
             // Player Card
-            const cardW = 180;
-            const cardH = 160;
+            const cardW = s(180);
+            const cardH = s(160);
 
             ctx.save();
             ctx.translate(px, y);
 
             // Glow for winner
             if (isWinner && isResult) {
-                ctx.shadowBlur = 30;
+                ctx.shadowBlur = s(30);
                 ctx.shadowColor = '#ffcc00';
             }
 
             ctx.fillStyle = isWinner && isResult ? 'rgba(255, 204, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)';
             ctx.beginPath();
-            ctx.roundRect(-cardW / 2, 0, cardW, cardH, 12);
+            ctx.roundRect(-cardW / 2, 0, cardW, cardH, s(12));
             ctx.fill();
 
             ctx.strokeStyle = isWinner && isResult ? '#ffcc00' : 'rgba(255,255,255,0.1)';
-            ctx.lineWidth = isWinner && isResult ? 3 : 1;
+            ctx.lineWidth = isWinner && isResult ? s(3) : s(1);
             ctx.stroke();
             ctx.shadowBlur = 0;
 
             // Name
             ctx.fillStyle = p.isHuman ? '#ff4d6d' : '#8d99ae';
-            ctx.font = 'bold 18px "Segoe UI", sans-serif';
+            ctx.font = `bold ${UIScale.r(18)}px "Segoe UI", sans-serif`;
             ctx.textAlign = 'center';
-            ctx.fillText(p.name.toUpperCase(), 0, 35);
+            ctx.fillText(p.name.toUpperCase(), 0, s(35));
 
             // Money
             ctx.fillStyle = '#2ec4b6';
-            ctx.font = '600 14px "Segoe UI", sans-serif';
-            ctx.fillText(`R$ ${p.money}`, 0, 60);
+            ctx.font = `600 ${UIScale.r(14)}px "Segoe UI", sans-serif`;
+            ctx.fillText(`R$ ${p.money}`, 0, s(60));
 
             // Hand/stones
             if (isRevealed || isResult) {
                 ctx.fillStyle = '#fff';
-                ctx.font = '32px "Segoe UI Emoji", Arial';
+                ctx.font = `${UIScale.r(32)}px "Segoe UI Emoji", Arial`;
                 const stonesStr = '🪨'.repeat(p.stones) || '∅';
-                ctx.fillText(stonesStr, 0, 105);
+                ctx.fillText(stonesStr, 0, s(105));
             } else if (this.game.phase !== 'betting') {
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.font = '42px "Segoe UI Emoji", Arial';
-                ctx.fillText('✊', 0, 110);
+                ctx.font = `${UIScale.r(42)}px "Segoe UI Emoji", Arial`;
+                ctx.fillText('✊', 0, s(110));
             }
 
             // Guess
             if (p.hasGuessed && (this.game.phase === 'reveal' || this.game.phase === 'result')) {
                 ctx.fillStyle = '#ffcc00';
-                ctx.font = 'bold 16px "Segoe UI", sans-serif';
-                ctx.fillText(`PALPITE: ${p.guess}`, 0, 145);
+                ctx.font = `bold ${UIScale.r(16)}px "Segoe UI", sans-serif`;
+                ctx.fillText(`PALPITE: ${p.guess}`, 0, s(145));
             }
 
             ctx.restore();
@@ -194,93 +198,103 @@ export class PurrinhaUI {
     }
 
     private drawBettingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = '#adb5bd';
-        ctx.font = '600 24px "Segoe UI", sans-serif';
+        ctx.font = `600 ${UIScale.r(24)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('QUAL O VALOR DA APOSTA?', centerX, centerY - 80);
+        ctx.fillText('QUAL O VALOR DA APOSTA?', centerX, centerY - s(80));
 
         ctx.fillStyle = '#ffcc00';
-        ctx.font = 'bold 80px "Segoe UI", sans-serif';
-        ctx.shadowBlur = 25;
+        ctx.font = `bold ${UIScale.r(80)}px "Segoe UI", sans-serif`;
+        ctx.shadowBlur = s(25);
         ctx.shadowColor = 'rgba(255, 204, 0, 0.4)';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, centerX, centerY + 10);
+        ctx.fillText(`R$ ${this.game.selectedBet}`, centerX, centerY + s(10));
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#6c757d';
-        ctx.font = '16px "Segoe UI", sans-serif';
-        ctx.fillText(`Pote Final: R$ ${this.game.selectedBet * this.game.players.length}`, centerX, centerY + 80);
+        ctx.font = `${UIScale.r(16)}px "Segoe UI", sans-serif`;
+        ctx.fillText(`Pote Final: R$ ${this.game.selectedBet * this.game.players.length}`, centerX, centerY + s(80));
     }
 
     private drawChoosingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
-        ctx.fillStyle = '#adb5bd';
-        ctx.font = '600 24px "Segoe UI", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('PEDRAS NA MÃO? (0-3)', centerX, centerY - 80);
+        const s = UIScale.s.bind(UIScale);
 
-        ctx.font = '100px "Segoe UI Emoji", Arial';
+        ctx.fillStyle = '#adb5bd';
+        ctx.font = `600 ${UIScale.r(24)}px "Segoe UI", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('PEDRAS NA MÃO? (0-3)', centerX, centerY - s(80));
+
+        ctx.font = `${UIScale.r(100)}px "Segoe UI Emoji", Arial`;
         const stoneDisplay = this.game.selectedStones > 0 ? '🪨'.repeat(this.game.selectedStones) : '∅';
-        ctx.fillText(stoneDisplay, centerX, centerY + 20);
+        ctx.fillText(stoneDisplay, centerX, centerY + s(20));
 
         ctx.fillStyle = '#ffcc00';
-        ctx.font = 'bold 42px "Segoe UI", sans-serif';
-        ctx.fillText(`${this.game.selectedStones}`, centerX, centerY + 100);
+        ctx.font = `bold ${UIScale.r(42)}px "Segoe UI", sans-serif`;
+        ctx.fillText(`${this.game.selectedStones}`, centerX, centerY + s(100));
     }
 
     private drawGuessingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = '#adb5bd';
-        ctx.font = '600 24px "Segoe UI", sans-serif';
+        ctx.font = `600 ${UIScale.r(24)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('QUAL O TOTAL DA MESA?', centerX, centerY - 90);
+        ctx.fillText('QUAL O TOTAL DA MESA?', centerX, centerY - s(90));
 
         ctx.fillStyle = '#ffcc00';
-        ctx.font = 'bold 90px "Segoe UI", sans-serif';
-        ctx.shadowBlur = 25;
+        ctx.font = `bold ${UIScale.r(90)}px "Segoe UI", sans-serif`;
+        ctx.shadowBlur = s(25);
         ctx.shadowColor = 'rgba(255, 204, 0, 0.4)';
-        ctx.fillText(`${this.game.selectedGuess}`, centerX, centerY + 10);
+        ctx.fillText(`${this.game.selectedGuess}`, centerX, centerY + s(10));
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#6c757d';
-        ctx.font = '600 16px "Segoe UI", sans-serif';
-        ctx.fillText(`(Total possível: 0 - ${this.game.maxPossibleTotal})`, centerX, centerY + 80);
+        ctx.font = `600 ${UIScale.r(16)}px "Segoe UI", sans-serif`;
+        ctx.fillText(`(Total possível: 0 - ${this.game.maxPossibleTotal})`, centerX, centerY + s(80));
 
         ctx.fillStyle = '#44aaff';
-        ctx.fillText(`Suas pedras: ${this.game.selectedStones}`, centerX, centerY + 110);
+        ctx.fillText(`Suas pedras: ${this.game.selectedStones}`, centerX, centerY + s(110));
     }
 
     private drawRevealUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = '#ffcc00';
-        ctx.font = 'bold 36px "Segoe UI", sans-serif';
+        ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText('ABRINDO AS MÃOS...', centerX, centerY);
 
         if (this.game.revealIndex >= 0) {
             const revealed = this.game.players.slice(0, this.game.revealIndex + 1);
-            const partialTotal = revealed.reduce((s, p) => s + p.stones, 0);
+            const partialTotal = revealed.reduce((sum, p) => sum + p.stones, 0);
             ctx.fillStyle = '#6c757d';
-            ctx.font = 'bold 22px "Segoe UI", sans-serif';
-            ctx.fillText(`Soma parcial: ${partialTotal}`, centerX, centerY + 70);
+            ctx.font = `bold ${UIScale.r(22)}px "Segoe UI", sans-serif`;
+            ctx.fillText(`Soma parcial: ${partialTotal}`, centerX, centerY + s(70));
         }
     }
 
     private drawResultUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+        const s = UIScale.s.bind(UIScale);
+
         ctx.fillStyle = '#adb5bd';
-        ctx.font = '600 24px "Segoe UI", sans-serif';
+        ctx.font = `600 ${UIScale.r(24)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(`TOTAL NA MESA: ${this.game.totalStones}`, centerX, centerY - 50);
+        ctx.fillText(`TOTAL NA MESA: ${this.game.totalStones}`, centerX, centerY - s(50));
 
         const isWin = this.game.winner?.isHuman;
         ctx.fillStyle = isWin ? '#2ecc71' : '#e74c3c';
-        ctx.font = 'bold 48px "Segoe UI", sans-serif';
-        ctx.shadowBlur = 20;
+        ctx.font = `bold ${UIScale.r(48)}px "Segoe UI", sans-serif`;
+        ctx.shadowBlur = s(20);
         ctx.shadowColor = isWin ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)';
-        ctx.fillText(this.game.resultMessage.toUpperCase(), centerX, centerY + 40);
+        ctx.fillText(this.game.resultMessage.toUpperCase(), centerX, centerY + s(40));
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#fff';
-        ctx.font = '600 16px "Segoe UI", sans-serif';
+        ctx.font = `600 ${UIScale.r(16)}px "Segoe UI", sans-serif`;
         const resultHint = isMobile()
             ? '[OK] JOGAR NOVAMENTE  |  [E] CONTINUAR'
             : 'ESPAÇO JOGAR NOVAMENTE  |  ENTER CONTINUAR';
-        ctx.fillText(resultHint, centerX, centerY + 110);
+        ctx.fillText(resultHint, centerX, centerY + s(110));
     }
 }

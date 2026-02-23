@@ -33,6 +33,7 @@ import { PalitinhoUI } from '../MiniGames/PalitinhoUI';
 import { FanTanGame } from '../MiniGames/FanTanGame';
 import { FanTanUI } from '../MiniGames/FanTanUI';
 import { PoliceManager } from '../PoliceManager';
+import { UIScale } from '../Core/UIScale';
 
 export class ExplorationScene implements Scene {
     public name = 'exploration';
@@ -560,13 +561,14 @@ export class ExplorationScene implements Scene {
         const pm = PoliceManager.getInstance();
         if (pm.phase === 'none') return;
 
+        const s = UIScale.s.bind(UIScale);
         const w = this.screenW;
         const h = this.screenH;
         const cx = w / 2;
         const cy = h / 2;
 
         // Dark heavy vignette
-        const grad = ctx.createRadialGradient(cx, cy, 100, cx, cy, h);
+        const grad = ctx.createRadialGradient(cx, cy, s(100), cx, cy, h);
         grad.addColorStop(0, 'rgba(0,0,0,0.4)');
         grad.addColorStop(1, 'rgba(0,0,0,0.9)');
         ctx.fillStyle = grad;
@@ -576,54 +578,54 @@ export class ExplorationScene implements Scene {
         ctx.fillStyle = '#fff';
 
         if (pm.phase === 'interruption') {
-            ctx.font = 'bold 40px "Segoe UI"';
+            ctx.font = `bold ${UIScale.r(40)}px "Segoe UI"`;
             ctx.fillStyle = '#ff4444';
-            ctx.fillText("POLÍCIA! PARADO!", cx, cy - 100);
+            ctx.fillText("POLÍCIA! PARADO!", cx, cy - s(100));
 
-            ctx.font = 'italic 20px "Segoe UI"';
+            ctx.font = `italic ${UIScale.r(20)}px "Segoe UI"`;
             ctx.fillStyle = '#fff';
-            ctx.fillText(`"${pm.currentJoke}"`, cx, cy - 20);
+            ctx.fillText(`"${pm.currentJoke}"`, cx, cy - s(20));
 
-            ctx.font = 'bold 16px monospace';
-            ctx.fillText(`ACONTECEU UMA BATIDA! ELES ESTÃO DE OLHO NO SEU DINHEIRO...`, cx, cy + 40);
+            ctx.font = `bold ${UIScale.r(16)}px monospace`;
+            ctx.fillText(`ACONTECEU UMA BATIDA! ELES ESTÃO DE OLHO NO SEU DINHEIRO...`, cx, cy + s(40));
             ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.fillText("[ ESPAÇO ] OUVIR O POLICIAL", cx, cy + 100);
+            ctx.fillText("[ ESPAÇO ] OUVIR O POLICIAL", cx, cy + s(100));
         } else if (pm.phase === 'gamble_check') {
             const bmanager = BichoManager.getInstance();
             const canAffordBanca = bmanager.playerMoney >= 150;
 
-            ctx.font = 'bold 30px "Segoe UI"';
-            ctx.fillText("O POLICIAL TE DÁ UMA ESCOLHA...", cx, cy - 80);
+            ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
+            ctx.fillText("O POLICIAL TE DÁ UMA ESCOLHA...", cx, cy - s(80));
 
-            ctx.font = '24px "Segoe UI"';
+            ctx.font = `${UIScale.r(24)}px "Segoe UI"`;
             if (canAffordBanca) {
                 ctx.fillText(`"Quer ser a banca por 150 ou vai 'contribuir' com 10?"`, cx, cy);
 
-                ctx.font = 'bold 20px monospace';
+                ctx.font = `bold ${UIScale.r(20)}px monospace`;
                 ctx.fillStyle = '#ffff00';
-                ctx.fillText(`APOSTA ÚNICA: R$150 CONTRA A LEI`, cx, cy + 50);
+                ctx.fillText(`APOSTA ÚNICA: R$150 CONTRA A LEI`, cx, cy + s(50));
 
                 ctx.fillStyle = '#fff';
-                ctx.fillText("[Y] JOGAR COMO BANCA (150)   [N] PAGAR CONTRIBUIÇÃO (10)", cx, cy + 120);
+                ctx.fillText("[Y] JOGAR COMO BANCA (150)   [N] PAGAR CONTRIBUIÇÃO (10)", cx, cy + s(120));
             } else {
                 ctx.fillText(`"Como você tá liso, vai ter que 'contribuir' com 10."`, cx, cy);
 
-                ctx.font = 'bold 20px monospace';
+                ctx.font = `bold ${UIScale.r(20)}px monospace`;
                 ctx.fillStyle = '#ff4444';
-                ctx.fillText(`PAGAMENTO OBRIGATÓRIO: R$10`, cx, cy + 50);
+                ctx.fillText(`PAGAMENTO OBRIGATÓRIO: R$10`, cx, cy + s(50));
 
                 ctx.fillStyle = '#fff';
-                ctx.fillText("[N] PAGAR CONTRIBUIÇÃO (10)", cx, cy + 120);
+                ctx.fillText("[N] PAGAR CONTRIBUIÇÃO (10)", cx, cy + s(120));
             }
         } else if (pm.phase === 'dice_battle' || pm.phase === 'dice_battle_result') {
             const isRolling = pm.phase === 'dice_battle';
 
-            ctx.font = 'bold 36px "Segoe UI"';
+            ctx.font = `bold ${UIScale.r(36)}px "Segoe UI"`;
             ctx.fillStyle = '#ffff00';
-            ctx.fillText("BATALHA DE DADOS", cx, cy - 140);
+            ctx.fillText("BATALHA DE DADOS", cx, cy - s(140));
 
             // Dice Display
-            const spacing = 150;
+            const spacing = s(150);
 
             const playerVal = isRolling ? Math.floor(Math.random() * 6) + 1 : this.policeBattleRolls!.player;
             const policeVal = isRolling ? Math.floor(Math.random() * 6) + 1 : this.policeBattleRolls!.police;
@@ -634,26 +636,26 @@ export class ExplorationScene implements Scene {
 
             if (!isRolling) {
                 const win = this.policeBattleRolls!.player > this.policeBattleRolls!.police;
-                ctx.font = 'bold 30px "Segoe UI"';
+                ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
                 ctx.fillStyle = win ? '#2ecc71' : '#ff4444';
-                ctx.fillText(win ? "VITÓRIA!" : "DERROTA!", cx, cy + 100);
+                ctx.fillText(win ? "VITÓRIA!" : "DERROTA!", cx, cy + s(100));
 
-                ctx.font = '16px monospace';
+                ctx.font = `${UIScale.r(16)}px monospace`;
                 ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.fillText("[ ESPAÇO ] CONTINUAR", cx, cy + 150);
+                ctx.fillText("[ ESPAÇO ] CONTINUAR", cx, cy + s(150));
             } else {
-                ctx.font = 'italic 20px "Segoe UI"';
+                ctx.font = `italic ${UIScale.r(20)}px "Segoe UI"`;
                 ctx.fillStyle = '#fff';
-                ctx.fillText("Rodando...", cx, cy + 100);
+                ctx.fillText("Rodando...", cx, cy + s(100));
             }
         } else if (pm.phase === 'consequence') {
-            ctx.font = 'bold 30px "Segoe UI"';
-            ctx.fillText("FIM DA BATIDA", cx, cy - 100);
-            ctx.font = 'italic 20px "Segoe UI"';
+            ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
+            ctx.fillText("FIM DA BATIDA", cx, cy - s(100));
+            ctx.font = `italic ${UIScale.r(20)}px "Segoe UI"`;
             ctx.fillText(`"${pm.currentJoke}"`, cx, cy);
-            ctx.font = '16px monospace';
+            ctx.font = `${UIScale.r(16)}px monospace`;
             ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.fillText("[ ESPAÇO ] VOLTAR PARA A RUA", cx, cy + 100);
+            ctx.fillText("[ ESPAÇO ] VOLTAR PARA A RUA", cx, cy + s(100));
         }
     }
 
@@ -681,13 +683,14 @@ export class ExplorationScene implements Scene {
     }
 
     private drawDie(ctx: CanvasRenderingContext2D, x: number, y: number, value: number, label: number | string, color: string) {
-        const size = 100;
-        const radius = 15;
+        const s = UIScale.s.bind(UIScale);
+        const size = s(100);
+        const radius = s(15);
 
         // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.beginPath();
-        ctx.roundRect(x - size / 2 + 5, y - size / 2 + 5, size, size, radius);
+        ctx.roundRect(x - size / 2 + s(5), y - size / 2 + s(5), size, size, radius);
         ctx.fill();
 
         // Main Body
@@ -696,18 +699,18 @@ export class ExplorationScene implements Scene {
         ctx.roundRect(x - size / 2, y - size / 2, size, size, radius);
         ctx.fill();
         ctx.strokeStyle = color;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = s(4);
         ctx.stroke();
 
         // Label
         ctx.fillStyle = color;
-        ctx.font = 'bold 20px "Segoe UI"';
+        ctx.font = `bold ${UIScale.r(20)}px "Segoe UI"`;
         ctx.textAlign = 'center';
-        ctx.fillText(label.toString(), x, y - size / 2 - 20);
+        ctx.fillText(label.toString(), x, y - size / 2 - s(20));
 
         // Dots
         ctx.fillStyle = '#333';
-        const dotR = 8;
+        const dotR = s(8);
         const q = size / 4;
 
         const drawDot = (dx: number, dy: number) => {

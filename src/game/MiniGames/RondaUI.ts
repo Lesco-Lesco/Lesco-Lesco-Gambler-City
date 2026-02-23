@@ -3,6 +3,7 @@ import type { Card } from './RondaGame';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
 import { isMobile } from '../Core/MobileDetect';
+import { UIScale } from '../Core/UIScale';
 
 export class RondaUI {
     private game: RondaGame;
@@ -17,8 +18,10 @@ export class RondaUI {
     }
 
     public draw(ctx: CanvasRenderingContext2D, width: number, height: number) {
+        const s = UIScale.s.bind(UIScale);
+
         // Background - Dark Green felt texture feel but modern
-        const grad = ctx.createRadialGradient(width / 2, height / 2, 50, width / 2, height / 2, width);
+        const grad = ctx.createRadialGradient(width / 2, height / 2, s(50), width / 2, height / 2, width);
         grad.addColorStop(0, 'rgba(10, 40, 20, 0.98)');
         grad.addColorStop(1, 'rgba(5, 20, 10, 1.0)');
         ctx.fillStyle = grad;
@@ -27,87 +30,87 @@ export class RondaUI {
         const cx = width / 2;
 
         // Title
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = s(15);
         ctx.shadowColor = '#44ff44';
         ctx.fillStyle = '#44ff44';
-        ctx.font = 'bold 48px "Segoe UI", "Roboto", sans-serif';
+        ctx.font = `bold ${UIScale.r(48)}px "Segoe UI", "Roboto", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText("RONDA", cx, 60);
+        ctx.fillText("RONDA", cx, s(60));
         ctx.shadowBlur = 0;
 
         // Betting Info
         if (this.game.phase === 'betting') {
             ctx.fillStyle = '#aaa';
-            ctx.font = 'bold 20px "Segoe UI", sans-serif';
-            ctx.fillText("SUA APOSTA", cx, 110);
+            ctx.font = `bold ${UIScale.r(20)}px "Segoe UI", sans-serif`;
+            ctx.fillText("SUA APOSTA", cx, s(110));
 
             ctx.fillStyle = '#ffff00';
-            ctx.font = 'bold 72px "Segoe UI", sans-serif';
-            ctx.shadowBlur = 20;
+            ctx.font = `bold ${UIScale.r(72)}px "Segoe UI", sans-serif`;
+            ctx.shadowBlur = s(20);
             ctx.shadowColor = 'rgba(255, 255, 0, 0.3)';
-            ctx.fillText(`R$ ${this.game.betAmount}`, cx, 185);
+            ctx.fillText(`R$ ${this.game.betAmount}`, cx, s(185));
             ctx.shadowBlur = 0;
         }
 
         // Objective Cards Area
-        const objY = 360;
+        const objY = s(360);
 
         // Container for Objectives
         ctx.fillStyle = 'rgba(255,255,255,0.03)';
         ctx.beginPath();
-        ctx.roundRect(cx - 280, objY - 140, 560, 260, 20);
+        ctx.roundRect(cx - s(280), objY - s(140), s(560), s(260), s(20));
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
         ctx.fillStyle = '#aaa';
-        ctx.font = '600 15px "Segoe UI", sans-serif';
-        ctx.fillText("ESCOLHA UMA CARTA PARA APOSTAR", cx, objY - 110);
+        ctx.font = `600 ${UIScale.r(15)}px "Segoe UI", sans-serif`;
+        ctx.fillText("ESCOLHA UMA CARTA PARA APOSTAR", cx, objY - s(110));
 
-        this.drawCard(ctx, cx - 110, objY, this.game.objectiveCards[0], this.game.playerChoiceIndex === 0, false, 120, 180);
-        this.drawCard(ctx, cx + 110, objY, this.game.objectiveCards[1], this.game.playerChoiceIndex === 1, false, 120, 180);
+        this.drawCard(ctx, cx - s(110), objY, this.game.objectiveCards[0], this.game.playerChoiceIndex === 0, false, s(120), s(180));
+        this.drawCard(ctx, cx + s(110), objY, this.game.objectiveCards[1], this.game.playerChoiceIndex === 1, false, s(120), s(180));
 
         // Selection Indicators
         if (this.game.phase === 'betting') {
             ctx.fillStyle = '#ffcc00';
-            ctx.font = 'bold 32px "Segoe UI", sans-serif';
-            ctx.fillText(this.game.playerChoiceIndex === 0 ? "▲" : "", cx - 110, objY + 130);
-            ctx.fillText(this.game.playerChoiceIndex === 1 ? "▲" : "", cx + 110, objY + 130);
+            ctx.font = `bold ${UIScale.r(32)}px "Segoe UI", sans-serif`;
+            ctx.fillText(this.game.playerChoiceIndex === 0 ? "▲" : "", cx - s(110), objY + s(130));
+            ctx.fillText(this.game.playerChoiceIndex === 1 ? "▲" : "", cx + s(110), objY + s(130));
         }
 
         // Community Cards (The reveal pile) - CENTER PILE
-        const pileY = 640;
+        const pileY = s(640);
         ctx.textAlign = 'center';
         if (this.game.communityCards.length > 0) {
             const lastCard = this.game.communityCards[this.game.communityCards.length - 1];
-            this.drawCard(ctx, cx, pileY, lastCard, false, true, 130, 200);
+            this.drawCard(ctx, cx, pileY, lastCard, false, true, s(130), s(200));
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 18px "Segoe UI", sans-serif';
-            ctx.fillText("CARTA REVELADA", cx, pileY - 130);
+            ctx.font = `bold ${UIScale.r(18)}px "Segoe UI", sans-serif`;
+            ctx.fillText("CARTA REVELADA", cx, pileY - s(130));
         } else {
             // Deck back
-            this.drawCardBack(ctx, cx, pileY, 130, 200);
+            this.drawCardBack(ctx, cx, pileY, s(130), s(200));
             ctx.fillStyle = '#aaa';
-            ctx.font = '600 16px "Segoe UI", sans-serif';
-            ctx.fillText("BARALHO", cx, pileY - 130);
+            ctx.font = `600 ${UIScale.r(16)}px "Segoe UI", sans-serif`;
+            ctx.fillText("BARALHO", cx, pileY - s(130));
         }
 
         // Status
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 28px "Segoe UI", sans-serif';
-        ctx.shadowBlur = 10;
+        ctx.font = `bold ${UIScale.r(28)}px "Segoe UI", sans-serif`;
+        ctx.shadowBlur = s(10);
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.fillText(this.game.message, cx, height - 100);
+        ctx.fillText(this.game.message, cx, height - s(100));
         ctx.shadowBlur = 0;
 
         // Controls
-        this.drawControlsUI(ctx, cx, height - 40);
+        this.drawControlsUI(ctx, cx, height - s(40));
     }
 
     private drawControlsUI(ctx: CanvasRenderingContext2D, x: number, y: number) {
         ctx.fillStyle = '#888';
-        ctx.font = '14px "Segoe UI", sans-serif';
+        ctx.font = `${UIScale.r(14)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
 
         if (this.game.phase === 'betting') {
@@ -124,27 +127,28 @@ export class RondaUI {
     }
 
     private drawCard(ctx: CanvasRenderingContext2D, x: number, y: number, card: Card, selected: boolean = false, highlight: boolean = false, w: number = 60, h: number = 90) {
-        ctx.save(); // Protect global state (alignment, shadow, etc.)
+        const s = UIScale.s.bind(UIScale);
+        ctx.save();
         // Selection Glow
         if (selected) {
-            ctx.shadowBlur = 30;
+            ctx.shadowBlur = s(30);
             ctx.shadowColor = '#ffff00';
             ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
             ctx.beginPath();
-            ctx.roundRect(x - w / 2 - 10, y - h / 2 - 10, w + 20, h + 20, 10);
+            ctx.roundRect(x - w / 2 - s(10), y - h / 2 - s(10), w + s(20), h + s(20), s(10));
             ctx.fill();
         }
         if (highlight) {
-            ctx.shadowBlur = 40;
+            ctx.shadowBlur = s(40);
             ctx.shadowColor = '#ffffff';
         }
 
         // Card Body
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.roundRect(x - w / 2, y - h / 2, w, h, 8);
+        ctx.roundRect(x - w / 2, y - h / 2, w, h, s(8));
         ctx.fill();
-        ctx.shadowBlur = 0; // Reset glow
+        ctx.shadowBlur = 0;
 
         // Border
         ctx.strokeStyle = '#222';
@@ -164,34 +168,35 @@ export class RondaUI {
         ctx.fillText(ranks[card.rank - 1], x, y - h * 0.15);
 
         const suitSize = Math.floor(h * 0.4);
-        ctx.font = `${suitSize}px Arial`; // Suit symbols render better in standard fonts
+        ctx.font = `${suitSize}px Arial`;
         ctx.fillText(suits[card.suit], x, y + h * 0.35);
 
         // Mini rank/suit in corners
         ctx.font = `bold ${Math.floor(fontSize * 0.4)}px "Segoe UI", Arial`;
         ctx.textAlign = 'left';
-        ctx.fillText(ranks[card.rank - 1], x - w / 2 + 8, y - h / 2 + 24);
+        ctx.fillText(ranks[card.rank - 1], x - w / 2 + s(8), y - h / 2 + s(24));
         ctx.textAlign = 'right';
-        ctx.fillText(ranks[card.rank - 1], x + w / 2 - 8, y + h / 2 - 10);
+        ctx.fillText(ranks[card.rank - 1], x + w / 2 - s(8), y + h / 2 - s(10));
 
         ctx.restore();
     }
 
     private drawCardBack(ctx: CanvasRenderingContext2D, x: number, y: number, w: number = 60, h: number = 90) {
+        const s = UIScale.s.bind(UIScale);
         // Modern Pattern Back
         ctx.fillStyle = '#882222';
         ctx.beginPath();
-        ctx.roundRect(x - w / 2, y - h / 2, w, h, 8);
+        ctx.roundRect(x - w / 2, y - h / 2, w, h, s(8));
         ctx.fill();
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = s(4);
         ctx.stroke();
 
         // Pattern
         ctx.fillStyle = 'rgba(255,255,255,0.1)';
         ctx.beginPath();
-        ctx.roundRect(x - w / 2 + 10, y - h / 2 + 10, w - 20, h - 20, 4);
+        ctx.roundRect(x - w / 2 + s(10), y - h / 2 + s(10), w - s(20), h - s(20), s(4));
         ctx.fill();
 
         // Center Design
@@ -232,7 +237,6 @@ export class RondaUI {
         } else if (this.game.phase === 'result') {
             // Settle once
             if (!this.hasSettled) {
-                // We don't update money here directly, we wait for the trigger or call the callback
                 this.hasSettled = true;
             }
 
