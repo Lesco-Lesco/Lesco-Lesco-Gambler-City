@@ -7,9 +7,12 @@ import type { GameOverScene } from '../game/Scenes/GameOverScene';
 import { EconomyManager } from '../game/Core/EconomyManager';
 import { UIScale } from '../game/Core/UIScale';
 import MobileControls from './MobileControls';
+import { useState } from 'react';
 
 const GameCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [showSplash, setShowSplash] = useState(false);
+    const [splashFade, setSplashFade] = useState(true); // Start as visible
     const engineRef = useRef<{
         loop: GameLoop;
         renderer: Renderer;
@@ -27,6 +30,20 @@ const GameCanvas = () => {
 
         let isMounted = true;
         let fpsInterval: number;
+
+        const triggerSplash = async () => {
+            if (!isMounted) return;
+            setSplashFade(true); // Ensure visible immediately
+            setShowSplash(true);
+
+            // Show for 2.0s
+            await new Promise(r => setTimeout(r, 2000));
+
+            setSplashFade(false); // Start fade out
+            setTimeout(() => {
+                if (isMounted) setShowSplash(false);
+            }, 700); // More breathing room for mobile (transition is 0.6s)
+        };
 
         const init = async () => {
             try {
@@ -68,6 +85,7 @@ const GameCanvas = () => {
                     gameOverScene.onRestart = () => {
                         // Reset global state
                         EconomyManager.getInstance().reset();
+                        triggerSplash(); // Show splash on restart
                         loop.setScene('exploration');
                     };
 
@@ -87,6 +105,7 @@ const GameCanvas = () => {
 
                 // Start loop
                 loop.start();
+                triggerSplash(); // Show splash on first start
                 engineRef.current = { loop, renderer, scene, casinoScene, gameOverScene };
 
                 // Handle resize
@@ -166,6 +185,18 @@ const GameCanvas = () => {
                     cursor: 'none',
                 }}
             />
+
+            {showSplash && (
+                <div className={`splash-overlay ${splashFade ? 'visible' : ''}`}>
+                    <img
+                        src="/intro.jpg"
+                        alt="Logo Intro"
+                        className="splash-image"
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                </div>
+            )}
+
             <MobileControls />
         </>
     );
