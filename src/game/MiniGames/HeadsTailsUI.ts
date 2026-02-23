@@ -1,5 +1,6 @@
 import { HeadsTailsGame } from './HeadsTailsGame';
 import { InputManager } from '../Core/InputManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class HeadsTailsUI {
     private game: HeadsTailsGame;
@@ -81,7 +82,10 @@ export class HeadsTailsUI {
         // Hints
         ctx.fillStyle = '#888';
         ctx.font = '14px monospace';
-        ctx.fillText('ENTER - CONFIRMAR | ESC - SAIR', centerX, screenH - 50);
+        const hint = isMobile()
+            ? '[E] CONFIRMAR | [✕] SAIR'
+            : 'ENTER - CONFIRMAR | ESC - SAIR';
+        ctx.fillText(hint, centerX, screenH - 50);
     }
 
     private drawBettingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
@@ -149,6 +153,9 @@ export class HeadsTailsUI {
         ctx.fillText(this.game.resultMessage, centerX, y);
 
         ctx.font = '16px monospace';
-        ctx.fillText('ESPAÇO JOGAR NOVAMENTE | ENTER CONTINUAR', centerX, y + 50);
+        const resultHint = isMobile()
+            ? '[OK] JOGAR NOVAMENTE | [E] CONTINUAR'
+            : 'ESPAÇO JOGAR NOVAMENTE | ENTER CONTINUAR';
+        ctx.fillText(resultHint, centerX, y + 50);
     }
 }

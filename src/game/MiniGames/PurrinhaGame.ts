@@ -1,4 +1,5 @@
-import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import type { IMinigame } from './BaseMinigame';
 /**
  * Purrinha Mini-Game
  * Rules:
@@ -21,7 +22,7 @@ export interface PurrinhaPlayer {
     hasGuessed: boolean;
 }
 
-export class PurrinhaGame {
+export class PurrinhaGame implements IMinigame {
     public phase: PurrinhaPhase = 'betting';
     public players: PurrinhaPlayer[] = [];
     public betAmount: number = 10;
@@ -77,7 +78,7 @@ export class PurrinhaGame {
     }
 
     public updateLimits() {
-        const limits = BichoManager.getInstance().getBetLimits();
+        const limits = EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
         // Ensure current bet is within valid range? 

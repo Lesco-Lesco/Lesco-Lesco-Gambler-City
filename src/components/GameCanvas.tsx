@@ -4,7 +4,7 @@ import { GameLoop } from '../game/Core/Loop';
 import type { ExplorationScene } from '../game/Scenes/ExplorationScene';
 import type { CasinoScene } from '../game/Scenes/CasinoScene';
 import type { GameOverScene } from '../game/Scenes/GameOverScene';
-import { BichoManager } from '../game/BichoManager';
+import { EconomyManager } from '../game/Core/EconomyManager';
 import MobileControls from './MobileControls';
 
 const GameCanvas = () => {
@@ -66,9 +66,7 @@ const GameCanvas = () => {
 
                     gameOverScene.onRestart = () => {
                         // Reset global state
-                        const bmanager = BichoManager.getInstance();
-                        bmanager.playerMoney = 500; // Reset to starting amount
-                        // We could also reset purrinha player money or other attributes if needed
+                        EconomyManager.getInstance().reset();
                         loop.setScene('exploration');
                     };
 

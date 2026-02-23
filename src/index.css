@@ -35,79 +35,163 @@ canvas {
     display: none;
 }
 
-/* Mobile Controls */
+/* ============================
+   Rotate Overlay (Portrait Block)
+   ============================ */
+.rotate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #06060e;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.rotate-icon {
+  font-size: 64px;
+  animation: rotate-pulse 2s ease-in-out infinite;
+}
+
+.rotate-text {
+  color: #ffcc00;
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.rotate-sub {
+  color: #888;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  text-align: center;
+}
+
+@keyframes rotate-pulse {
+  0%, 100% { transform: rotate(-15deg) scale(1); }
+  50%      { transform: rotate(15deg) scale(1.1); }
+}
+
+/* ============================
+   Mobile Controls (Landscape)
+   ============================ */
 .mobile-controls {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   pointer-events: none;
   z-index: 1000;
   user-select: none;
+  -webkit-user-select: none;
 }
 
+/* D-Pad — bottom-left */
 .d-pad {
   display: grid;
-  grid-template-columns: repeat(3, 60px);
-  grid-template-rows: repeat(3, 60px);
-  gap: 5px;
+  grid-template-columns: repeat(3, 52px);
+  grid-template-rows: repeat(3, 52px);
+  gap: 4px;
   pointer-events: auto;
 }
 
+.d-btn-up    { grid-column: 2; grid-row: 1; }
+.d-btn-down  { grid-column: 2; grid-row: 3; }
+.d-btn-left  { grid-column: 1; grid-row: 2; }
+.d-btn-right { grid-column: 3; grid-row: 2; }
+
+/* Action Buttons — bottom-right, 2×2 grid, above minimap */
 .action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: 56px 56px;
+  grid-template-rows: 56px 56px;
+  gap: 8px;
   pointer-events: auto;
+  margin-bottom: 4px;
 }
 
+/* Shared mobile button style */
 .mobile-btn {
-  width: 60px;
-  height: 60px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   color: white;
-  font-family: 'monospace';
+  font-family: monospace;
   font-weight: bold;
-  font-size: 24px;
+  font-size: 22px;
   cursor: pointer;
   touch-action: manipulation;
-  transition: all 0.1s;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.8);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.08s, border-color 0.08s;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.7);
 }
 
 .mobile-btn:active {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(2px);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.8);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
   border-color: #ffcc00;
   color: #ffcc00;
 }
 
-.mobile-btn.interact {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+/* --- Action button specific styles --- */
+.action-interact {
   background: rgba(255, 204, 0, 0.2);
-  border: 3px solid rgba(255, 204, 0, 0.5);
-  font-size: 14px;
+  border-color: rgba(255, 204, 0, 0.5);
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffcc00;
 }
 
-.mobile-btn.interact:active {
+.action-interact:active {
   background: rgba(255, 204, 0, 0.5);
 }
 
-.d-btn-up { grid-column: 2; grid-row: 1; }
-.d-btn-down { grid-column: 2; grid-row: 3; }
-.d-btn-left { grid-column: 1; grid-row: 2; }
-.d-btn-right { grid-column: 3; grid-row: 2; }
+.action-confirm {
+  background: rgba(50, 200, 80, 0.2);
+  border-color: rgba(50, 200, 80, 0.5);
+  font-size: 14px;
+  color: #44dd66;
+}
+
+.action-confirm:active {
+  background: rgba(50, 200, 80, 0.5);
+}
+
+.action-run {
+  background: rgba(100, 150, 255, 0.15);
+  border-color: rgba(100, 150, 255, 0.4);
+  font-size: 22px;
+}
+
+.action-run:active {
+  background: rgba(100, 150, 255, 0.5);
+  border-color: #88aaff;
+}
+
+.action-back {
+  background: rgba(255, 60, 60, 0.15);
+  border-color: rgba(255, 60, 60, 0.4);
+  font-size: 20px;
+  color: #ff6666;
+}
+
+.action-back:active {
+  background: rgba(255, 60, 60, 0.5);
+  border-color: #ff4444;
+}
 
 /* Selection color */
 ::selection {

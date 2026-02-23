@@ -1,5 +1,6 @@
 import { FanTanGame } from './FanTanGame';
 import { InputManager } from '../Core/InputManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class FanTanUI {
     private game: FanTanGame;
@@ -88,9 +89,16 @@ export class FanTanUI {
 
         ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
         ctx.font = '12px monospace';
-        const helpText = phase === 'choosing'
-            ? `ESCOLHA 2 POSIÇÕES (${this.game.currentPlayerChoices.length}/2) | ENTER CONFIRMAR | ESC SAIR`
-            : 'ENTER CONFIRMAR | ESC SAIR';
+        let helpText: string;
+        if (isMobile()) {
+            helpText = phase === 'choosing'
+                ? `ESCOLHA 2 POSIÇÕES (${this.game.currentPlayerChoices.length}/2) | [E] CONFIRMAR | [✕] SAIR`
+                : '[E] CONFIRMAR | [✕] SAIR';
+        } else {
+            helpText = phase === 'choosing'
+                ? `ESCOLHA 2 POSIÇÕES (${this.game.currentPlayerChoices.length}/2) | ENTER CONFIRMAR | ESC SAIR`
+                : 'ENTER CONFIRMAR | ESC SAIR';
+        }
         ctx.fillText(helpText, centerX, screenH - 40);
     }
 
@@ -217,6 +225,9 @@ export class FanTanUI {
         ctx.font = 'bold 24px sans-serif';
         ctx.fillText(this.game.resultMessage, centerX, y);
         ctx.font = '16px monospace';
-        ctx.fillText('ESPAÇO JOGAR NOVAMENTE | ENTER SAIR', centerX, y + 40);
+        const resultHint = isMobile()
+            ? '[OK] JOGAR NOVAMENTE | [E] SAIR'
+            : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR';
+        ctx.fillText(resultHint, centerX, y + 40);
     }
 }

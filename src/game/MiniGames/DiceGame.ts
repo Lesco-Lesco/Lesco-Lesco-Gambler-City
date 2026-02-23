@@ -1,4 +1,5 @@
-import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import type { IMinigame } from './BaseMinigame';
 /**
  * DiceGame (Dados) Logic — Overhauled to 5-player "Stones Style"
  * 
@@ -17,7 +18,7 @@ export interface DicePlayer {
     score: number;
 }
 
-export class DiceGame {
+export class DiceGame implements IMinigame {
     public players: DicePlayer[] = [];
     public dice1: number = 1;
     public dice2: number = 1;
@@ -35,7 +36,7 @@ export class DiceGame {
     }
 
     public updateLimits() {
-        const limits = BichoManager.getInstance().getBetLimits();
+        const limits = EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
     }
@@ -100,6 +101,15 @@ export class DiceGame {
             this.message = `GANHOU! Você acertou ${detail}!`;
         } else {
             this.message = `${this.winner.name} venceu (margem ${bestScore}).`;
+        }
+    }
+
+    public settle(): number {
+        if (!this.winner) return 0;
+        if (this.winner.isHuman) {
+            return this.betAmount * (this.players.length - 1); // Net profit
+        } else {
+            return -this.betAmount; // Lost the bet
         }
     }
 

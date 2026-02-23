@@ -5,6 +5,7 @@
 
 import { PurrinhaGame } from './PurrinhaGame';
 import { InputManager } from '../Core/InputManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class PurrinhaUI {
     private game: PurrinhaGame;
@@ -116,7 +117,10 @@ export class PurrinhaUI {
         ctx.fillStyle = '#888';
         ctx.font = '600 14px "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('↑↓ SELECIONAR  |  ENTER CONFIRMAR  |  ESC SAIR', centerX, screenH - 40);
+        const ctrlHint = isMobile()
+            ? '[D-Pad] SELECIONAR  |  [E] CONFIRMAR  |  [✕] SAIR'
+            : '↑↓ SELECIONAR  |  ENTER CONFIRMAR  |  ESC SAIR';
+        ctx.fillText(ctrlHint, centerX, screenH - 40);
     }
 
     private drawPlayers(ctx: CanvasRenderingContext2D, centerX: number, y: number, screenW: number) {
@@ -274,6 +278,9 @@ export class PurrinhaUI {
 
         ctx.fillStyle = '#fff';
         ctx.font = '600 16px "Segoe UI", sans-serif';
-        ctx.fillText('ESPAÇO JOGAR NOVAMENTE  |  ENTER CONTINUAR', centerX, centerY + 110);
+        const resultHint = isMobile()
+            ? '[OK] JOGAR NOVAMENTE  |  [E] CONTINUAR'
+            : 'ESPAÇO JOGAR NOVAMENTE  |  ENTER CONTINUAR';
+        ctx.fillText(resultHint, centerX, centerY + 110);
     }
 }

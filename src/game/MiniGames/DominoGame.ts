@@ -1,4 +1,5 @@
-import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import type { IMinigame } from './BaseMinigame';
 /**
  * DominoGame Logic — Classic 3-player gambling style.
  * 
@@ -27,7 +28,7 @@ export interface DominoPlayer {
 
 export type DominoPhase = 'betting' | 'playing' | 'result';
 
-export class DominoGame {
+export class DominoGame implements IMinigame {
     public players: DominoPlayer[] = [];
     public board: DominoPiece[] = []; // Linear sequence
     public pool: DominoPiece[] = [];
@@ -46,7 +47,7 @@ export class DominoGame {
     }
 
     public updateLimits() {
-        const limits = BichoManager.getInstance().getBetLimits();
+        const limits = EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
     }
@@ -271,6 +272,15 @@ export class DominoGame {
             } else {
                 this.message = `${winner.name} venceu a partida.`;
             }
+        }
+    }
+
+    public settle(): number {
+        if (!this.winner) return 0;
+        if (this.winner.isHuman) {
+            return this.betAmount * (this.players.length - 1); // Net profit
+        } else {
+            return -this.betAmount;
         }
     }
 

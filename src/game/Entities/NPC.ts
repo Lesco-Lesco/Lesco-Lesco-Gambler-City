@@ -8,16 +8,14 @@
 
 import { Camera } from '../Core/Camera';
 import { TileMap } from '../World/TileMap';
+import { drawCharacter } from './CharacterRenderer';
+import type { CharacterAppearance } from './CharacterRenderer';
 
 export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police';
 export type MinigameType = 'purrinha' | 'dice' | 'ronda' | 'domino' | 'heads_tails' | 'palitinho' | 'fan_tan' | null;
 
-interface NPCAppearance {
-    bodyColor: string;
-    legColor: string;
-    skinColor: string;
-    hatColor?: string;
-    hasHat: boolean;
+interface NPCAppearance extends CharacterAppearance {
+    // NPC-specific appearance can be extended here if needed
 }
 
 /** Seeded random for NPC consistency */
@@ -421,33 +419,12 @@ export class NPC {
     public draw(ctx: CanvasRenderingContext2D, camera: Camera) {
         if (!this.isVisible) return;
 
-        const { sx, sy } = camera.worldToScreen(this.x, this.y);
-        const z = camera.zoom;
-
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath();
-        ctx.ellipse(sx, sy, 5 * z, 2.5 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Legs
-        ctx.fillStyle = this.appearance.legColor;
-        ctx.fillRect(sx - 2.5 * z, sy - 7 * z, 2 * z, 7 * z);
-        ctx.fillRect(sx + 0.5 * z, sy - 7 * z, 2 * z, 7 * z);
-
-        // Body
-        ctx.fillStyle = this.appearance.bodyColor;
-        ctx.fillRect(sx - 3.5 * z, sy - 15 * z, 7 * z, 8 * z);
-
-        // Head
-        ctx.fillStyle = this.appearance.skinColor;
-        ctx.fillRect(sx - 2.5 * z, sy - 19 * z, 5 * z, 4 * z);
-
-        // Hat
-        if (this.appearance.hasHat && this.appearance.hatColor) {
-            ctx.fillStyle = this.appearance.hatColor;
-            ctx.fillRect(sx - 3 * z, sy - 21 * z, 6 * z, 2.5 * z);
-        }
+        drawCharacter(ctx, camera, this.x, this.y, this.appearance, {
+            isMoving: false,
+            isRunning: false,
+            animFrame: 0,
+            direction: 'down',
+        });
     }
 
     public drawUI(ctx: CanvasRenderingContext2D, camera: Camera) {

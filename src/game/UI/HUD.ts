@@ -4,6 +4,7 @@
  */
 
 
+import { isMobile } from '../Core/MobileDetect';
 
 export class HUD {
     public render(
@@ -87,7 +88,12 @@ export class HUD {
     public renderNotifications(ctx: CanvasRenderingContext2D, screenW: number, notifications: { message: string, timer: number }[]) {
         if (notifications.length === 0) return;
 
-        const startY = 70;
+        // Detect mobile using shared helper
+        const mobile = isMobile();
+
+        // On mobile: below stamina bar (left side). On desktop: top-right (original).
+        const startY = mobile ? 95 : 70;
+
         notifications.forEach((note, i) => {
             const y = startY + i * 40;
             const alpha = Math.min(note.timer, 1.0);
@@ -95,10 +101,12 @@ export class HUD {
             ctx.save();
             ctx.globalAlpha = alpha;
 
-            // Notification Box
+            ctx.font = 'bold 12px monospace';
             const textWidth = ctx.measureText(note.message).width;
             const boxW = textWidth + 40;
-            const boxX = screenW - boxW - 20;
+
+            // Mobile: left-aligned below stamina. Desktop: right-aligned.
+            const boxX = mobile ? 10 : screenW - boxW - 20;
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(boxX, y, boxW, 30);
@@ -107,9 +115,9 @@ export class HUD {
             ctx.strokeRect(boxX, y, boxW, 30);
 
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 12px monospace';
-            ctx.textAlign = 'right';
-            ctx.fillText(note.message, screenW - 40, y + 20);
+            ctx.textAlign = mobile ? 'left' : 'right';
+            const textX = mobile ? boxX + 20 : screenW - 40;
+            ctx.fillText(note.message, textX, y + 20);
 
             ctx.restore();
         });

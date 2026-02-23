@@ -1,4 +1,6 @@
 import { JogoDoBicho } from './MiniGames/JogoDoBicho';
+import { EconomyManager } from './Core/EconomyManager';
+import { GameConfig } from './Core/GameConfig';
 
 export interface BichoBet {
     animal: number;
@@ -13,40 +15,27 @@ export interface BichoNotification {
 }
 
 /**
- * BichoManager — Global singleton to handle player money, 
- * delayed Bicho results, and cross-scene notifications.
+ * BichoManager — Handles Jogo do Bicho bets, delayed results, and notifications.
+ * Money operations are delegated to EconomyManager.
  */
 export class BichoManager {
     private static instance: BichoManager;
 
+    private internalTimer: number = 0;
 
-    private _playerMoney: number = 200;
-    private maxMoneyReached: number = 200;
-    private internalTimer: number = 0; // Independent timer for Bicho events
-
+    /** @deprecated Use EconomyManager.getInstance().balance instead */
     public get playerMoney(): number {
-        return this._playerMoney;
+        return EconomyManager.getInstance().balance;
     }
 
+    /** @deprecated Use EconomyManager.getInstance().balance = value instead */
     public set playerMoney(value: number) {
-        // Enforce 10-unit economy
-        this._playerMoney = Math.floor(value / 10) * 10;
-        if (this._playerMoney > this.maxMoneyReached) {
-            this.maxMoneyReached = this._playerMoney;
-        }
+        EconomyManager.getInstance().balance = value;
     }
 
+    /** @deprecated Use EconomyManager.getInstance().getBetLimits() instead */
     public getBetLimits(): { min: number, max: number } {
-        // Dynamic limits based on max wealth
-        // Min: 10 + 1% of max (capped 99k)
-        // Max: 100 + 25% of max (capped 999k)
-        const bonusMin = Math.floor(this.maxMoneyReached * 0.01);
-        const bonusMax = Math.floor(this.maxMoneyReached * 0.25);
-
-        const min = Math.min(99990, Math.max(10, Math.floor((10 + bonusMin) / 10) * 10));
-        const max = Math.min(999990, Math.max(100, Math.floor((100 + bonusMax) / 10) * 10));
-
-        return { min, max };
+        return EconomyManager.getInstance().getBetLimits();
     }
 
     private pendingBets: BichoBet[] = [];
@@ -65,14 +54,12 @@ export class BichoManager {
     }
 
     public placeBet(animal: number, amount: number) {
-        if (this.playerMoney < amount) return;
+        const economy = EconomyManager.getInstance();
+        if (economy.balance < amount) return;
 
-        this.playerMoney -= amount;
+        economy.addMoney(-amount);
 
-        // RESULT DELAY: 10 in-game minutes
-        // In our DayNightCycle, 10 minutes = 5 real seconds (at 300s total night)
-        // However, we track resultTime in absolute seconds from dusk
-        const delayInSeconds = (10 / 600) * 300; // 5 seconds
+        const delayInSeconds = (GameConfig.BICHO_RESULT_DELAY_MINUTES / 600) * 300; // 5 seconds
 
         this.pendingBets.push({
             animal,
@@ -83,16 +70,16 @@ export class BichoManager {
     }
 
     public update(dt: number) {
+        const economy = EconomyManager.getInstance();
         this.internalTimer += dt;
         const currentInGameTime = this.internalTimer;
+
         // 1. Process Results
         for (const bet of this.pendingBets) {
             if (!bet.processed && currentInGameTime >= bet.resultTime) {
                 bet.processed = true;
 
-                // Generate a winner for THIS specific bet processing
-                // Note: User wants "instant notification when they win"
-                const result = this.bicho.getResult(); // Using existing logic, but maybe we want a fresh one per bet
+                const result = this.bicho.getResult();
                 const animalName = JogoDoBicho.ANIMALS[bet.animal].name;
                 const winnerName = JogoDoBicho.ANIMALS[result.winningAnimal].name;
                 const winnerEmoji = JogoDoBicho.ANIMALS[result.winningAnimal].emoji;
@@ -101,20 +88,17 @@ export class BichoManager {
                 const winningGroup = Math.floor(result.winningAnimal / 5);
 
                 if (bet.animal === result.winningAnimal) {
-                    const payout = bet.amount * 18;
-                    this.playerMoney += payout;
+                    const payout = bet.amount * GameConfig.BICHO_EXACT_MATCH_MULTIPLIER;
+                    economy.addMoney(payout);
                     this.addNotification(`+R$${payout}! DEU ${winnerEmoji} ${winnerName.toUpperCase()}!`, 5);
                 } else if (betGroup === winningGroup) {
-                    const payout = 50;
-                    this.playerMoney += payout;
+                    const payout = GameConfig.BICHO_GROUP_MATCH_PAYOUT;
+                    economy.addMoney(payout);
                     this.addNotification(`+R$${payout}! Quase! Acertou o GRUPO do ${winnerName}!`, 4);
                 } else {
                     this.addNotification(`Deu ${winnerEmoji} ${winnerName}. Seu ${animalName} perdeu.`, 4);
                 }
 
-                // Clear the Bicho result so next bet gets a fresh chance or same day chance?
-                // The user said "10 min from moment of bet". 
-                // Let's force a new result for each bet processing to keep it dynamic.
                 this.bicho.newRound();
             }
         }

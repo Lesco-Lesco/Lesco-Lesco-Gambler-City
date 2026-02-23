@@ -1,4 +1,5 @@
-import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import type { IMinigame } from './BaseMinigame';
 /**
  * RondaGame (Ronda de Cartas) Logic
  * 
@@ -17,7 +18,7 @@ export interface Card {
     suit: 'ouros' | 'espadas' | 'copas' | 'paus';
 }
 
-export class RondaGame {
+export class RondaGame implements IMinigame {
     public deck: Card[] = [];
     public objectiveCards: Card[] = [];
     public communityCards: Card[] = []; // Revealed cards
@@ -42,10 +43,7 @@ export class RondaGame {
         this.message = 'Escolha uma carta!';
         this.winAmount = 0;
 
-        const limits = BichoManager.getInstance().getBetLimits();
-        this.minBet = limits.min;
-        this.maxBet = limits.max;
-        this.betAmount = this.minBet;
+        this.updateLimits();
 
         // Deal 2 objectives with DIFFERENT ranks
         this.objectiveCards = [];
@@ -132,5 +130,21 @@ export class RondaGame {
     public getCardName(card: Card): string {
         const ranks = ['As', '2', '3', '4', '5', '6', '7', 'Valete', 'Dama', 'Rei'];
         return `${ranks[card.rank - 1]} de ${card.suit}`;
+    }
+
+    public updateLimits() {
+        const limits = EconomyManager.getInstance().getBetLimits();
+        this.minBet = limits.min;
+        this.maxBet = limits.max;
+        this.betAmount = Math.max(this.minBet, Math.min(this.betAmount, this.maxBet));
+    }
+
+    public settle(): number {
+        if (this.winAmount > 0) {
+            return this.winAmount - this.betAmount; // Net profit
+        } else if (this.phase === 'result') {
+            return -this.betAmount; // Lost bet
+        }
+        return 0;
     }
 }

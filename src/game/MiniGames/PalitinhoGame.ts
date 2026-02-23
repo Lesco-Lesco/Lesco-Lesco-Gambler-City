@@ -1,4 +1,5 @@
-import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import type { IMinigame } from './BaseMinigame';
 
 /**
  * Palitinho (Matchsticks)
@@ -16,7 +17,7 @@ interface PalitinhoPlayer {
     isLoser: boolean;
 }
 
-export class PalitinhoGame {
+export class PalitinhoGame implements IMinigame {
     public phase: PalitinhoPhase = 'betting';
     public players: PalitinhoPlayer[] = [];
     public betAmount: number = 20;
@@ -45,7 +46,7 @@ export class PalitinhoGame {
     }
 
     public updateLimits() {
-        const limits = BichoManager.getInstance().getBetLimits();
+        const limits = EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = Math.min(limits.max, 500); // Caps for street game
         this.selectedBet = Math.max(this.minBet, Math.min(this.selectedBet, this.maxBet));

@@ -1,5 +1,6 @@
 import { PalitinhoGame } from './PalitinhoGame';
 import { InputManager } from '../Core/InputManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class PalitinhoUI {
     private game: PalitinhoGame;
@@ -98,7 +99,10 @@ export class PalitinhoUI {
                 ctx.font = '24px sans-serif';
                 ctx.fillText(this.game.resultMessage, centerX, centerY + 200);
                 ctx.font = '14px monospace';
-                ctx.fillText('ESPAÇO JOGAR NOVAMENTE | ENTER SAIR', centerX, centerY + 240);
+                const resultHint = isMobile()
+                    ? '[OK] JOGAR NOVAMENTE | [E] SAIR'
+                    : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR';
+                ctx.fillText(resultHint, centerX, centerY + 240);
             }
         }
     }

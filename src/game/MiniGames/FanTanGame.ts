@@ -1,4 +1,5 @@
-import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import type { IMinigame } from './BaseMinigame';
 
 /**
  * Fan-Tan (Chinatown Street Version)
@@ -7,7 +8,7 @@ import { BichoManager } from '../BichoManager';
 
 export type FanTanPhase = 'betting' | 'choosing' | 'reveal' | 'counting' | 'result';
 
-export class FanTanGame {
+export class FanTanGame implements IMinigame {
     public phase: FanTanPhase = 'betting';
     public betAmount: number = 20;
     public pot: number = 0;
@@ -30,7 +31,7 @@ export class FanTanGame {
     }
 
     public updateLimits() {
-        const limits = BichoManager.getInstance().getBetLimits();
+        const limits = EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
         this.selectedBet = Math.max(this.minBet, Math.min(this.selectedBet, this.maxBet));

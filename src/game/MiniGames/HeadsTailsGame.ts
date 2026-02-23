@@ -1,4 +1,5 @@
-import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import type { IMinigame } from './BaseMinigame';
 
 /**
  * Cara ou Coroa (Heads or Tails)
@@ -7,7 +8,7 @@ import { BichoManager } from '../BichoManager';
 
 export type HeadsTailsPhase = 'betting' | 'choosing' | 'flipping' | 'result';
 
-export class HeadsTailsGame {
+export class HeadsTailsGame implements IMinigame {
     public phase: HeadsTailsPhase = 'betting';
     public betAmount: number = 10;
     public minBet: number = 10;
@@ -28,7 +29,7 @@ export class HeadsTailsGame {
     }
 
     public updateLimits() {
-        const limits = BichoManager.getInstance().getBetLimits();
+        const limits = EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
         this.selectedBet = Math.max(this.minBet, Math.min(this.selectedBet, this.maxBet));

@@ -2,6 +2,7 @@ import { RondaGame } from './RondaGame';
 import type { Card } from './RondaGame';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class RondaUI {
     private game: RondaGame;
@@ -110,9 +111,15 @@ export class RondaUI {
         ctx.textAlign = 'center';
 
         if (this.game.phase === 'betting') {
-            ctx.fillText("[↑/↓] Valor da Aposta   [←/→] Escolher Carta   [ESPAÇO] JOGAR", x, y);
+            const betHint = isMobile()
+                ? '[D-Pad ↑↓] Aposta   [D-Pad ←→] Carta   [OK] JOGAR'
+                : '[↑/↓] Valor da Aposta   [←/→] Escolher Carta   [ESPAÇO] JOGAR';
+            ctx.fillText(betHint, x, y);
         } else {
-            ctx.fillText("[ESPAÇO] Continuar   [ESC] Sair", x, y);
+            const playHint = isMobile()
+                ? '[OK] Continuar   [✕] Sair'
+                : '[ESPAÇO] Continuar   [ESC] Sair';
+            ctx.fillText(playHint, x, y);
         }
     }
 

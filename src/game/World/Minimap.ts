@@ -6,6 +6,7 @@
 import { Camera } from '../Core/Camera';
 import { TileMap } from './TileMap';
 import { TILE_TYPES, MAP_WIDTH } from './MapData';
+import { isMobile } from '../Core/MobileDetect';
 
 const MINIMAP_SIZE = 160;
 const MINIMAP_PADDING = 15;
@@ -65,20 +66,26 @@ export class Minimap {
     }
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number, playerX: number, playerY: number, _camera: Camera, npcs: any[]) {
-        const mmX = screenW - MINIMAP_SIZE - MINIMAP_PADDING;
-        const mmY = screenH - MINIMAP_SIZE - MINIMAP_PADDING;
+        // Detect mobile using shared helper
+        const mobile = isMobile();
+        const mmSize = mobile ? 200 : MINIMAP_SIZE;
+        const mmPad = mobile ? 10 : MINIMAP_PADDING;
+
+        // On mobile, position top-right to avoid action buttons. On desktop, bottom-right.
+        const mmX = screenW - mmSize - mmPad;
+        const mmY = mobile ? mmPad : screenH - mmSize - mmPad;
 
         // Background with border
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(mmX - 3, mmY - 3, MINIMAP_SIZE + 6, MINIMAP_SIZE + 6);
+        ctx.fillRect(mmX - 3, mmY - 3, mmSize + 6, mmSize + 6);
         ctx.strokeStyle = '#4a4a55';
         ctx.lineWidth = 1;
-        ctx.strokeRect(mmX - 3, mmY - 3, MINIMAP_SIZE + 6, MINIMAP_SIZE + 6);
+        ctx.strokeRect(mmX - 3, mmY - 3, mmSize + 6, mmSize + 6);
 
-        // Draw pre-rendered map
-        ctx.drawImage(this.minimapCanvas, mmX, mmY);
+        // Draw pre-rendered map (scale from MINIMAP_SIZE to mmSize)
+        ctx.drawImage(this.minimapCanvas, 0, 0, MINIMAP_SIZE, MINIMAP_SIZE, mmX, mmY, mmSize, mmSize);
 
-        const tileSize = MINIMAP_SIZE / MAP_WIDTH;
+        const tileSize = mmSize / MAP_WIDTH;
 
         // Draw NPCs if they are Gamblers
         if (npcs) {
@@ -137,6 +144,6 @@ export class Minimap {
         ctx.fillStyle = '#888';
         ctx.font = '8px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('SANTA CRUZ', mmX + MINIMAP_SIZE / 2, mmY - 6);
+        ctx.fillText('SANTA CRUZ', mmX + mmSize / 2, mmY - 6);
     }
 }

@@ -3,21 +3,40 @@ import { InputManager } from '../game/Core/InputManager';
 
 const MobileControls: React.FC = () => {
     const [isMobile, setIsMobile] = useState(false);
+    const [isPortrait, setIsPortrait] = useState(false);
 
     useEffect(() => {
-        const checkMobile = () => {
+        const check = () => {
             const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            const smallerScreen = window.innerWidth <= 1024; // Common breakpoint for mobile/tablets
-            setIsMobile(hasTouch && smallerScreen);
+            const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 1024;
+            setIsMobile(hasTouch && smallScreen);
+            setIsPortrait(window.innerHeight > window.innerWidth);
         };
 
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+        check();
+        window.addEventListener('resize', check);
+        window.addEventListener('orientationchange', check);
+        return () => {
+            window.removeEventListener('resize', check);
+            window.removeEventListener('orientationchange', check);
+        };
     }, []);
 
+    // Not mobile at all — hide everything
     if (!isMobile) return null;
 
+    // Mobile + Portrait → block with rotate message
+    if (isPortrait) {
+        return (
+            <div className="rotate-overlay">
+                <div className="rotate-icon">📱↔️</div>
+                <div className="rotate-text">Gire o celular para o modo paisagem</div>
+                <div className="rotate-sub">O jogo funciona apenas na horizontal</div>
+            </div>
+        );
+    }
+
+    // Mobile + Landscape → show controls
     const input = InputManager.getInstance();
 
     const handleTouch = (code: string, isPressed: boolean) => (e: React.TouchEvent | React.MouseEvent) => {
@@ -27,6 +46,7 @@ const MobileControls: React.FC = () => {
 
     return (
         <div className="mobile-controls">
+            {/* LEFT SIDE — D-Pad */}
             <div className="d-pad">
                 <button
                     className="mobile-btn d-btn-up"
@@ -58,14 +78,36 @@ const MobileControls: React.FC = () => {
                 >↓</button>
             </div>
 
+            {/* RIGHT SIDE — Action Buttons */}
             <div className="action-buttons">
                 <button
-                    className="mobile-btn interact"
+                    className="mobile-btn action-run"
+                    onTouchStart={handleTouch('ShiftLeft', true)}
+                    onTouchEnd={handleTouch('ShiftLeft', false)}
+                    onMouseDown={handleTouch('ShiftLeft', true)}
+                    onMouseUp={handleTouch('ShiftLeft', false)}
+                >🏃</button>
+                <button
+                    className="mobile-btn action-confirm"
+                    onTouchStart={handleTouch('Space', true)}
+                    onTouchEnd={handleTouch('Space', false)}
+                    onMouseDown={handleTouch('Space', true)}
+                    onMouseUp={handleTouch('Space', false)}
+                >OK</button>
+                <button
+                    className="mobile-btn action-interact"
                     onTouchStart={handleTouch('KeyE', true)}
                     onTouchEnd={handleTouch('KeyE', false)}
                     onMouseDown={handleTouch('KeyE', true)}
                     onMouseUp={handleTouch('KeyE', false)}
-                >AÇÃO (E)</button>
+                >E</button>
+                <button
+                    className="mobile-btn action-back"
+                    onTouchStart={handleTouch('Escape', true)}
+                    onTouchEnd={handleTouch('Escape', false)}
+                    onMouseDown={handleTouch('Escape', true)}
+                    onMouseUp={handleTouch('Escape', false)}
+                >✕</button>
             </div>
         </div>
     );

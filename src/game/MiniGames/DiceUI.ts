@@ -5,6 +5,7 @@
 import { DiceGame } from './DiceGame';
 import { BichoManager } from '../BichoManager';
 import { InputManager } from '../Core/InputManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class DiceUI {
     private game: DiceGame;
@@ -57,7 +58,10 @@ export class DiceUI {
         } else if (this.game.phase === 'result') {
             ctx.fillStyle = '#ffff66';
             ctx.font = 'bold 18px "Segoe UI", sans-serif';
-            ctx.fillText("[ESPAÇO] Jogar Novamente   [ESC] Sair", cx, height - 60);
+            const resultHint = isMobile()
+                ? '[OK] Jogar Novamente   [✕] Sair'
+                : '[ESPAÇO] Jogar Novamente   [ESC] Sair';
+            ctx.fillText(resultHint, cx, height - 60);
         }
     }
 
@@ -188,7 +192,10 @@ export class DiceUI {
 
         ctx.fillStyle = '#aaa';
         ctx.font = '14px "Segoe UI", sans-serif';
-        ctx.fillText("[SHIFT/Q] Trocar Dado  [SETAS] Ajustar Valor/Número  [ESPAÇO] JOGAR", x, y + 80);
+        const betHint = isMobile()
+            ? '[🏃] Trocar Dado  [D-Pad] Ajustar  [OK] JOGAR'
+            : '[SHIFT/Q] Trocar Dado  [SETAS] Ajustar Valor/Número  [ESPAÇO] JOGAR';
+        ctx.fillText(betHint, x, y + 80);
     }
 
     public update(_dt: number) {

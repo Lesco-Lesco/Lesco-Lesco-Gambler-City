@@ -6,18 +6,17 @@ import { Camera } from '../Core/Camera';
 import { InputManager } from '../Core/InputManager';
 import { findSafeSpawn } from '../World/MapData';
 import { TileMap } from '../World/TileMap';
+import { drawCharacter } from './CharacterRenderer';
+import type { CharacterAppearance } from './CharacterRenderer';
 
-/** Sprite animation frames (procedural pixel art) */
-interface SpriteFrame {
-    body: string;
-    legs: string;
-    accent: string;
-}
 
-const SPRITE_PALETTE: SpriteFrame = {
-    body: '#cc4466',   // Deep rose shirt
-    legs: '#2a2a44',   // Dark pants
-    accent: '#eebb66', // Skin / highlights
+
+const PLAYER_APPEARANCE: CharacterAppearance = {
+    bodyColor: '#cc4466',   // Deep rose shirt
+    legColor: '#2a2a44',    // Dark pants
+    skinColor: '#eebb66',   // Skin / highlights
+    hairColor: '#1a1a1a',
+    hasHat: false,
 };
 
 export type PlayerDirection = 'down' | 'up' | 'left' | 'right';
@@ -30,7 +29,6 @@ export class Player {
     public height: number = 0.4;
     public speed: number = 3.5;      // Tiles per second (walk)
     public runSpeed: number = 6.0;   // Tiles per second (run)
-    public money: number = 50;       // Starting money
     public direction: PlayerDirection = 'down';
     public isMoving: boolean = false;
     public isRunning: boolean = false;
@@ -126,53 +124,11 @@ export class Player {
     }
 
     public draw(ctx: CanvasRenderingContext2D, camera: Camera) {
-        const { sx, sy } = camera.worldToScreen(this.x, this.y);
-        const z = camera.zoom;
-
-        const legOffset = this.isMoving ? Math.sin(this.animFrame * Math.PI / 2) * 2 * z : 0;
-        const bodyBob = this.isMoving ? Math.abs(Math.sin(this.animFrame * Math.PI / 2)) * 1 * z : 0;
-
-        // Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.beginPath();
-        ctx.ellipse(sx, sy, 6 * z, 3 * z, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Legs
-        ctx.fillStyle = SPRITE_PALETTE.legs;
-        ctx.fillRect(sx - 3 * z, sy - 8 * z - bodyBob, 2.5 * z, 8 * z + legOffset);
-        ctx.fillRect(sx + 0.5 * z, sy - 8 * z - bodyBob, 2.5 * z, 8 * z - legOffset);
-
-        // Body
-        ctx.fillStyle = SPRITE_PALETTE.body;
-        ctx.fillRect(sx - 4 * z, sy - 18 * z - bodyBob, 8 * z, 10 * z);
-
-        // Head
-        ctx.fillStyle = SPRITE_PALETTE.accent;
-        ctx.fillRect(sx - 3 * z, sy - 23 * z - bodyBob, 6 * z, 5 * z);
-
-        // Hair
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(sx - 3.5 * z, sy - 24 * z - bodyBob, 7 * z, 2 * z);
-
-        // Eyes
-        ctx.fillStyle = '#ffffff';
-        const eyeY = sy - 21 * z - bodyBob;
-        if (this.direction === 'down' || this.direction === 'left') {
-            ctx.fillRect(sx - 2 * z, eyeY, 1.5 * z, 1.5 * z);
-        }
-        if (this.direction === 'down' || this.direction === 'right') {
-            ctx.fillRect(sx + 0.5 * z, eyeY, 1.5 * z, 1.5 * z);
-        }
-
-        // Dust
-        if (this.isRunning && this.isMoving) {
-            ctx.fillStyle = 'rgba(150, 130, 100, 0.4)';
-            for (let i = 0; i < 3; i++) {
-                const dustX = sx + (Math.random() - 0.5) * 8 * z;
-                const dustY = sy + Math.random() * 3 * z;
-                ctx.fillRect(dustX, dustY, 2 * z, 2 * z);
-            }
-        }
+        drawCharacter(ctx, camera, this.x, this.y, PLAYER_APPEARANCE, {
+            isMoving: this.isMoving,
+            isRunning: this.isRunning,
+            animFrame: this.animFrame,
+            direction: this.direction,
+        });
     }
 }
