@@ -539,13 +539,50 @@ export const POINTS_OF_INTEREST: POI[] = [
 ];
 
 export const CITY_LIGHTS: CityLight[] = [];
-for (let y = 0; y < MAP_HEIGHT; y += 10) {
-    for (let x = 0; x < MAP_WIDTH; x += 10) {
-        if (MAP_DATA[y][x] === S) CITY_LIGHTS.push({ x, y, type: 'street' });
-        if (MAP_DATA[y][x] === PZ) CITY_LIGHTS.push({ x, y, type: 'plaza' });
-        if (MAP_DATA[y][x] === EN) CITY_LIGHTS.push({ x, y, type: 'alley' }); // Light up entrances
+for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+        const tile = MAP_DATA[y][x];
+
+        // Street lights: Only on SIDEWALKS adjacent to STREETS
+        if (tile === TILE_TYPES.SIDEWALK && x % 8 === 0 && y % 8 === 0) {
+            // Check if there is a street nearby to justify a lamp
+            let servesStreet = false;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < MAP_WIDTH && ny >= 0 && ny < MAP_HEIGHT) {
+                        if (MAP_DATA[ny][nx] === TILE_TYPES.STREET) servesStreet = true;
+                    }
+                }
+            }
+            if (servesStreet) {
+                CITY_LIGHTS.push({ x, y, type: 'street' });
+            }
+        }
+
+        // Plaza lights: sparse but consistent
+        if (tile === TILE_TYPES.PLAZA && x % 8 === 0 && y % 8 === 0) {
+            CITY_LIGHTS.push({ x, y, type: 'plaza' });
+        }
+
+        // Residential lights: High density and brighter influence
+        if ((tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL) &&
+            x % 2 === 0 && y % 2 === 0 && Math.random() > 0.25) {
+            CITY_LIGHTS.push({ x, y, type: 'residential' });
+        }
+
+        // Shopping lights: bright hubs
+        if (tile === TILE_TYPES.SHOPPING && x % 4 === 0 && y % 4 === 0) {
+            CITY_LIGHTS.push({ x, y, type: 'shopping' });
+        }
+
+        // Entrance/Alley lights
+        if (tile === TILE_TYPES.ENTRANCE || (tile === TILE_TYPES.ALLEY && x % 12 === 0)) {
+            CITY_LIGHTS.push({ x, y, type: 'alley' });
+        }
     }
 }
-export const LAMPPOST_POSITIONS = CITY_LIGHTS.map(l => ({ x: l.x, y: l.y }));
+export const LAMPPOST_POSITIONS = CITY_LIGHTS.filter(l => l.type === 'street' || l.type === 'plaza').map(l => ({ x: l.x, y: l.y }));
 
 

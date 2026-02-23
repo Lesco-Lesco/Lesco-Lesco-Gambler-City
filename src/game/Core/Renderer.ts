@@ -33,6 +33,7 @@ export class Renderer {
     }
 
     public clear(color: string = '#0a0a12') {
+        this.canvas.style.cursor = 'none';
         this.ctx.fillStyle = color;
         this.ctx.fillRect(0, 0, this.width, this.height);
     }

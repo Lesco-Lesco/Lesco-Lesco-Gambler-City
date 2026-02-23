@@ -7,7 +7,7 @@
 import { Camera, TILE_WIDTH, TILE_HEIGHT } from '../Core/Camera';
 import { Renderer } from '../Core/Renderer';
 import { TileMap } from './TileMap';
-import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, BUS_STOPS, CROSSWALKS } from './MapData';
+import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, BUS_STOPS, CROSSWALKS, LAMPPOST_POSITIONS } from './MapData';
 
 // Simple seeded random for consistent visuals per tile
 function seededRandom(x: number, y: number): number {
@@ -336,9 +336,6 @@ export class TileRenderer {
                             // BUT, we can just manipulate the screen Y coordinate passed to a custom draw?
                             // OR, since it's 2D iso, drawing a block at `y - h1` works visually.
 
-                            // Let's manually call drawCustomIsoBlock or similar with offset?
-                            // No, simpler: Modify the Camera.worldToScreen result? No.
-
                             // Hack: Draw L2 as a VERY tall block that starts at ground but has the bottom cut off? No.
 
                             // Correct way: Add 'baseHeight' or 'elevation' to drawIsoBlock.
@@ -497,6 +494,16 @@ export class TileRenderer {
                     });
                 }
             }
+        }
+
+        // Add Street Lamps as drawables
+        for (const lamp of LAMPPOST_POSITIONS) {
+            drawables.push({
+                y: lamp.y + 0.5,
+                draw: () => {
+                    this.drawStreetLamp(ctx, camera, lamp.x, lamp.y);
+                }
+            });
         }
 
         // Add Bus Stops as drawables
@@ -741,17 +748,32 @@ export class TileRenderer {
 
                     ctx.fillRect(wx, wy, winW, winH);
                 } else {
-                    // Residential: Smooth fade
+                    // Residential: Realistic, more stable window lighting
                     const unique = tileX * 13 + tileY * 7 + r * 3 + faceIndex * 5;
-                    // Period: ~9.4s (1500 rads)
-                    const val = Math.sin(time / 1500 + unique);
-                    // Map -1..1 to 0..1
+                    // Significantly slower and subtler breathing effect
+                    const val = Math.sin(time / 4000 + unique);
                     const alpha = (val + 1) / 2;
 
-                    // Light up if alpha is high enough
-                    if (alpha > 0.2) {
-                        ctx.fillStyle = `rgba(255, 200, 100, ${alpha * 0.8})`; // Warm yellow
+                    if (alpha > 0.15) {
+                        // Variety in window color (stable choice per window)
+                        const isCool = seededRandom(tileX * 7, tileY * 11) > 0.8;
+                        const baseColor = isCool ? 'rgba(230, 240, 255' : 'rgba(255, 230, 150';
+
+                        // Lower flicker for real immersion
+                        const flickerAlpha = alpha * (0.9 + Math.sin(time / 800 + unique) * 0.05);
+
+                        ctx.fillStyle = `${baseColor}, ${flickerAlpha * 0.95})`;
+                        ctx.shadowBlur = 8 * z;
+                        ctx.shadowColor = isCool ? 'rgba(150, 200, 255, 0.3)' : 'rgba(255, 200, 50, 0.4)';
                         ctx.fillRect(wx, wy, winW, winH);
+
+                        // Subtle window detail: silhoutte or curtain (stable)
+                        if (seededRandom(tileX * 3, unique * 2) > 0.65) {
+                            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                            ctx.fillRect(wx + winW * 0.3, wy, winW * 0.4, winH);
+                        }
+
+                        ctx.shadowBlur = 0;
                     }
                 }
 
@@ -798,6 +820,45 @@ export class TileRenderer {
         ctx.font = `${8 * z}px monospace`;
         ctx.textAlign = 'center';
         ctx.fillText(goingDown ? '\u25BC' : '\u25B2', sx, sy - 5 * z);
+    }
+
+    /** Draw a pixel art street lamp */
+    private drawStreetLamp(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const h = 25 * z;
+
+        // Pole
+        ctx.fillStyle = '#222';
+        ctx.fillRect(sx - 1 * z, sy - h, 2 * z, h);
+
+        // Arm
+        ctx.fillRect(sx - 1 * z, sy - h, 6 * z, 1.5 * z);
+
+        // Lamp head
+        ctx.fillStyle = '#333';
+        ctx.fillRect(sx + 3 * z, sy - h + 1 * z, 4 * z, 2 * z);
+
+        // Emissive Light Source with BLOOM
+        const flicker = Math.sin(Date.now() / 150 + tileX * 10) * 0.08 + 0.92;
+        const lx = sx + 5 * z;
+        const ly = sy - h + 2.75 * z;
+
+        // Layered bloom for richness
+        const bloomSize = 12 * z * flicker;
+        const bloomGrad = ctx.createRadialGradient(lx, ly, 0, lx, ly, bloomSize);
+        bloomGrad.addColorStop(0, 'rgba(255, 240, 200, 0.9)');
+        bloomGrad.addColorStop(0.4, 'rgba(255, 200, 50, 0.3)');
+        bloomGrad.addColorStop(1, 'rgba(255, 200, 50, 0)');
+
+        ctx.fillStyle = bloomGrad;
+        ctx.beginPath();
+        ctx.arc(lx, ly, bloomSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // The bulb itself
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(sx + 3.5 * z, sy - h + 2 * z, 3 * z, 1.5 * z);
     }
 
     /** Draw entrance with glowing frame */

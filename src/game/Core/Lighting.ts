@@ -19,15 +19,18 @@ export interface LightSource {
     color: string;
     intensity: number;
     flicker?: boolean;
+    flickerSpeed?: number;
+    flickerOffset?: number;
+    type?: CityLightType;
 }
 
 /** Light profile per category */
 const LIGHT_PROFILES: Record<CityLightType, { radius: number; color: string; intensity: number; flicker: boolean; radiusVariance: number }> = {
-    street: { radius: 140, color: '#ff9933', intensity: 0.7, flicker: true, radiusVariance: 0 },
-    residential: { radius: 55, color: '#ffcc77', intensity: 0.35, flicker: true, radiusVariance: 20 },
-    plaza: { radius: 170, color: '#ffeedd', intensity: 0.85, flicker: false, radiusVariance: 0 },
-    shopping: { radius: 180, color: '#ddeeff', intensity: 0.9, flicker: false, radiusVariance: 0 },
-    alley: { radius: 50, color: '#ff8844', intensity: 0.25, flicker: true, radiusVariance: 10 },
+    street: { radius: 240, color: '#ffbb44', intensity: 0.9, flicker: true, radiusVariance: 0 },
+    residential: { radius: 110, color: '#ffdd88', intensity: 0.75, flicker: true, radiusVariance: 25 },
+    plaza: { radius: 280, color: '#ffeecc', intensity: 0.95, flicker: false, radiusVariance: 0 },
+    shopping: { radius: 320, color: '#ccddff', intensity: 0.98, flicker: false, radiusVariance: 0 },
+    alley: { radius: 90, color: '#ff9955', intensity: 0.55, flicker: true, radiusVariance: 10 },
 };
 
 /** Simple seeded random for consistent per-light variance */
@@ -40,8 +43,8 @@ export class Lighting {
     private lightCanvas: HTMLCanvasElement;
     private lightCtx: CanvasRenderingContext2D;
     private lights: LightSource[] = [];
-    private ambientDarkness: number = 0.45;
-    private ambientColor: string = 'rgba(8, 8, 22, 1)';
+    private ambientDarkness: number = 0.35; // Significantly softened for visibility
+    private ambientColor: string = 'rgba(0, 0, 0, 1)'; // Back to classic black as requested
 
     // Fog system
     private fogParticles: { x: number; y: number; size: number; speed: number; opacity: number }[] = [];
@@ -59,19 +62,24 @@ export class Lighting {
             const seed = cl.x * 1000 + cl.y;
             const variance = profile.radiusVariance > 0 ? (seededRand(seed) - 0.5) * 2 * profile.radiusVariance : 0;
 
-            this.lights.push({
+            this.addLight({
                 worldX: cl.x,
                 worldY: cl.y,
                 radius: profile.radius + variance,
                 color: profile.color,
                 intensity: profile.intensity,
                 flicker: profile.flicker,
+                type: cl.type
             });
         }
     }
 
     /** Add a dynamic light (e.g., player lantern) */
     public addLight(light: LightSource) {
+        if (light.flicker && light.flickerSpeed === undefined) {
+            light.flickerSpeed = 0.5 + Math.random() * 2;
+            light.flickerOffset = Math.random() * Math.PI * 2;
+        }
         this.lights.push(light);
     }
 
@@ -119,8 +127,12 @@ export class Lighting {
 
         // Fill with ambient darkness (much lighter alpha now)
         ctx.globalCompositeOperation = 'source-over';
+        // Create lightmap with ambient tint
         ctx.fillStyle = this.ambientColor;
-        ctx.globalAlpha = this.ambientDarkness;
+        ctx.fillRect(0, 0, screenW, screenH);
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = `rgba(0, 0, 0, ${this.ambientDarkness})`;
         ctx.fillRect(0, 0, screenW, screenH);
         ctx.globalAlpha = 1;
 
@@ -129,28 +141,35 @@ export class Lighting {
 
         for (const light of this.lights) {
             const { sx, sy } = camera.worldToScreen(light.worldX, light.worldY);
-            let radius = light.radius * camera.zoom;
-            let intensity = light.intensity;
+            const z = camera.zoom;
+
+            // Stable radius for realism (no erratic moving shadows)
+            const radius = light.radius * z;
+            const intensity = light.intensity;
+
+            // Per-light unique intensity flicker (adds life without annoying movement)
+            let flicker = 1.0;
+            if (light.flicker) {
+                flicker = 0.95 + Math.sin(Date.now() / 150 * (light.flickerSpeed || 1) + (light.flickerOffset || 0)) * 0.05;
+            }
+
+            const effectiveIntensity = intensity * flicker;
 
             // Skip lights way off-screen for performance
             if (sx < -radius || sx > screenW + radius || sy < -radius || sy > screenH + radius) continue;
 
-            // Flicker effect (subtle for residential, more for alleys)
-            if (light.flicker) {
-                const flickerAmount = Math.sin(Date.now() / 180 + light.worldX * 13 + light.worldY * 7) * 0.05;
-                intensity += flickerAmount;
-                radius += Math.sin(Date.now() / 250 + light.worldX * 5) * 2;
-            }
+            const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${effectiveIntensity})`);
+            grad.addColorStop(0.5, `rgba(255, 255, 255, ${effectiveIntensity * 0.4})`);
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
-            // Radial gradient for soft light falloff
-            const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius);
-            gradient.addColorStop(0, `rgba(0, 0, 0, ${intensity})`);
-            gradient.addColorStop(0.3, `rgba(0, 0, 0, ${intensity * 0.7})`);
-            gradient.addColorStop(0.6, `rgba(0, 0, 0, ${intensity * 0.3})`);
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = grad;
             ctx.fillRect(sx - radius, sy - radius, radius * 2, radius * 2);
+
+            // Detailed Volumetric Cone for Street/Plaza lamps
+            if (light.type === 'street' || light.type === 'plaza') {
+                this.renderLightCone(ctx, sx, sy, radius, light.color, effectiveIntensity * 0.2);
+            }
         }
 
         // Reset composite operation
@@ -164,19 +183,49 @@ export class Lighting {
     /**
      * Warm glow on the ground from lights (drawn BEFORE the lightmap).
      */
+    private renderLightCone(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string, alpha: number) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.save();
+        ctx.translate(x, y - radius * 0.1);
+
+        const coneWidth = radius * 0.6;
+        const coneHeight = radius * 1.5;
+
+        const grad = ctx.createLinearGradient(0, 0, 0, coneHeight);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+        grad.addColorStop(0.3, `${color}22`); // Subtle color tint
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(-coneWidth * 0.1, 0);
+        ctx.lineTo(coneWidth * 0.1, 0);
+        ctx.lineTo(coneWidth, coneHeight);
+        ctx.lineTo(-coneWidth, coneHeight);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
     public renderGroundGlow(mainCtx: CanvasRenderingContext2D, camera: Camera) {
         for (const light of this.lights) {
             const { sx, sy } = camera.worldToScreen(light.worldX, light.worldY);
-            let radius = (light.radius * 0.35) * camera.zoom;
+            const z = camera.zoom;
 
+            let flicker = 1.0;
             if (light.flicker) {
-                radius += Math.sin(Date.now() / 250 + light.worldX * 5) * 2;
+                flicker = 0.98 + Math.sin(Date.now() / 150 * (light.flickerSpeed || 1) + (light.flickerOffset || 0)) * 0.02;
             }
 
-            // Warm ground glow matching the light color tone
+            let radius = (light.radius * 0.6) * z * flicker;
+
+            // Warm ground glow with layered intensity
             const gradient = mainCtx.createRadialGradient(sx, sy, 0, sx, sy, radius);
-            gradient.addColorStop(0, `rgba(255, 170, 70, 0.06)`);
-            gradient.addColorStop(1, 'rgba(255, 170, 70, 0)');
+            const color = light.color || '#ffaa46';
+            gradient.addColorStop(0, `${color}55`);
+            gradient.addColorStop(0.3, `${color}22`);
+            gradient.addColorStop(0.7, `${color}08`);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
             mainCtx.fillStyle = gradient;
             mainCtx.fillRect(sx - radius, sy - radius, radius * 2, radius * 2);

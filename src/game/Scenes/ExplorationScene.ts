@@ -77,13 +77,16 @@ export class ExplorationScene implements Scene {
     private policeBattleTimer: number = 0;
     private wasInHighRiskArea: boolean = false;
 
-    // Player light source
+    // Zoom Stages (6 stages: 0.5x to 3.0x)
+    private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+    private zoomStageIndex: number = 1; // Default 1.0x
+    // Player light source (Softened for natural look)
     private playerLight = {
         worldX: 0,
         worldY: 0,
-        radius: 80,
-        color: '#ffaa66',
-        intensity: 0.35,
+        radius: 200, // Reduced from 350
+        color: '#ffffff',
+        intensity: 0.75,  // Reduced from 0.98
         flicker: false,
     };
 
@@ -211,12 +214,21 @@ export class ExplorationScene implements Scene {
             return;
         }
 
-        // 2. World Logic
+        // World Logic
         // Night Interminável (No Cycle)
         this.globalTimer += dt; // Keep a timer running for Bicho betting results
 
         BichoManager.getInstance().update(dt);
-        this.lighting.setAmbientDarkness(0.92); // Fixed Deep Night
+
+        // Dynamic Ambient Darkness (Soft Realistic Night)
+        const isNavigating = this.activeMinigame === 'none' && pm.phase === 'none';
+        this.lighting.setAmbientDarkness(isNavigating ? 0.35 : 0.15);
+
+        // PC-Only Cyclical Zoom with 'Z' key
+        if (!isMobile() && isNavigating && this.input.wasPressed('KeyZ')) {
+            this.zoomStageIndex = (this.zoomStageIndex + 1) % this.zoomStages.length;
+            this.camera.targetZoom = this.zoomStages[this.zoomStageIndex];
+        }
 
         // Player
         this.player.update(dt, this.tileMap);
@@ -498,8 +510,17 @@ export class ExplorationScene implements Scene {
         // 2. Entities (Depth Sorted)
         this.drawDepthSorted(ctx);
 
-        // 3. Night Atmosphere
-        this.tileRenderer.renderNightOverlay(ctx);
+        // 3. Night Atmosphere (Strong Immersion Only during exploration)
+        const pm = PoliceManager.getInstance();
+        const isNavigating = this.activeMinigame === 'none' && pm.phase === 'none';
+
+        if (isNavigating) {
+            this.lighting.render(ctx, this.camera, this.screenW, this.screenH);
+            this.lighting.renderFog(ctx, this.screenW, this.screenH, 0.016); // Subtle fog
+        } else {
+            // Light atmosphere for minigames/raids so they remain visible
+            this.tileRenderer.renderNightOverlay(ctx);
+        }
 
         // 4. Overlays
         this.tileRenderer.renderOverlays(ctx, this.camera);

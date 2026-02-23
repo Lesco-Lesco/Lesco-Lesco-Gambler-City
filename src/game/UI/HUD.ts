@@ -37,8 +37,6 @@ export class HUD {
         ctx.font = `${UIScale.r(10)}px monospace`;
         ctx.fillText('GRANA', s(20), s(50));
 
-        // --- Clock Removed --- (Endless Night Mode)
-
         // --- Stamina bar (bottom-left) ---
         const staminaW = s(100);
         const staminaY = s(62);
@@ -103,10 +101,8 @@ export class HUD {
 
         const s = UIScale.s.bind(UIScale);
 
-        // Detect mobile using shared helper
         const mobile = isMobile();
 
-        // On mobile: below stamina bar (left side). On desktop: top-right (original).
         const startY = mobile ? s(95) : s(70);
 
         notifications.forEach((note, i) => {
@@ -119,10 +115,8 @@ export class HUD {
             ctx.font = `bold ${UIScale.r(12)}px monospace`;
             const textWidth = ctx.measureText(note.message).width;
 
-            // Clamp box width to screen width
             const boxW = Math.min(screenW - s(40), textWidth + s(40));
 
-            // Mobile: left-aligned below stamina. Desktop: right-aligned.
             const boxX = mobile ? s(10) : screenW - boxW - s(20);
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -136,7 +130,6 @@ export class HUD {
 
             const textX = mobile ? boxX + s(20) : screenW - s(40);
 
-            // If text exceeds clamped box, use smaller font or clip
             if (textWidth > boxW - s(30)) {
                 ctx.font = `bold ${UIScale.r(10)}px monospace`;
             }
