@@ -8,6 +8,7 @@ import type { Scene } from '../Core/Loop';
 import { Camera } from '../Core/Camera';
 import { Renderer } from '../Core/Renderer';
 import { InputManager } from '../Core/InputManager';
+import { isMobile } from '../Core/MobileDetect';
 import { Lighting } from '../Core/Lighting';
 import { TileMap } from '../World/TileMap';
 import { TileRenderer } from '../World/TileRenderer';
@@ -247,6 +248,7 @@ export class ExplorationScene implements Scene {
     private updatePoliceRaid(dt: number) {
         const pm = PoliceManager.getInstance();
         const bmanager = BichoManager.getInstance();
+        const mobile = isMobile();
 
         if (pm.phase === 'none') return;
         pm.update(dt);
@@ -256,7 +258,10 @@ export class ExplorationScene implements Scene {
                 pm.phase = 'gamble_check';
             }
         } else if (pm.phase === 'gamble_check') {
-            if (this.input.wasPressed('KeyY')) { // Aceitar jogar como banca (150)
+            const acceptBank = this.input.wasPressed('KeyY') || (mobile && (this.input.wasPressed('ArrowUp') || this.input.wasPressed('ArrowLeft')));
+            const payContrib = this.input.wasPressed('KeyN') || (mobile && (this.input.wasPressed('ArrowDown') || this.input.wasPressed('ArrowRight')));
+
+            if (acceptBank) { // Aceitar jogar como banca (150)
                 if (bmanager.playerMoney >= 150) {
                     bmanager.playerMoney -= 150;
                     pm.phase = 'dice_battle';
@@ -268,7 +273,7 @@ export class ExplorationScene implements Scene {
                 } else {
                     bmanager.addNotification("Você não tem R$150 para bancar!", 3);
                 }
-            } else if (this.input.wasPressed('KeyN')) { // Pagar contribuição (10)
+            } else if (payContrib) { // Pagar contribuição (10)
                 const cost = 10;
                 bmanager.playerMoney -= cost;
                 pm.currentJoke = pm.getRandomSarcasticComment();
@@ -562,6 +567,7 @@ export class ExplorationScene implements Scene {
         if (pm.phase === 'none') return;
 
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
         const w = this.screenW;
         const h = this.screenH;
         const cx = w / 2;
@@ -580,16 +586,27 @@ export class ExplorationScene implements Scene {
         if (pm.phase === 'interruption') {
             ctx.font = `bold ${UIScale.r(40)}px "Segoe UI"`;
             ctx.fillStyle = '#ff4444';
-            ctx.fillText("POLÍCIA! PARADO!", cx, cy - s(100));
+
+            // Scaled text for "POLÍCIA! PARADO!" if screen is too narrow
+            const title = "POLÍCIA! PARADO!";
+            const titleWidth = ctx.measureText(title).width;
+            if (titleWidth > w - s(40)) {
+                ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
+            }
+            ctx.fillText(title, cx, cy - s(100));
 
             ctx.font = `italic ${UIScale.r(20)}px "Segoe UI"`;
             ctx.fillStyle = '#fff';
-            ctx.fillText(`"${pm.currentJoke}"`, cx, cy - s(20));
+            this.drawTextWrapped(ctx, `"${pm.currentJoke}"`, cx, cy - s(20), w - s(60), UIScale.r(25));
 
-            ctx.font = `bold ${UIScale.r(16)}px monospace`;
-            ctx.fillText(`ACONTECEU UMA BATIDA! ELES ESTÃO DE OLHO NO SEU DINHEIRO...`, cx, cy + s(40));
+            ctx.font = `bold ${UIScale.r(14)}px monospace`;
+            const expl = `ACONTECEU UMA BATIDA! ELES ESTÃO DE OLHO NO SEU DINHEIRO...`;
+            this.drawTextWrapped(ctx, expl, cx, cy + s(40), w - s(40), UIScale.r(18));
+
             ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.fillText("[ ESPAÇO ] OUVIR O POLICIAL", cx, cy + s(100));
+            ctx.font = `bold ${UIScale.r(16)}px monospace`;
+            const hint = mobile ? "[ OK ] OUVIR O POLICIAL" : "[ ESPAÇO ] OUVIR O POLICIAL";
+            ctx.fillText(hint, cx, cy + s(100));
         } else if (pm.phase === 'gamble_check') {
             const bmanager = BichoManager.getInstance();
             const canAffordBanca = bmanager.playerMoney >= 150;
@@ -597,25 +614,34 @@ export class ExplorationScene implements Scene {
             ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
             ctx.fillText("O POLICIAL TE DÁ UMA ESCOLHA...", cx, cy - s(80));
 
-            ctx.font = `${UIScale.r(24)}px "Segoe UI"`;
-            if (canAffordBanca) {
-                ctx.fillText(`"Quer ser a banca por 150 ou vai 'contribuir' com 10?"`, cx, cy);
+            const qFont = UIScale.r(24);
+            ctx.font = `${qFont}px "Segoe UI"`;
+            const question = canAffordBanca
+                ? `"Quer ser a banca por 150 ou vai 'contribuir' com 10?"`
+                : `"Como você tá liso, vai ter que 'contribuir' com 10."`;
 
+            this.drawTextWrapped(ctx, question, cx, cy, w - s(40), qFont + s(4));
+
+            if (canAffordBanca) {
                 ctx.font = `bold ${UIScale.r(20)}px monospace`;
                 ctx.fillStyle = '#ffff00';
                 ctx.fillText(`APOSTA ÚNICA: R$150 CONTRA A LEI`, cx, cy + s(50));
 
                 ctx.fillStyle = '#fff';
-                ctx.fillText("[Y] JOGAR COMO BANCA (150)   [N] PAGAR CONTRIBUIÇÃO (10)", cx, cy + s(120));
+                ctx.font = `bold ${UIScale.r(14)}px monospace`;
+                const hint = mobile
+                    ? "[D-Pad ↑] BANCA (150)   [D-Pad ↓] CONTRIBUIR (10)"
+                    : "[Y] JOGAR COMO BANCA (150)   [N] PAGAR CONTRIBUIÇÃO (10)";
+                ctx.fillText(hint, cx, cy + s(120));
             } else {
-                ctx.fillText(`"Como você tá liso, vai ter que 'contribuir' com 10."`, cx, cy);
-
                 ctx.font = `bold ${UIScale.r(20)}px monospace`;
                 ctx.fillStyle = '#ff4444';
                 ctx.fillText(`PAGAMENTO OBRIGATÓRIO: R$10`, cx, cy + s(50));
 
                 ctx.fillStyle = '#fff';
-                ctx.fillText("[N] PAGAR CONTRIBUIÇÃO (10)", cx, cy + s(120));
+                ctx.font = `bold ${UIScale.r(14)}px monospace`;
+                const hint = mobile ? "[D-Pad ↓] PAGAR CONTRIBUIÇÃO (10)" : "[N] PAGAR CONTRIBUIÇÃO (10)";
+                ctx.fillText(hint, cx, cy + s(120));
             }
         } else if (pm.phase === 'dice_battle' || pm.phase === 'dice_battle_result') {
             const isRolling = pm.phase === 'dice_battle';
@@ -625,7 +651,7 @@ export class ExplorationScene implements Scene {
             ctx.fillText("BATALHA DE DADOS", cx, cy - s(140));
 
             // Dice Display
-            const spacing = s(150);
+            const spacing = s(Math.min(150, (w - s(100)) / 2));
 
             const playerVal = isRolling ? Math.floor(Math.random() * 6) + 1 : this.policeBattleRolls!.player;
             const policeVal = isRolling ? Math.floor(Math.random() * 6) + 1 : this.policeBattleRolls!.police;
@@ -642,7 +668,8 @@ export class ExplorationScene implements Scene {
 
                 ctx.font = `${UIScale.r(16)}px monospace`;
                 ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.fillText("[ ESPAÇO ] CONTINUAR", cx, cy + s(150));
+                const hint = mobile ? "[ OK ] CONTINUAR" : "[ ESPAÇO ] CONTINUAR";
+                ctx.fillText(hint, cx, cy + s(150));
             } else {
                 ctx.font = `italic ${UIScale.r(20)}px "Segoe UI"`;
                 ctx.fillStyle = '#fff';
@@ -652,10 +679,12 @@ export class ExplorationScene implements Scene {
             ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
             ctx.fillText("FIM DA BATIDA", cx, cy - s(100));
             ctx.font = `italic ${UIScale.r(20)}px "Segoe UI"`;
-            ctx.fillText(`"${pm.currentJoke}"`, cx, cy);
+            ctx.fillStyle = '#fff';
+            this.drawTextWrapped(ctx, `"${pm.currentJoke}"`, cx, cy, w - s(60), UIScale.r(25));
             ctx.font = `${UIScale.r(16)}px monospace`;
             ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.fillText("[ ESPAÇO ] VOLTAR PARA A RUA", cx, cy + s(100));
+            const hint = mobile ? "[ OK ] VOLTAR PARA A RUA" : "[ ESPAÇO ] VOLTAR PARA A RUA";
+            ctx.fillText(hint, cx, cy + s(100));
         }
     }
 
@@ -732,6 +761,26 @@ export class ExplorationScene implements Scene {
         } else if (value === 6) {
             drawDot(-q, -q); drawDot(q, -q); drawDot(-q, 0); drawDot(q, 0); drawDot(-q, q); drawDot(q, q);
         }
+    }
+
+    private drawTextWrapped(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line, x, currentY);
+                line = words[n] + ' ';
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, currentY);
     }
 }
 

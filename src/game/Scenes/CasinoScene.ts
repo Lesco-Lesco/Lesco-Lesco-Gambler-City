@@ -10,10 +10,11 @@ import { SlotMachine } from '../MiniGames/SlotMachine';
 import type { SlotResult, SlotTheme } from '../MiniGames/SlotMachine';
 import { JogoDoBicho } from '../MiniGames/JogoDoBicho';
 import { BichoManager } from '../BichoManager';
+import { isMobile } from '../Core/MobileDetect';
 import { HUD } from '../UI/HUD';
 import { UIScale } from '../Core/UIScale';
 
-/** Slot machine visual object in the casino */
+/** Machine visual object in the casino floor (Slot or Bicho) */
 interface CasinoMachine {
     x: number;
     y: number;
@@ -22,7 +23,8 @@ interface CasinoMachine {
     color: string;
     glowColor: string;
     glowPhase: number;
-    theme: SlotTheme;
+    type: 'slot' | 'bicho';
+    theme?: SlotTheme; // Only for slots
 }
 
 /** State of the casino scene */
@@ -81,36 +83,60 @@ export class CasinoScene implements Scene {
     /** Rebuild machine positions and flash lights based on screen size */
     private rebuildLayout() {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
         this.machines = [];
         this.flashLights = [];
 
-        // Create slot machine positions (Sonic 2 style, centered)
         const themes: SlotTheme[] = ['fruits', 'animals', 'shapes', 'food', 'ocean', 'space'];
-        const cols = 3;
-        const rows = 2;
-        const machineW = s(160);
-        const machineH = s(200);
-        const spacingX = s(220);
-        const spacingY = s(240);
+        const cols = mobile ? 4 : 3;
+        const machineW = s(mobile ? 130 : 160);
+        const machineH = s(mobile ? 170 : 200);
+        const spacingX = s(mobile ? 160 : 220);
+        const spacingY = s(mobile ? 190 : 240);
 
-        const totalW = (cols - 1) * spacingX + machineW;
-        const totalH = (rows - 1) * spacingY + machineH;
-        const startX = (this.screenW - totalW) / 2;
-        const startY = (this.screenH - totalH) / 2 + s(50);
+        // All items: 6 slots + 1 bicho booth = 7 items
+        const totalItems = themes.length + 1;
+        const rows = Math.ceil(totalItems / cols);
+
+        const totalGridH = (rows - 1) * spacingY + machineH;
+        const startY = (this.screenH - totalGridH) / 2 + s(35);
 
         for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
+            const itemsInThisRow = Math.min(cols, totalItems - r * cols);
+            const rowW = (itemsInThisRow - 1) * spacingX + machineW;
+            const startX = (this.screenW - rowW) / 2;
+
+            for (let c = 0; c < itemsInThisRow; c++) {
                 const idx = r * cols + c;
-                this.machines.push({
-                    x: startX + c * spacingX,
-                    y: startY + r * spacingY,
-                    width: machineW,
-                    height: machineH,
-                    color: `hsl(${(idx * 60) % 360}, 60%, 20%)`,
-                    glowColor: idx % 2 === 0 ? '#ff00ff' : '#ffff00',
-                    glowPhase: Math.random() * Math.PI * 2,
-                    theme: themes[idx]
-                });
+                const mX = startX + c * spacingX;
+                const mY = startY + r * spacingY;
+
+                if (idx < themes.length) {
+                    // Slot Machine
+                    this.machines.push({
+                        x: mX, y: mY,
+                        width: machineW, height: machineH,
+                        color: `hsl(${(idx * 60) % 360}, 60%, 20%)`,
+                        glowColor: idx % 2 === 0 ? '#ff00ff' : '#ffff00',
+                        glowPhase: Math.random() * Math.PI * 2,
+                        type: 'slot',
+                        theme: themes[idx]
+                    });
+                } else {
+                    // Jogo do Bicho Booth (Slightly larger to prevent overlap and stand out)
+                    const extraW = mobile ? s(30) : s(40);
+                    const extraH = mobile ? s(60) : s(60);
+                    this.machines.push({
+                        x: mX - extraW / 2, // Center wider booth
+                        y: mY - extraH / 2, // Center taller booth
+                        width: machineW + extraW,
+                        height: machineH + extraH,
+                        color: '#0a2a0a',
+                        glowColor: '#00ff00',
+                        glowPhase: 0,
+                        type: 'bicho'
+                    });
+                }
             }
         }
 
@@ -182,27 +208,31 @@ export class CasinoScene implements Scene {
     }
 
     private updateFloor() {
+        const mobile = isMobile();
+        const cols = mobile ? 4 : 3;
+
         if (this.input.wasPressed('ArrowRight') || this.input.wasPressed('KeyD')) {
-            this.selectedMachine = Math.min(this.selectedMachine + 1, this.machines.length);
+            this.selectedMachine = Math.min(this.selectedMachine + 1, this.machines.length - 1);
         }
         if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
             this.selectedMachine = Math.max(this.selectedMachine - 1, 0);
         }
         if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
-            this.selectedMachine = Math.min(this.selectedMachine + 5, this.machines.length);
+            this.selectedMachine = Math.min(this.selectedMachine + cols, this.machines.length - 1);
         }
         if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
-            this.selectedMachine = Math.max(this.selectedMachine - 5, 0);
+            this.selectedMachine = Math.max(this.selectedMachine - cols, 0);
         }
 
         if (this.input.wasPressed('KeyE') || this.input.wasPressed('Enter')) {
-            if (this.selectedMachine < this.machines.length) {
+            const m = this.machines[this.selectedMachine];
+            if (m.type === 'bicho') {
+                this.state = 'bicho';
+                this.bichoMessage = '';
+            } else {
                 this.state = 'slot';
                 this.slotResult = null;
                 this.slotSpinning = false;
-            } else {
-                this.state = 'bicho';
-                this.bichoMessage = '';
             }
         }
     }
@@ -210,6 +240,7 @@ export class CasinoScene implements Scene {
     private updateSlot(dt: number) {
         const machine = this.machines[this.selectedMachine];
         const theme = machine.theme;
+        if (!theme) return;
         const symbols = SlotMachine.THEMES[theme].symbols;
 
         if (this.slotSpinning) {
@@ -220,9 +251,13 @@ export class CasinoScene implements Scene {
             if (this.slotSpinTimer <= 0) {
                 this.slotSpinning = false;
                 const bmanager = BichoManager.getInstance();
-                this.slotResult = this.slotMachine.spin(this.slotBet, theme);
-                this.slotReels = this.slotResult.reels;
-                bmanager.playerMoney += this.slotResult.payout - this.slotBet;
+                if (theme) {
+                    this.slotResult = this.slotMachine.spin(this.slotBet, theme);
+                    this.slotReels = this.slotResult.reels;
+                    if (this.slotResult) {
+                        bmanager.playerMoney += this.slotResult.payout - this.slotBet;
+                    }
+                }
             }
         } else {
             const bmanager = BichoManager.getInstance();
@@ -240,7 +275,9 @@ export class CasinoScene implements Scene {
                 if (limits.max > 10000) step = 500;
                 this.slotBet = Math.max(this.slotBet - step, limits.min);
             }
-            if ((this.input.wasPressed('Space') || this.input.wasPressed('Enter')) && bmanager.playerMoney >= this.slotBet) {
+            // OK button (Enter or Space)
+            const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
+            if (okPressed && bmanager.playerMoney >= this.slotBet) {
                 this.slotSpinning = true;
                 this.slotSpinTimer = 1.5;
                 this.slotResult = null;
@@ -265,13 +302,18 @@ export class CasinoScene implements Scene {
         const bmanager = BichoManager.getInstance();
         const limits = bmanager.getBetLimits();
 
-        if (this.input.wasPressed('Equal') || this.input.wasPressed('NumpadAdd')) {
+        // Bet adjustment (Shift + Up/Down for mobile 🏃 compatibility, plus +/- for PC)
+        const isShift = this.input.isDown('ShiftLeft') || this.input.isDown('ShiftRight');
+        const adjustUp = this.input.wasPressed('Equal') || this.input.wasPressed('NumpadAdd') || (isShift && this.input.wasPressed('ArrowUp'));
+        const adjustDown = this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract') || (isShift && this.input.wasPressed('ArrowDown'));
+
+        if (adjustUp) {
             let step = 10;
             if (limits.max > 1000) step = 100;
             if (limits.max > 10000) step = 500;
             this.bichoBet = Math.min(this.bichoBet + step, bmanager.playerMoney, limits.max);
         }
-        if (this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract')) {
+        if (adjustDown) {
             let step = 10;
             if (limits.max > 1000) step = 100;
             if (limits.max > 10000) step = 500;
@@ -319,14 +361,12 @@ export class CasinoScene implements Scene {
         this.hud.renderNotifications(ctx, this.screenW, bmanager.getNotifications());
 
         // Exit hint
+        const mobile = isMobile();
         ctx.fillStyle = '#666';
-        ctx.font = `${UIScale.r(10)}px "Press Start 2P", monospace`;
+        ctx.font = `${UIScale.r(mobile ? 12 : 10)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'right';
-        if (this.state === 'floor') {
-            ctx.fillText('[ESC] Sair do cassino', this.screenW - s(20), s(30));
-        } else {
-            ctx.fillText('[ESC] Voltar', this.screenW - s(20), s(30));
-        }
+        const exitHint = mobile ? '[ ✕ ] SAIR' : (this.state === 'floor' ? '[ESC] Sair do cassino' : '[ESC] Voltar');
+        ctx.fillText(exitHint, this.screenW - s(20), s(30));
     }
 
     private drawStarfield(ctx: CanvasRenderingContext2D) {
@@ -396,6 +436,7 @@ export class CasinoScene implements Scene {
 
     private renderFloor(ctx: CanvasRenderingContext2D) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
 
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -409,16 +450,19 @@ export class CasinoScene implements Scene {
 
         this.machines.forEach((m, idx) => {
             const isSelected = idx === this.selectedMachine && this.state === 'floor';
+
+            // Base shadow and glow for all types
             ctx.shadowBlur = isSelected ? s(50) : s(10);
             ctx.shadowColor = m.glowColor;
-            ctx.fillStyle = '#1a0a2a';
+            ctx.fillStyle = m.color;
             ctx.fillRect(m.x, m.y, m.width, m.height);
             ctx.shadowBlur = 0;
 
             ctx.strokeStyle = m.glowColor;
-            ctx.lineWidth = s(4);
+            ctx.lineWidth = s(isSelected ? 6 : 4);
             ctx.strokeRect(m.x, m.y, m.width, m.height);
 
+            // Selection indicator (Sonic 2 style)
             if (isSelected) {
                 const whitePulse = (Math.sin(this.time * 10) * 0.5 + 0.5);
                 ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + whitePulse * 0.5})`;
@@ -432,168 +476,151 @@ export class CasinoScene implements Scene {
                 ctx.fillText('▼', m.x + m.width / 2, m.y - s(30) + bounce);
             }
 
-            ctx.strokeStyle = idx % 2 === 0 ? '#00ffff' : '#ff00ff';
+            // Decorative inner border
+            ctx.strokeStyle = (m.type === 'bicho') ? '#ffcc00' : (idx % 2 === 0 ? '#00ffff' : '#ff00ff');
             ctx.lineWidth = s(2);
             ctx.strokeRect(m.x + s(6), m.y + s(6), m.width - s(12), m.height - s(12));
 
-            const screenAlpha = isSelected ? 0.4 : 0.2;
-            ctx.fillStyle = isSelected ? `rgba(255,255,255,${screenAlpha})` : 'rgba(0,0,0,0.5)';
-            ctx.fillRect(m.x + s(12), m.y + s(25), m.width - s(24), m.height * 0.4);
+            if (m.type === 'slot') {
+                // Slot Machine Screen
+                const screenAlpha = isSelected ? 0.4 : 0.2;
+                ctx.fillStyle = isSelected ? `rgba(255,255,255,${screenAlpha})` : 'rgba(0,0,0,0.5)';
+                ctx.fillRect(m.x + s(12), m.y + s(25), m.width - s(24), m.height * 0.4);
 
-            for (let side = 0; side < 2; side++) {
-                const lx = side === 0 ? m.x : m.x + m.width;
-                for (let b = 0; b < 5; b++) {
-                    const ly = m.y + s(20) + b * s(35);
-                    const bPhase = Math.sin(this.time * 8 + b + side * 5) * 0.5 + 0.5;
-                    ctx.fillStyle = bPhase > 0.5 ? m.glowColor : '#333';
-                    ctx.beginPath();
-                    ctx.arc(lx, ly, s(4), 0, Math.PI * 2);
-                    ctx.fill();
+                // Side lights
+                for (let side = 0; side < 2; side++) {
+                    const lx = side === 0 ? m.x : m.x + m.width;
+                    for (let b = 0; b < 5; b++) {
+                        const ly = m.y + s(20) + b * s(35);
+                        const bPhase = Math.sin(this.time * 8 + b + side * 5) * 0.5 + 0.5;
+                        ctx.fillStyle = bPhase > 0.5 ? m.glowColor : '#333';
+                        ctx.beginPath();
+                        ctx.arc(lx, ly, s(4), 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
-            }
 
-            ctx.fillStyle = isSelected ? '#fff' : m.glowColor;
-            ctx.font = `${UIScale.r(12)}px "Press Start 2P"`;
-            ctx.textAlign = 'center';
-            if (isSelected) {
-                ctx.shadowBlur = s(15);
-                ctx.shadowColor = '#fff';
+                ctx.fillStyle = isSelected ? '#fff' : m.glowColor;
+                ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P"`;
+                ctx.textAlign = 'center';
+                if (isSelected) {
+                    ctx.shadowBlur = s(15);
+                    ctx.shadowColor = '#fff';
+                }
+                ctx.fillText(m.theme?.toUpperCase() || '', m.x + m.width / 2, m.y + m.height - s(30));
+                ctx.shadowBlur = 0;
+            } else {
+                // Jogo do Bicho Booth
+                ctx.fillStyle = '#fff';
+                ctx.font = `${UIScale.r(mobile ? 14 : 20)}px "Press Start 2P"`;
+                ctx.textAlign = 'center';
+                // Move text to the top of the booth
+                ctx.fillText('BICHO', m.x + m.width / 2, m.y + s(mobile ? 30 : 50));
+
+                // Move Horse emoji to the bottom area of the booth
+                ctx.font = `${UIScale.r(mobile ? 55 : 100)}px Arial`;
+                ctx.fillText('🐴', m.x + m.width / 2, m.y + m.height - s(mobile ? 25 : 50));
             }
-            ctx.fillText(m.theme.toUpperCase(), m.x + m.width / 2, m.y + m.height - s(30));
-            ctx.shadowBlur = 0;
         });
-
-        const bx = this.screenW - s(250);
-        const by = (this.screenH - s(350)) / 2 + s(50);
-        const bSelected = this.selectedMachine === this.machines.length;
-
-        ctx.fillStyle = '#0a2a0a';
-        ctx.fillRect(bx, by, s(200), s(300));
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = s(6);
-        if (bSelected) {
-            ctx.shadowBlur = s(20);
-            ctx.shadowColor = '#00ff00';
-        }
-        ctx.strokeRect(bx, by, s(200), s(300));
-        ctx.shadowBlur = 0;
-
-        ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(18)}px "Press Start 2P"`;
-        ctx.textAlign = 'center';
-        ctx.fillText('BICHO', bx + s(100), by + s(45));
-
-        ctx.font = `${UIScale.r(80)}px Arial`;
-        ctx.fillText('🐴', bx + s(100), by + s(160));
-
-        ctx.strokeStyle = '#ffcc00';
-        ctx.lineWidth = s(2);
-        ctx.strokeRect(bx + s(10), by + s(10), s(180), s(280));
     }
 
     private renderSlotUI(ctx: CanvasRenderingContext2D) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
         const cx = this.screenW / 2;
         const cy = this.screenH / 2;
         const machine = this.machines[this.selectedMachine];
         const theme = machine.theme;
+        if (!theme) return;
         const symbols = SlotMachine.THEMES[theme].symbols;
 
-        // Dim Background
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        // Dim Background (Solid black for full screen feel)
+        ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, this.screenW, this.screenH);
 
-        const frameW = this.screenW * 0.85;
-        const frameH = this.screenH * 0.85;
-
-        // Machine Cabinet Body
-        const grad = ctx.createLinearGradient(cx - frameW / 2, cy - frameH / 2, cx + frameW / 2, cy + frameH / 2);
-        grad.addColorStop(0, '#2b1b3a');
-        grad.addColorStop(1, '#0a0510');
+        // Machine Cabinet Body (Full Screen Gradient)
+        const grad = ctx.createLinearGradient(0, 0, this.screenW, this.screenH);
+        grad.addColorStop(0, '#1b0b2a');
+        grad.addColorStop(1, '#050208');
         ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, this.screenW, this.screenH);
 
-        ctx.beginPath();
-        ctx.roundRect(cx - frameW / 2, cy - frameH / 2, frameW, frameH, s(30));
-        ctx.fill();
-
-        // Neon Border Glow
-        ctx.shadowBlur = s(40);
-        ctx.shadowColor = machine.glowColor;
+        // Neon Border Glow (around the monitor area)
+        const monitorPadding = s(15);
         ctx.strokeStyle = machine.glowColor;
-        ctx.lineWidth = s(4);
-        ctx.stroke();
+        ctx.lineWidth = s(6);
+        ctx.shadowBlur = s(25);
+        ctx.shadowColor = machine.glowColor;
+        ctx.strokeRect(monitorPadding, monitorPadding, this.screenW - monitorPadding * 2, this.screenH - monitorPadding * 2);
         ctx.shadowBlur = 0;
-
-        // Inner Bezel
-        ctx.strokeStyle = '#445566';
-        ctx.lineWidth = s(8);
-        ctx.beginPath();
-        ctx.roundRect(cx - frameW / 2 + s(15), cy - frameH / 2 + s(15), frameW - s(30), frameH - s(30), s(20));
-        ctx.stroke();
 
         // Title Header
         ctx.fillStyle = '#ff88aa';
-        ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 32 : 44 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.shadowBlur = s(10);
-        ctx.shadowColor = '#ff00ff';
-        ctx.fillText(`${theme.toUpperCase()} SLOTS`, cx, cy - frameH / 2 + s(70));
+        ctx.shadowBlur = s(15);
+        ctx.shadowColor = '#ff44aa';
+        if (theme) {
+            ctx.fillText(`${theme.toUpperCase()} SLOTS`, cx, s(mobile ? 50 : 80));
+        }
         ctx.shadowBlur = 0;
 
         // Reels Container (Screen)
-        const reelAreaW = frameW * 0.8;
-        const reelAreaH = frameH * 0.4;
+        const reelAreaW = this.screenW * (mobile ? 0.95 : 0.8);
+        const reelAreaH = this.screenH * (mobile ? 0.5 : 0.4);
 
-        ctx.fillStyle = '#000';
-        ctx.fillRect(cx - reelAreaW / 2, cy - reelAreaH / 2 - s(10), reelAreaW, reelAreaH);
-
-        // Screen Glare
-        ctx.fillStyle = 'rgba(255,255,255,0.05)';
-        ctx.beginPath();
-        ctx.moveTo(cx - reelAreaW / 2, cy - reelAreaH / 2 - s(10));
-        ctx.lineTo(cx + reelAreaW / 2, cy - reelAreaH / 2 - s(10));
-        ctx.lineTo(cx - reelAreaW / 2, cy + s(50));
-        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.fillRect(cx - reelAreaW / 2, cy - reelAreaH / 2 - s(20), reelAreaW, reelAreaH);
 
         for (let i = 0; i < 3; i++) {
             const colW = reelAreaW / 3;
             const reelX = cx - (reelAreaW / 3) + i * colW;
             const sym = symbols[this.slotReels[i]];
 
-            ctx.fillStyle = i % 2 === 0 ? '#111' : '#161616';
-            ctx.fillRect(reelX - colW / 2 + s(2), cy - reelAreaH / 2 - s(10), colW - s(4), reelAreaH);
+            ctx.fillStyle = i % 2 === 0 ? '#181818' : '#222';
+            ctx.fillRect(reelX - colW / 2 + s(2), cy - reelAreaH / 2 - s(20), colW - s(4), reelAreaH);
 
             ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(100)}px "Segoe UI Emoji", Arial`;
+            ctx.font = `${UIScale.r(mobile ? 100 : 100)}px "Segoe UI Emoji", Arial`;
             ctx.textAlign = 'center';
             ctx.shadowBlur = s(20);
             ctx.shadowColor = 'rgba(255,255,255,0.5)';
-            ctx.fillText(sym, reelX, cy + s(20));
+            ctx.fillText(sym, reelX, cy - s(10));
             ctx.shadowBlur = 0;
 
             if (i < 2) {
                 ctx.strokeStyle = '#333';
                 ctx.lineWidth = s(2);
                 ctx.beginPath();
-                ctx.moveTo(reelX + colW / 2, cy - reelAreaH / 2 - s(10));
-                ctx.lineTo(reelX + colW / 2, cy + reelAreaH / 2 - s(10));
+                ctx.moveTo(reelX + colW / 2, cy - reelAreaH / 2 - s(20));
+                ctx.lineTo(reelX + colW / 2, cy + reelAreaH / 2 - s(20));
                 ctx.stroke();
             }
         }
 
         // Info Display
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(28)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 24 : 28 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(`APOSTA ATUAL`, cx, cy + frameH / 2 - s(140));
+        ctx.fillText(`APOSTA ATUAL`, cx, this.screenH - s(mobile ? 145 : 170));
 
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(48)}px "Segoe UI", sans-serif`;
-        ctx.fillText(`R$ ${this.slotBet}`, cx, cy + frameH / 2 - s(90));
+        ctx.font = `bold ${UIScale.r(mobile ? 40 : 48 * fScale)}px "Segoe UI", sans-serif`;
+        ctx.fillText(`R$ ${this.slotBet}`, cx, this.screenH - s(mobile ? 90 : 115));
 
-        const btnW = s(280);
-        const btnH = s(70);
-        const btnY = cy + frameH / 2 - s(60);
+        const btnW = s(mobile ? 220 : 280);
+        const btnH = s(mobile ? 55 : 70);
+        const btnY = this.screenH - s(mobile ? 65 : 85); // Slightly higher to ensure clearance
+        const btnTextY = btnY + btnH / 2; // Vertical centering logic
+
+        // Hints - Adjusted for better spacing
+        ctx.fillStyle = '#666';
+        ctx.font = `bold ${UIScale.r(mobile ? 12 : 14)}px "Segoe UI", sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText(mobile ? "[D-PAD ↑/↓] Ajustar" : "[SETAS ↑/↓] Ajustar", s(20), this.screenH - s(20));
+        ctx.textAlign = 'right';
+        ctx.fillText(mobile ? "[ OK ] GIRAR" : "[ENTER/ESPAÇO] GIRAR", this.screenW - s(20), this.screenH - s(20));
 
         // Spin Button
         if (!this.slotSpinning) {
@@ -614,8 +641,12 @@ export class CasinoScene implements Scene {
             ctx.shadowBlur = 0;
 
             ctx.fillStyle = '#fff';
-            ctx.font = `bold ${UIScale.r(28)}px "Segoe UI", sans-serif`;
-            ctx.fillText('GIRAR!', cx, btnY + s(45));
+            ctx.font = `bold ${UIScale.r(mobile ? 24 : 28 * fScale)}px "Segoe UI", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Subtracting s(2) to nudge text slightly up for better visual centering 
+            ctx.fillText('GIRAR!', cx, btnTextY - s(2));
+            ctx.textBaseline = 'alphabetic';
         } else {
             ctx.fillStyle = '#444';
             ctx.beginPath();
@@ -623,17 +654,22 @@ export class CasinoScene implements Scene {
             ctx.fill();
 
             ctx.fillStyle = '#888';
-            ctx.font = `bold ${UIScale.r(24)}px "Segoe UI", sans-serif`;
-            ctx.fillText('RODANDO...', cx, btnY + s(45));
+            ctx.font = `bold ${UIScale.r(mobile ? 20 : 24 * fScale)}px "Segoe UI", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('RODANDO...', cx, btnTextY - s(2));
+            ctx.textBaseline = 'alphabetic';
         }
 
         // Result Overlay
         if (this.slotResult) {
             const resultColor = this.slotResult.payout > 0 ? '#44ff44' : '#ff4444';
+            const boxW = s(mobile ? 340 : 600);
+            const boxH = s(mobile ? 180 : 220);
 
-            ctx.fillStyle = 'rgba(0,0,0,0.9)';
+            ctx.fillStyle = 'rgba(0,0,0,0.95)';
             ctx.beginPath();
-            ctx.roundRect(cx - s(300), cy - s(100), s(600), s(200), s(20));
+            ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, s(20));
             ctx.fill();
 
             ctx.strokeStyle = resultColor;
@@ -641,16 +677,18 @@ export class CasinoScene implements Scene {
             ctx.stroke();
 
             ctx.fillStyle = resultColor;
-            ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
+            ctx.textAlign = 'center';
             ctx.shadowBlur = s(20);
             ctx.shadowColor = resultColor;
 
             if (this.slotResult.payout > 0) {
-                ctx.fillText(`PARABÉNS!`, cx, cy - s(20));
-                ctx.font = `bold ${UIScale.r(54)}px "Segoe UI", sans-serif`;
-                ctx.fillText(`GANHOU R$ ${this.slotResult.payout}`, cx, cy + s(50));
+                ctx.font = `bold ${UIScale.r(mobile ? 32 : 36)}px "Segoe UI", sans-serif`;
+                ctx.fillText(`PARABÉNS!`, cx, cy - s(mobile ? 25 : 30));
+                ctx.font = `bold ${UIScale.r(mobile ? 42 : 54)}px "Segoe UI", sans-serif`;
+                ctx.fillText(`GANHOU R$ ${this.slotResult.payout}`, cx, cy + s(mobile ? 35 : 50));
             } else {
-                ctx.fillText('NÃO FOI DESSA VEZ...', cx, cy + s(20));
+                ctx.font = `bold ${UIScale.r(mobile ? 28 : 36)}px "Segoe UI", sans-serif`;
+                ctx.fillText('NÃO FOI DESSA VEZ...', cx, cy + s(mobile ? 10 : 15));
             }
             ctx.shadowBlur = 0;
         }
@@ -658,30 +696,42 @@ export class CasinoScene implements Scene {
 
     private renderBichoUI(ctx: CanvasRenderingContext2D) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
         const cx = this.screenW / 2;
         const cy = this.screenH / 2;
 
-        // Deep Green "Felt" Background
-        ctx.fillStyle = 'rgba(5, 20, 10, 0.95)';
+        // Deep Green "Felt" Background (Full Screen)
+        ctx.fillStyle = '#05140a';
         ctx.fillRect(0, 0, this.screenW, this.screenH);
 
-        const frameW = this.screenW * 0.95;
-        const frameH = this.screenH * 0.9;
-
-        // Header
+        // Grid parameters
         ctx.fillStyle = '#ffdd44';
-        ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 32 : 44 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = '#ffdd44';
-        ctx.fillText('JOGO DO BICHO - FEDERAL', cx, cy - frameH / 2 + s(40));
+        ctx.shadowBlur = s(25);
+        ctx.shadowColor = '#ffbb00';
+        ctx.fillText('JOGO DO BICHO - FEDERAL', cx, s(mobile ? 50 : 80));
         ctx.shadowBlur = 0;
 
-        // Grid parameters
-        const cellW = (frameW - s(100)) / 5;
-        const cellH = (frameH - s(280)) / 5;
+        // Grid sizing - Bigger on mobile, centered but shifted on PC
+        const gridW = mobile ? this.screenW - s(40) : this.screenW - s(140);
+        const gridH = mobile ? this.screenH - s(180) : this.screenH - s(300);
+        const cellW = gridW / 5;
+        const cellH = gridH / 5;
         const gridStartX = cx - (cellW * 2.5);
-        const gridStartY = cy - (cellH * 2.5) - s(20);
+        // Shift grid up (PC/Mobile) to clear the footer shadow and center better
+        // Lifting slightly less (80 -> 60) to avoid title overlap on PC
+        const gridStartY = cy - (cellH * 2.5) - (mobile ? s(25) : s(60));
+
+        // Group colors (5 animals per group)
+        const groupColors = [
+            'rgba(255, 100, 100, 0.2)', // Group 1
+            'rgba(100, 255, 100, 0.2)', // Group 2
+            'rgba(100, 100, 255, 0.2)', // Group 3
+            'rgba(255, 255, 100, 0.2)', // Group 4
+            'rgba(255, 100, 255, 0.2)'  // Group 5
+        ];
 
         for (let row = 0; row < 5; row++) {
             const gy = gridStartY + row * cellH;
@@ -694,14 +744,17 @@ export class CasinoScene implements Scene {
                 const ay = gy;
 
                 ctx.beginPath();
-                ctx.roundRect(ax + s(4), ay + s(4), cellW - s(8), cellH - s(8), s(8));
+                // Reduce cell padding on mobile (s(20) -> s(10)) to enlarge quadrants
+                const cellPadding = s(mobile ? 10 : 10);
+                ctx.roundRect(ax + cellPadding / 2, ay + cellPadding / 2, cellW - cellPadding, cellH - cellPadding, s(8));
 
                 if (isSelected) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.fillStyle = mobile ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)';
                     ctx.shadowBlur = s(20);
                     ctx.shadowColor = '#ffcc00';
                 } else {
-                    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                    const groupIdx = Math.floor(i / 5);
+                    ctx.fillStyle = groupColors[groupIdx] || 'rgba(0,0,0,0.4)';
                     ctx.shadowBlur = 0;
                 }
                 ctx.fill();
@@ -712,53 +765,58 @@ export class CasinoScene implements Scene {
                 ctx.shadowBlur = 0;
 
                 ctx.fillStyle = '#fff';
-                ctx.font = `${Math.floor(cellH * 0.5)}px "Segoe UI Emoji", Arial`;
+                ctx.font = `${Math.floor(cellH * (mobile ? 0.6 : 0.5))}px "Segoe UI Emoji", Arial`;
                 ctx.textAlign = 'center';
-                ctx.fillText(animal.emoji, ax + cellW / 2, ay + cellH * 0.55);
+                ctx.fillText(animal.emoji, ax + cellW / 2, ay + cellH * 0.48); // Lifted emoji even more
 
                 ctx.fillStyle = isSelected ? '#ffcc00' : '#aaa';
-                ctx.font = `bold ${Math.floor(cellH * 0.15)}px "Segoe UI", sans-serif`;
-                ctx.fillText(animal.name.toUpperCase(), ax + cellW / 2, ay + cellH * 0.85);
+                ctx.font = `bold ${Math.floor(cellH * (mobile ? 0.18 : 0.15))}px "Segoe UI", sans-serif`;
+                ctx.fillText(animal.name.toUpperCase(), ax + cellW / 2, ay + cellH * 0.78); // Lifted name even more
 
                 ctx.fillStyle = '#666';
-                ctx.font = `${UIScale.r(12)}px "Segoe UI"`;
+                ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Segoe UI"`;
                 ctx.textAlign = 'left';
-                ctx.fillText(`${i + 1}`, ax + s(10), ay + s(20));
+                ctx.fillText(`${i + 1}`, ax + s(mobile ? 6 : 10), ay + s(mobile ? 14 : 20));
             }
         }
 
         // Betting Footer
-        const footerY = this.screenH - s(100);
+        const footerY = this.screenH - s(mobile ? 65 : 100);
 
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(0, footerY - s(50), this.screenW, s(150));
+        ctx.fillRect(0, footerY - s(mobile ? 35 : 50), this.screenW, s(mobile ? 110 : 150));
 
         ctx.fillStyle = '#aaa';
-        ctx.font = `bold ${UIScale.r(20)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 16 : 20 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'right';
-        ctx.fillText("APOSTA:", cx - s(180), footerY + s(5));
+        ctx.fillText("APOSTA:", cx - s(mobile ? 100 : 180), footerY + s(5));
 
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(54)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 40 : 54 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'left';
         ctx.shadowBlur = s(15);
         ctx.shadowColor = 'rgba(255, 204, 0, 0.4)';
-        ctx.fillText(`R$ ${this.bichoBet}`, cx - s(160), footerY + s(20));
+        ctx.fillText(`R$ ${this.bichoBet}`, cx - s(mobile ? 80 : 160), footerY + s(mobile ? 12 : 20));
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#fff';
-        ctx.font = `600 ${UIScale.r(14)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 12 : 14 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText("[+/-] Ajustar Valor", cx + s(180), footerY - s(15));
-        ctx.fillText("[SETAS] Escolher Bicho", cx + s(180), footerY + s(10));
-        ctx.fillText("[ESPAÇO] CONFIRMAR", cx + s(180), footerY + s(35));
+        const helpX = mobile ? cx + s(115) : cx + s(180);
+        const adjustHint = mobile ? "[🏃+ DPAD] Ajustar" : "[+/-] Ajustar Valor";
+        const chooseHint = mobile ? "[ DPAD ] Escolher" : "[SETAS] Escolher Bicho";
+        const confirmHint = mobile ? "[ OK ] CONFIRMAR" : "[ESPAÇO] CONFIRMAR";
+
+        ctx.fillText(adjustHint, helpX, footerY - s(12));
+        ctx.fillText(chooseHint, helpX, footerY + s(8));
+        ctx.fillText(confirmHint, helpX, footerY + s(30));
 
         if (this.bichoMessage) {
             ctx.save();
-            ctx.translate(cx, footerY + s(60));
+            ctx.translate(cx, footerY + s(mobile ? 45 : 60));
             ctx.fillStyle = '#111';
             ctx.beginPath();
-            ctx.roundRect(-s(300), -s(25), s(600), s(50), s(25));
+            ctx.roundRect(-s(mobile ? 200 : 300), -s(25), s(mobile ? 400 : 600), s(50), s(25));
             ctx.fill();
 
             ctx.strokeStyle = '#44ff44';
@@ -766,9 +824,9 @@ export class CasinoScene implements Scene {
             ctx.stroke();
 
             ctx.fillStyle = '#44ff44';
-            ctx.font = `bold ${UIScale.r(20)}px "Segoe UI", sans-serif`;
+            ctx.font = `bold ${UIScale.r(mobile ? 16 : 20 * fScale)}px "Segoe UI", sans-serif`;
             ctx.textAlign = 'center';
-            ctx.fillText(this.bichoMessage, 0, s(8));
+            ctx.fillText(this.bichoMessage, 0, s(mobile ? 6 : 8));
             ctx.restore();
         }
     }

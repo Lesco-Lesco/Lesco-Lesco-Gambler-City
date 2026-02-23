@@ -2,6 +2,7 @@ import { DominoGame } from './DominoGame';
 import type { DominoPiece } from './DominoGame';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
+import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 
 export class DominoUI {
@@ -90,6 +91,8 @@ export class DominoUI {
     public draw(ctx: CanvasRenderingContext2D, width: number, height: number) {
         const s = UIScale.s.bind(UIScale);
         const cx = width / 2;
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
 
         // Wood Table Background
         const grad = ctx.createRadialGradient(cx, height / 2, s(100), cx, height / 2, height);
@@ -114,40 +117,44 @@ export class DominoUI {
         ctx.shadowBlur = s(10);
         ctx.shadowColor = '#44ff44';
         ctx.fillStyle = '#44ff44';
-        ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(36 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText("DOMINÓ DE PRAÇA", cx, s(60));
+        ctx.fillText("DOMINÓ DE PRAÇA", cx, s(mobile ? 50 : 60));
         ctx.shadowBlur = 0;
 
         // Board Area
-        this.drawBoard(ctx, cx, s(300), width);
+        this.drawBoard(ctx, cx, s(mobile ? 280 : 300), width);
 
         // Pool Info
         ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.font = `${UIScale.r(14)}px monospace`;
-        ctx.fillText(`CESTO: ${this.game.pool.length} PEÇAS`, cx, s(460));
+        ctx.font = `${UIScale.r(14 * fScale)}px monospace`;
+        ctx.fillText(`CESTO: ${this.game.pool.length} PEÇAS`, cx, s(mobile ? 440 : 460));
 
         // Status Message
         ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${UIScale.r(22)}px "Segoe UI", sans-serif`;
-        ctx.fillText(this.game.message.toUpperCase(), cx, height - s(240));
+        ctx.font = `bold ${UIScale.r(22 * fScale)}px "Segoe UI", sans-serif`;
+        ctx.fillText(this.game.message.toUpperCase(), cx, height - s(mobile ? 200 : 240));
 
         // Player Hands
-        this.drawPlayerHands(ctx, cx, height - s(100));
+        this.drawPlayerHands(ctx, cx, height - s(mobile ? 85 : 100));
 
         if (this.game.phase === 'betting') {
             this.drawBettingUI(ctx, cx, height / 2);
         } else if (this.game.phase === 'result') {
             ctx.fillStyle = '#ffff00';
-            ctx.font = `bold ${UIScale.r(20)}px "Segoe UI", sans-serif`;
-            ctx.fillText("[ESPAÇO] JOGAR NOVAMENTE   [ESC] SAIR", cx, height - s(50));
+            ctx.font = `bold ${UIScale.r(20 * fScale)}px "Segoe UI", sans-serif`;
+            const resultHint = mobile
+                ? '[OK] JOGAR NOVAMENTE   [✕] SAIR'
+                : '[ESPAÇO] JOGAR NOVAMENTE   [ESC] SAIR';
+            ctx.fillText(resultHint, cx, height - s(mobile ? 40 : 50));
         }
     }
 
     private drawBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number, _screenW: number) {
         const s = UIScale.s.bind(UIScale);
-        const pieceW = s(40);
-        const pieceH = s(80);
+        const mobile = isMobile();
+        const pieceW = s(mobile ? 45 : 40);
+        const pieceH = s(mobile ? 90 : 80);
         const spacing = s(5);
 
         // Linear board for simplicity
@@ -156,7 +163,7 @@ export class DominoUI {
 
         // Pool container visual
         ctx.fillStyle = 'rgba(255,255,255,0.02)';
-        ctx.fillRect(0, cy - s(100), ctx.canvas.width, s(200));
+        ctx.fillRect(0, cy - s(mobile ? 80 : 100), ctx.canvas.width, s(mobile ? 160 : 200));
 
         this.game.board.forEach((piece, i) => {
             this.drawPiece(ctx, startX + i * (pieceW + spacing), cy, piece, false, pieceW, pieceH);
@@ -166,21 +173,24 @@ export class DominoUI {
             ctx.strokeStyle = 'rgba(255,255,255,0.1)';
             ctx.setLineDash([s(5), s(5)]);
             ctx.lineWidth = s(2);
-            ctx.strokeRect(cx - s(20), cy - s(40), s(40), s(80));
+            ctx.strokeRect(cx - s(20 * (mobile ? 1.2 : 1)), cy - s(40 * (mobile ? 1.2 : 1)), s(40 * (mobile ? 1.2 : 1)), s(80 * (mobile ? 1.2 : 1)));
             ctx.setLineDash([]);
             ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            ctx.font = `italic ${UIScale.r(14)}px "Segoe UI"`;
+            ctx.font = `italic ${UIScale.r(14 * (mobile ? 1.3 : 1))}px "Segoe UI"`;
             ctx.fillText("MESA VAZIA", cx, cy);
         }
     }
 
     private drawPlayerHands(ctx: CanvasRenderingContext2D, cx: number, y: number) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
+
         // Human hand
         const human = this.game.players[0];
-        const pieceW = s(40);
-        const pieceH = s(80);
-        const spacing = s(12);
+        const pieceW = s(mobile ? 50 : 40);
+        const pieceH = s(mobile ? 100 : 80);
+        const spacing = mobile ? s(4) : s(12);
         const totalW = human.hand.length * (pieceW + spacing);
         let startX = cx - totalW / 2;
 
@@ -193,26 +203,26 @@ export class DominoUI {
 
         // NPC counters
         ctx.fillStyle = '#aaa';
-        ctx.font = `600 ${UIScale.r(14)}px "Segoe UI", sans-serif`;
+        ctx.font = `600 ${UIScale.r(14 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'left';
-        ctx.fillText(`${this.game.players[1].name}`, s(50), y - s(40));
-        ctx.font = `bold ${UIScale.r(32)}px "Segoe UI"`;
-        ctx.fillText(`${this.game.players[1].hand.length}`, s(50), y);
+        ctx.fillText(`${this.game.players[1].name}`, mobile ? s(20) : s(50), y - s(mobile ? 60 : 40));
+        ctx.font = `bold ${UIScale.r(32 * fScale)}px "Segoe UI"`;
+        ctx.fillText(`${this.game.players[1].hand.length}`, mobile ? s(20) : s(50), y - s(mobile ? 10 : 0));
 
         ctx.textAlign = 'right';
-        ctx.font = `600 ${UIScale.r(14)}px "Segoe UI", sans-serif`;
-        ctx.fillText(`${this.game.players[2].name}`, cx * 2 - s(50), y - s(40));
-        ctx.font = `bold ${UIScale.r(32)}px "Segoe UI"`;
-        ctx.fillText(`${this.game.players[2].hand.length}`, cx * 2 - s(50), y);
+        ctx.font = `600 ${UIScale.r(14 * fScale)}px "Segoe UI", sans-serif`;
+        ctx.fillText(`${this.game.players[2].name}`, cx * 2 - (mobile ? s(20) : s(50)), y - s(mobile ? 60 : 40));
+        ctx.font = `bold ${UIScale.r(32 * fScale)}px "Segoe UI"`;
+        ctx.fillText(`${this.game.players[2].hand.length}`, cx * 2 - (mobile ? s(20) : s(50)), y - s(mobile ? 10 : 0));
 
         if (this.game.phase === 'playing' && this.game.turnIndex === 0) {
             ctx.fillStyle = '#ffff00';
-            ctx.font = `bold ${UIScale.r(16)}px monospace`;
+            ctx.font = `bold ${UIScale.r(16 * fScale)}px monospace`;
             ctx.textAlign = 'center';
             const sideText = this.selectedSide === 'left' ? '◀ ESQUERDA' : 'DIREITA ▶';
             ctx.fillText(`LADO: ${sideText} [SHIFT]`, cx, y - s(130));
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            ctx.font = `${UIScale.r(12)}px monospace`;
+            ctx.font = `${UIScale.r(12 * fScale)}px monospace`;
             ctx.fillText("[C] COMPRAR   [ESPAÇO] JOGAR", cx, y - s(110));
         }
     }
@@ -272,24 +282,26 @@ export class DominoUI {
 
     private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.25 : 1.0;
 
         ctx.fillStyle = 'rgba(0,0,0,0.8)';
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         ctx.fillStyle = '#fff';
-        ctx.font = `300 ${UIScale.r(24)}px "Segoe UI", sans-serif`;
+        ctx.font = `300 ${UIScale.r(24 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText("QUANTO VALE O JOGO?", cx, cy - s(60));
 
         ctx.fillStyle = '#ffff00';
-        ctx.font = `bold ${UIScale.r(80)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(80 * fScale)}px "Segoe UI", sans-serif`;
         ctx.shadowBlur = s(20);
         ctx.shadowColor = 'rgba(255, 255, 0, 0.4)';
         ctx.fillText(`R$ ${this.game.betAmount}`, cx, cy + s(20));
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#aaa';
-        ctx.font = `${UIScale.r(14)}px "Segoe UI", sans-serif`;
+        ctx.font = `${UIScale.r(14 * fScale)}px "Segoe UI", sans-serif`;
         ctx.fillText("[W/S] Ajustar Valor    [ESPAÇO] Confirmar", cx, cy + s(80));
     }
 }

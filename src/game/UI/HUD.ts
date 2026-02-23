@@ -66,22 +66,32 @@ export class HUD {
 
         // --- Interaction hint (bottom-center) ---
         if (interactionHint) {
-            const hintW = ctx.measureText(interactionHint).width + s(40);
-            const hintX = screenW / 2 - hintW / 2;
+            ctx.font = `bold ${UIScale.r(14)}px monospace`;
+            const textWidth = ctx.measureText(interactionHint).width;
+
+            // Padding and containment
+            const padding = s(40);
+            const boxW = Math.min(screenW - s(20), textWidth + padding);
+            const hintX = screenW / 2 - boxW / 2;
             const hintY = _screenH - s(80);
 
             const pulse = Math.sin(Date.now() / 300) * 0.15 + 0.85;
             ctx.globalAlpha = pulse;
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(hintX, hintY, hintW, s(35));
+            ctx.fillRect(hintX, hintY, boxW, s(35));
             ctx.strokeStyle = '#ffcc00';
             ctx.lineWidth = 1;
-            ctx.strokeRect(hintX, hintY, hintW, s(35));
+            ctx.strokeRect(hintX, hintY, boxW, s(35));
 
             ctx.fillStyle = '#ffcc00';
-            ctx.font = `bold ${UIScale.r(14)}px monospace`;
             ctx.textAlign = 'center';
+
+            // If text is still too wide for clamped box, use a smaller font
+            if (textWidth > boxW - s(10)) {
+                ctx.font = `bold ${UIScale.r(11)}px monospace`;
+            }
+
             ctx.fillText(interactionHint, screenW / 2, hintY + s(23));
 
             ctx.globalAlpha = 1;
@@ -108,7 +118,9 @@ export class HUD {
 
             ctx.font = `bold ${UIScale.r(12)}px monospace`;
             const textWidth = ctx.measureText(note.message).width;
-            const boxW = textWidth + s(40);
+
+            // Clamp box width to screen width
+            const boxW = Math.min(screenW - s(40), textWidth + s(40));
 
             // Mobile: left-aligned below stamina. Desktop: right-aligned.
             const boxX = mobile ? s(10) : screenW - boxW - s(20);
@@ -121,7 +133,14 @@ export class HUD {
 
             ctx.fillStyle = '#fff';
             ctx.textAlign = mobile ? 'left' : 'right';
+
             const textX = mobile ? boxX + s(20) : screenW - s(40);
+
+            // If text exceeds clamped box, use smaller font or clip
+            if (textWidth > boxW - s(30)) {
+                ctx.font = `bold ${UIScale.r(10)}px monospace`;
+            }
+
             ctx.fillText(note.message, textX, y + s(20));
 
             ctx.restore();

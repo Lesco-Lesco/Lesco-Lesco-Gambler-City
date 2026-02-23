@@ -65,14 +65,16 @@ export class FanTanUI {
         // Grid/Board
         const centerX = screenW / 2;
         const centerY = screenH / 2;
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
 
         // Discrete Dragon
         this.drawDragon(ctx, centerX, centerY);
 
         ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(36 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('FAN-TAN', centerX, s(80));
+        ctx.fillText('FAN-TAN', centerX, s(mobile ? 60 : 80));
 
         const phase = this.game.phase;
 
@@ -91,9 +93,9 @@ export class FanTanUI {
         }
 
         ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
-        ctx.font = `${UIScale.r(12)}px monospace`;
+        ctx.font = `${UIScale.r(12 * fScale)}px monospace`;
         let helpText: string;
-        if (isMobile()) {
+        if (mobile) {
             helpText = phase === 'choosing'
                 ? `ESCOLHA 2 POSIÇÕES (${this.game.currentPlayerChoices.length}/2) | [E] CONFIRMAR | [✕] SAIR`
                 : '[E] CONFIRMAR | [✕] SAIR';
@@ -102,7 +104,7 @@ export class FanTanUI {
                 ? `ESCOLHA 2 POSIÇÕES (${this.game.currentPlayerChoices.length}/2) | ENTER CONFIRMAR | ESC SAIR`
                 : 'ENTER CONFIRMAR | ESC SAIR';
         }
-        ctx.fillText(helpText, centerX, screenH - s(40));
+        ctx.fillText(helpText, centerX, screenH - s(mobile ? 30 : 40));
     }
 
     private drawDragon(ctx: CanvasRenderingContext2D, x: number, y: number) {
@@ -129,7 +131,9 @@ export class FanTanUI {
 
     private drawBoard(ctx: CanvasRenderingContext2D, x: number, y: number) {
         const s = UIScale.s.bind(UIScale);
-        const size = s(180);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
+        const size = s(mobile ? 150 : 180);
         ctx.strokeStyle = '#ffd700';
         ctx.lineWidth = s(3);
 
@@ -141,7 +145,7 @@ export class FanTanUI {
         ctx.stroke();
 
         // Numbers
-        ctx.font = `bold ${UIScale.r(24)}px sans-serif`;
+        ctx.font = `bold ${UIScale.r(24 * fScale)}px sans-serif`;
         ctx.fillStyle = '#ffd700';
         const positions = [
             { id: 1, px: x + size / 2, py: y - size / 2 },
@@ -155,12 +159,12 @@ export class FanTanUI {
             const isSelected = this.game.phase === 'choosing' && this.selectedPos === pos.id;
 
             if (isSelected) {
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+                ctx.fillStyle = mobile ? 'rgba(255, 215, 0, 0.3)' : 'rgba(255, 215, 0, 0.2)';
                 ctx.fillRect(pos.px - size / 2 + s(5), pos.py - size / 2 + s(5), size - s(10), size - s(10));
             }
 
             if (isUser) {
-                ctx.fillStyle = 'rgba(255, 77, 109, 0.3)';
+                ctx.fillStyle = mobile ? 'rgba(255, 77, 109, 0.4)' : 'rgba(255, 77, 109, 0.3)';
                 ctx.fillRect(pos.px - size / 2 + s(5), pos.py - size / 2 + s(5), size - s(10), size - s(10));
             }
 
@@ -169,26 +173,30 @@ export class FanTanUI {
 
             if (isUser) {
                 ctx.fillStyle = '#ff4d6d';
-                ctx.font = `bold ${UIScale.r(12)}px sans-serif`;
-                ctx.fillText('SUA ESCOLHA', pos.px, pos.py + s(30));
-                ctx.font = `bold ${UIScale.r(24)}px sans-serif`;
+                ctx.font = `bold ${UIScale.r(12 * fScale)}px sans-serif`;
+                ctx.fillText('SUA ESCOLHA', pos.px, pos.py + s(mobile ? 40 : 30));
+                ctx.font = `bold ${UIScale.r(24 * fScale)}px sans-serif`;
             }
         }
     }
 
     private drawBettingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
 
         ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(24)}px sans-serif`;
+        ctx.font = `${UIScale.r(24 * fScale)}px sans-serif`;
         ctx.fillText('QUAL A APOSTA?', centerX, centerY - s(60));
         ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${UIScale.r(64)}px sans-serif`;
+        ctx.font = `bold ${UIScale.r(64 * fScale)}px sans-serif`;
         ctx.fillText(`R$ ${this.game.selectedBet}`, centerX, centerY + s(20));
     }
 
     private drawGrains(ctx: CanvasRenderingContext2D, x: number, y: number) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
         const count = this.game.displayedGrains;
         const phase = this.game.phase;
 
@@ -196,19 +204,19 @@ export class FanTanUI {
             // Draw Straw Basket hiding grains
             ctx.fillStyle = '#8b4513';
             ctx.beginPath();
-            ctx.arc(x, y, s(60), Math.PI, 0);
+            ctx.arc(x, y, s(mobile ? 75 : 60), Math.PI, 0);
             ctx.fill();
             ctx.strokeStyle = '#5d2e0d';
             ctx.lineWidth = s(2);
             ctx.stroke();
 
             ctx.fillStyle = '#ffd700';
-            ctx.font = `${UIScale.r(16)}px monospace`;
-            ctx.fillText('CESTO DE PALHA', x, y - s(70));
+            ctx.font = `${UIScale.r(16 * fScale)}px monospace`;
+            ctx.fillText('CESTO DE PALHA', x, y - s(mobile ? 85 : 70));
         } else {
             // Draw Grains
             ctx.fillStyle = '#fff9f0';
-            const radius = s(40);
+            const radius = s(mobile ? 50 : 40);
             for (let i = 0; i < count; i++) {
                 const angle = (i / count) * Math.PI * 2 + (i * 0.5);
                 const r = (i / count) * radius * 1.5;
@@ -220,21 +228,23 @@ export class FanTanUI {
             }
 
             ctx.fillStyle = '#ffd700';
-            ctx.font = `bold ${UIScale.r(20)}px monospace`;
-            ctx.fillText(`GRÃOS: ${count}`, x, y + s(100));
+            ctx.font = `bold ${UIScale.r(20 * fScale)}px monospace`;
+            ctx.fillText(`GRÃOS: ${count}`, x, y + s(mobile ? 120 : 100));
         }
     }
 
     private drawResultUI(ctx: CanvasRenderingContext2D, centerX: number, y: number) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
 
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(24)}px sans-serif`;
+        ctx.font = `bold ${UIScale.r(24 * fScale)}px sans-serif`;
         ctx.fillText(this.game.resultMessage, centerX, y);
-        ctx.font = `${UIScale.r(16)}px monospace`;
-        const resultHint = isMobile()
+        ctx.font = `${UIScale.r(16 * fScale)}px monospace`;
+        const resultHint = mobile
             ? '[OK] JOGAR NOVAMENTE | [E] SAIR'
             : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR';
-        ctx.fillText(resultHint, centerX, y + s(40));
+        ctx.fillText(resultHint, centerX, y + s(mobile ? 30 : 40));
     }
 }

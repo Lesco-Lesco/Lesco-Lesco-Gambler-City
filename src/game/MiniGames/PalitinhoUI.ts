@@ -82,11 +82,13 @@ export class PalitinhoUI {
 
         const centerX = screenW / 2;
         const centerY = screenH / 2;
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
 
         ctx.fillStyle = '#ff66cc';
-        ctx.font = `bold ${UIScale.r(36)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(36 * fScale)}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('PALITINHO', centerX, s(80));
+        ctx.fillText('PALITINHO', centerX, s(mobile ? 60 : 80));
 
         const phase = this.game.phase;
 
@@ -96,40 +98,44 @@ export class PalitinhoUI {
             this.drawDiceUI(ctx, centerX, centerY);
         } else if (phase === 'choosing' || (phase as any) === 'flipping' || phase === 'reveal' || phase === 'result') {
             this.drawMatchsticks(ctx, centerX, centerY);
-            this.drawPlayersUI(ctx, centerX, centerY + s(120));
+            this.drawPlayersUI(ctx, centerX, centerY + s(mobile ? 100 : 120));
             if (phase === 'result') {
                 ctx.fillStyle = '#fff';
-                ctx.font = `${UIScale.r(24)}px sans-serif`;
-                ctx.fillText(this.game.resultMessage, centerX, centerY + s(200));
-                ctx.font = `${UIScale.r(14)}px monospace`;
-                const resultHint = isMobile()
+                ctx.font = `${UIScale.r(24 * fScale)}px sans-serif`;
+                ctx.fillText(this.game.resultMessage, centerX, centerY + s(mobile ? 180 : 200));
+                ctx.font = `${UIScale.r(14 * fScale)}px monospace`;
+                const resultHint = mobile
                     ? '[OK] JOGAR NOVAMENTE | [E] SAIR'
                     : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR';
-                ctx.fillText(resultHint, centerX, centerY + s(240));
+                ctx.fillText(resultHint, centerX, centerY + s(mobile ? 220 : 240));
             }
         }
     }
 
     private drawBettingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
         ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(24)}px sans-serif`;
+        ctx.font = `${UIScale.r(24 * fScale)}px sans-serif`;
         ctx.fillText('APOSTA MÍNIMA: R$ ' + this.game.selectedBet, centerX, centerY);
     }
 
     private drawDiceUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
         const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
 
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(20)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(20 * fScale)}px "Segoe UI", sans-serif`;
         ctx.fillText('QUEM COMEÇA?', centerX, centerY - s(100));
 
-        const spacing = s(180);
+        const spacing = s(mobile ? 120 : 180);
         const startX = centerX - spacing;
 
         this.game.players.forEach((p, i) => {
             const x = startX + i * spacing;
             ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(14)}px monospace`;
+            ctx.font = `${UIScale.r(14 * fScale)}px monospace`;
             ctx.fillText(p.name.toUpperCase(), x, centerY + s(60));
             this.drawSingleDice(ctx, x, centerY, p.diceValue);
         });
@@ -175,7 +181,9 @@ export class PalitinhoUI {
 
     private drawPlayersUI(ctx: CanvasRenderingContext2D, centerX: number, y: number) {
         const s = UIScale.s.bind(UIScale);
-        const spacing = s(150);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
+        const spacing = s(mobile ? 110 : 150);
         const startX = centerX - spacing;
 
         this.game.players.forEach((p, i) => {
@@ -183,11 +191,11 @@ export class PalitinhoUI {
             const isTurn = this.game.currentPlayerIdx === p.order && this.game.phase === 'choosing';
 
             ctx.fillStyle = isTurn ? '#ff66cc' : (p.isLoser ? '#ff3333' : '#fff');
-            ctx.font = (isTurn ? 'bold ' : '') + `${UIScale.r(18)}px sans-serif`;
+            ctx.font = (isTurn ? 'bold ' : '') + `${UIScale.r(18 * fScale)}px sans-serif`;
             ctx.fillText(p.name.toUpperCase(), px, y);
 
             if (isTurn) {
-                ctx.font = `${UIScale.r(12)}px monospace`;
+                ctx.font = `${UIScale.r(12 * fScale)}px monospace`;
                 ctx.fillText('SUA VEZ!', px, y + s(20));
             }
         });
@@ -195,7 +203,9 @@ export class PalitinhoUI {
 
     private drawMatchsticks(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
         const s = UIScale.s.bind(UIScale);
-        const spacing = s(120);
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
+        const spacing = s(mobile ? 100 : 120);
         const startX = centerX - spacing;
 
         this.game.matchsticks.forEach((m, i) => {
@@ -260,11 +270,11 @@ export class PalitinhoUI {
 
                 // Name label
                 ctx.fillStyle = isReveal && m.isBroken ? '#ff4444' : '#fff';
-                ctx.font = `bold ${UIScale.r(12)}px monospace`;
+                ctx.font = `bold ${UIScale.r(12 * fScale)}px monospace`;
                 ctx.fillText(m.pickedBy?.toUpperCase() || '', x, centerY + s(70));
             } else {
                 ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                ctx.font = `bold ${UIScale.r(40)}px serif`;
+                ctx.font = `bold ${UIScale.r(40 * fScale)}px serif`;
                 ctx.fillText('?', x, centerY);
             }
         });

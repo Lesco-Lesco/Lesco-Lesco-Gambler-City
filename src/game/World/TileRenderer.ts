@@ -866,7 +866,9 @@ export class TileRenderer {
 
             if (sx < -100 || sx > ctx.canvas.width + 100 || sy < -100 || sy > ctx.canvas.height + 100) continue;
 
-            const textWidth = sign.name.length * 5 * z;
+            const fontSize = 6.5 * z;
+            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+            const textWidth = ctx.measureText(sign.name).width;
             const signH = 10 * z;
             const signX = sx - textWidth / 2;
             const signY = sy - 24 * z;
@@ -886,7 +888,6 @@ export class TileRenderer {
 
             // Text
             ctx.fillStyle = '#ffffff';
-            ctx.font = `bold ${6.5 * z}px "Press Start 2P", monospace`;
             ctx.textAlign = 'center';
             ctx.fillText(sign.name, sx, signY + signH - 3.5 * z);
         }
@@ -901,14 +902,33 @@ export class TileRenderer {
 
             const lines = label.name.split('\n');
             const fontSize = label.type === 'shopping' ? 7 * z : 6 * z;
-
             ctx.font = `${fontSize}px "Press Start 2P", monospace`;
             ctx.textAlign = 'center';
 
+            // Measure box
+            let maxWidth = 0;
+            for (const line of lines) {
+                maxWidth = Math.max(maxWidth, ctx.measureText(line).width);
+            }
+            const lineHeight = fontSize + 4 * z;
+            const totalH = lines.length * lineHeight;
+            const boxY = sy - 25 * z - totalH;
+
+            // Draw Background Box for Readability
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(sx - maxWidth / 2 - 5 * z, boxY - 3 * z, maxWidth + 10 * z, totalH + 6 * z);
+            ctx.strokeStyle = label.type === 'shopping' ? 'rgba(255, 136, 204, 0.6)' : 'rgba(170, 221, 170, 0.6)';
+            ctx.lineWidth = 1 * z;
+            ctx.strokeRect(sx - maxWidth / 2 - 5 * z, boxY - 3 * z, maxWidth + 10 * z, totalH + 6 * z);
+
             for (let i = 0; i < lines.length; i++) {
-                const ly = sy - (lines.length - 1 - i) * (fontSize + 2 * z) - 25 * z;
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                const ly = boxY + i * lineHeight + fontSize + 1 * z;
+
+                // Text Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
                 ctx.fillText(lines[i], sx + 1, ly + 1);
+
+                // Actual Text
                 ctx.fillStyle = label.type === 'shopping' ? '#ff88cc' : '#aaddaa';
                 ctx.fillText(lines[i], sx, ly);
             }

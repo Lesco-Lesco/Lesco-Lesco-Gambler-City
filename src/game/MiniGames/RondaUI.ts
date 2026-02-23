@@ -28,98 +28,112 @@ export class RondaUI {
         ctx.fillRect(0, 0, width, height);
 
         const cx = width / 2;
+        const mobile = isMobile();
+        const fScale = mobile ? 1.2 : 1.0;
 
         // Title
         ctx.shadowBlur = s(15);
         ctx.shadowColor = '#44ff44';
         ctx.fillStyle = '#44ff44';
-        ctx.font = `bold ${UIScale.r(48)}px "Segoe UI", "Roboto", sans-serif`;
+        ctx.font = `bold ${UIScale.r(48 * fScale)}px "Segoe UI", "Roboto", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText("RONDA", cx, s(60));
+        ctx.fillText("RONDA", cx, s(mobile ? 40 : 60));
         ctx.shadowBlur = 0;
 
         // Betting Info
         if (this.game.phase === 'betting') {
             ctx.fillStyle = '#aaa';
-            ctx.font = `bold ${UIScale.r(20)}px "Segoe UI", sans-serif`;
-            ctx.fillText("SUA APOSTA", cx, s(110));
+            ctx.font = `bold ${UIScale.r(20 * fScale)}px "Segoe UI", sans-serif`;
+            ctx.fillText("SUA APOSTA", cx, s(mobile ? 80 : 110));
 
             ctx.fillStyle = '#ffff00';
-            ctx.font = `bold ${UIScale.r(72)}px "Segoe UI", sans-serif`;
+            ctx.font = `bold ${UIScale.r(64 * (mobile ? 1.0 : fScale))}px "Segoe UI", sans-serif`;
             ctx.shadowBlur = s(20);
             ctx.shadowColor = 'rgba(255, 255, 0, 0.3)';
-            ctx.fillText(`R$ ${this.game.betAmount}`, cx, s(185));
+            ctx.fillText(`R$ ${this.game.betAmount}`, cx, s(mobile ? 140 : 185));
             ctx.shadowBlur = 0;
         }
 
         // Objective Cards Area
-        const objY = s(360);
+        const objY = s(mobile ? 290 : 360);
+        const containerW = mobile ? width - s(20) : s(560);
+        const containerH = mobile ? s(230) : s(260);
 
         // Container for Objectives
         ctx.fillStyle = 'rgba(255,255,255,0.03)';
         ctx.beginPath();
-        ctx.roundRect(cx - s(280), objY - s(140), s(560), s(260), s(20));
+        ctx.roundRect(cx - containerW / 2, objY - containerH / 2 - s(10), containerW, containerH, s(20));
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        ctx.fillStyle = '#aaa';
-        ctx.font = `600 ${UIScale.r(15)}px "Segoe UI", sans-serif`;
-        ctx.fillText("ESCOLHA UMA CARTA PARA APOSTAR", cx, objY - s(110));
+        ctx.fillStyle = '#eee';
+        ctx.font = `bold ${UIScale.r(16 * fScale)}px "Segoe UI", sans-serif`;
+        ctx.fillText("ESCOLHA UMA CARTA PARA APOSTAR", cx, objY - (containerH / 2) + s(mobile ? 15 : 20));
 
-        this.drawCard(ctx, cx - s(110), objY, this.game.objectiveCards[0], this.game.playerChoiceIndex === 0, false, s(120), s(180));
-        this.drawCard(ctx, cx + s(110), objY, this.game.objectiveCards[1], this.game.playerChoiceIndex === 1, false, s(120), s(180));
+        const cardW = s(mobile ? 115 : 120);
+        const cardH = s(mobile ? 170 : 180);
+        const cardSpacing = mobile ? s(75) : s(110);
+
+        this.drawCard(ctx, cx - cardSpacing, objY + (mobile ? s(10) : 0), this.game.objectiveCards[0], this.game.playerChoiceIndex === 0, false, cardW, cardH);
+        this.drawCard(ctx, cx + cardSpacing, objY + (mobile ? s(10) : 0), this.game.objectiveCards[1], this.game.playerChoiceIndex === 1, false, cardW, cardH);
 
         // Selection Indicators
         if (this.game.phase === 'betting') {
             ctx.fillStyle = '#ffcc00';
-            ctx.font = `bold ${UIScale.r(32)}px "Segoe UI", sans-serif`;
-            ctx.fillText(this.game.playerChoiceIndex === 0 ? "▲" : "", cx - s(110), objY + s(130));
-            ctx.fillText(this.game.playerChoiceIndex === 1 ? "▲" : "", cx + s(110), objY + s(130));
+            ctx.font = `bold ${UIScale.r(32 * fScale)}px "Segoe UI", sans-serif`;
+            const triY = objY + (cardH / 2) + (mobile ? s(35) : s(30));
+            ctx.fillText(this.game.playerChoiceIndex === 0 ? "▲" : "", cx - cardSpacing, triY);
+            ctx.fillText(this.game.playerChoiceIndex === 1 ? "▲" : "", cx + cardSpacing, triY);
         }
 
         // Community Cards (The reveal pile) - CENTER PILE
-        const pileY = s(640);
+        const pileY = s(mobile ? 540 : 640);
         ctx.textAlign = 'center';
+        const pileCardW = s(mobile ? 130 : 130);
+        const pileCardH = s(mobile ? 190 : 200);
+
         if (this.game.communityCards.length > 0) {
             const lastCard = this.game.communityCards[this.game.communityCards.length - 1];
-            this.drawCard(ctx, cx, pileY, lastCard, false, true, s(130), s(200));
+            this.drawCard(ctx, cx, pileY, lastCard, false, true, pileCardW, pileCardH);
             ctx.fillStyle = '#fff';
-            ctx.font = `bold ${UIScale.r(18)}px "Segoe UI", sans-serif`;
-            ctx.fillText("CARTA REVELADA", cx, pileY - s(130));
+            ctx.font = `bold ${UIScale.r(20 * fScale)}px \"Segoe UI\", sans-serif`;
+            ctx.fillText("CARTA REVELADA", cx, pileY - (pileCardH / 2) - s(25));
         } else {
             // Deck back
-            this.drawCardBack(ctx, cx, pileY, s(130), s(200));
+            this.drawCardBack(ctx, cx, pileY, pileCardW, pileCardH);
             ctx.fillStyle = '#aaa';
-            ctx.font = `600 ${UIScale.r(16)}px "Segoe UI", sans-serif`;
-            ctx.fillText("BARALHO", cx, pileY - s(130));
+            ctx.font = `bold ${UIScale.r(18 * fScale)}px \"Segoe UI\", sans-serif`;
+            ctx.fillText("BARALHO", cx, pileY - (pileCardH / 2) - s(25));
         }
 
         // Status
         ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${UIScale.r(28)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(28 * fScale)}px \"Segoe UI\", sans-serif`;
         ctx.shadowBlur = s(10);
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.fillText(this.game.message, cx, height - s(100));
+        ctx.fillText(this.game.message, cx, height - s(mobile ? 110 : 100));
         ctx.shadowBlur = 0;
 
         // Controls
-        this.drawControlsUI(ctx, cx, height - s(40));
+        this.drawControlsUI(ctx, cx, height - s(mobile ? 35 : 40));
     }
 
     private drawControlsUI(ctx: CanvasRenderingContext2D, x: number, y: number) {
-        ctx.fillStyle = '#888';
-        ctx.font = `${UIScale.r(14)}px "Segoe UI", sans-serif`;
+        const mobile = isMobile();
+        const fScale = mobile ? 1.3 : 1.0;
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${UIScale.r(14 * fScale)}px \"Segoe UI\", sans-serif`;
         ctx.textAlign = 'center';
 
         if (this.game.phase === 'betting') {
-            const betHint = isMobile()
+            const betHint = mobile
                 ? '[D-Pad ↑↓] Aposta   [D-Pad ←→] Carta   [OK] JOGAR'
                 : '[↑/↓] Valor da Aposta   [←/→] Escolher Carta   [ESPAÇO] JOGAR';
             ctx.fillText(betHint, x, y);
         } else {
-            const playHint = isMobile()
+            const playHint = mobile
                 ? '[OK] Continuar   [✕] Sair'
                 : '[ESPAÇO] Continuar   [ESC] Sair';
             ctx.fillText(playHint, x, y);
