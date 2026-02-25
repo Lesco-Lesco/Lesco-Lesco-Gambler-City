@@ -55,7 +55,7 @@ export interface POI {
 export interface StreetSign { x: number; y: number; name: string; direction: 'h' | 'v'; }
 export interface BusStop { x: number; y: number; direction: 'h' | 'v'; }
 export interface Crosswalk { x: number; y: number; direction: 'h' | 'v'; }
-export type CityLightType = 'street' | 'residential' | 'plaza' | 'shopping' | 'alley';
+export type CityLightType = 'street' | 'streetglow' | 'residential' | 'plaza' | 'shopping' | 'alley';
 export interface CityLight { x: number; y: number; type: CityLightType; }
 
 export const MAP_WIDTH = 300;
@@ -126,26 +126,38 @@ function generateMap(): number[][] {
         for (let y = y1; y <= y2; y += 3) {
             for (let x = x1; x <= x2; x += 3) {
                 if (Math.random() < density) {
-                    // Mostly 2x2 buildings for that cramped feel
                     const w = 2;
                     const h = 2;
                     const type = Math.random() < tallChance ? BT : BL;
-
                     if (x + w <= x2 && y + h <= y2) {
                         safeFillRect(x, y, w, h, type);
                     }
                 } else {
-                    // Tiny plaza or trash pile
                     if (Math.random() > 0.7) safeFillRect(x, y, 1, 1, A);
                 }
             }
         }
 
-        // Fill remaining gaps with alleys unique texture
+        // Fill remaining gaps with alleys
         for (let y = y1; y <= y2; y++) {
             for (let x = x1; x <= x2; x++) {
                 if (map[y][x] === G) safeSet(x, y, A);
             }
+        }
+
+        // --- AGGRESSIVE CONNECTIVITY: Deep Punch-Throughs ---
+        // Create 2-tile deep "slots" to break through the building perimeter
+        const createSlot = (sx: number, sy: number, dx: number, dy: number) => {
+            safeSet(sx, sy, A);
+            safeSet(sx + dx, sy + dy, A);
+        };
+
+        // 3-4 random slots per side
+        for (let i = 0; i < 4; i++) {
+            createSlot(x1 + Math.floor(Math.random() * (x2 - x1)), y1, 0, 1);  // Top
+            createSlot(x1 + Math.floor(Math.random() * (x2 - x1)), y2, 0, -1); // Bottom
+            createSlot(x1, y1 + Math.floor(Math.random() * (y2 - y1)), 1, 0);  // Left
+            createSlot(x2, y1 + Math.floor(Math.random() * (y2 - y1)), -1, 0); // Right
         }
     };
 
@@ -304,35 +316,26 @@ function generateMap(): number[][] {
         const w = x2 - x1;
         const h = y2 - y1;
 
-        // Base case: Small block, fill with buildings
         if (w < 10 || h < 10) {
-            // Fill mostly with buildings, random tiny gaps
             for (let y = y1; y <= y2; y += 2) {
                 for (let x = x1; x <= x2; x += 2) {
-                    if (map[y][x] === G) { // Only fill valid spots
-                        // 80% chance of building
+                    if (map[y][x] === G) {
                         if (Math.random() < 0.8) {
                             const type = Math.random() < 0.2 ? BT : BL;
-                            // Use 2x2 or 1x1
                             const bw = Math.random() > 0.3 ? 2 : 1;
                             const bh = Math.random() > 0.3 ? 2 : 1;
-                            // Check bounds/overlap
                             let canBuild = true;
                             if (x + bw > x2 + 1 || y + bh > y2 + 1) canBuild = false;
-                            // Check internal collision for multi-tile
                             if (canBuild) {
                                 for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++)
                                     if (x + bx < MAP_WIDTH && y + by < MAP_HEIGHT && map[y + by][x + bx] !== G) canBuild = false;
                             }
-
-                            if (canBuild) {
-                                safeFillRect(x, y, bw, bh, type);
-                            }
+                            if (canBuild) safeFillRect(x, y, bw, bh, type);
                         }
                     }
                 }
             }
-            // Fill gaps with Alleys for connectivity
+            // Fill gaps with Alleys
             for (let y = y1; y <= y2; y++) {
                 for (let x = x1; x <= x2; x++) {
                     if (map[y][x] === G) safeSet(x, y, A);
@@ -341,29 +344,32 @@ function generateMap(): number[][] {
             return;
         }
 
-        // Recursive Step: Split
-        // Decide split direction (favor cutting mostly perpendicular to longest side)
         const splitH = w > h ? false : (h > w ? true : Math.random() > 0.5);
 
         if (splitH) {
-            // Horizontal Split
             const splitY = Math.floor(y1 + 4 + Math.random() * (h - 8));
-            // Draw Road/Alley (Width 1-2)
             const roadType = Math.random() > 0.7 ? S : A;
-            const rw = roadType === S ? 1 : 0; // S=2 wide, A=1 wide
-
+            const rw = roadType === S ? 1 : 0;
+            // STITCHING: Ensure road hits the parent boundaries
             safeFill(x1, splitY, x2, splitY + rw, roadType);
 
-            // Recurse
+            // --- AGGRESSIVE PUNCH-THROUGH (Favela) ---
+            // Randomly create wider openings (2-tile) at boundaries
+            if (Math.random() < 0.5) safeFillRect(x1, Math.floor(y1 + Math.random() * (h - 1)), (w > 20 ? 2 : 1), 1, A);
+            if (Math.random() < 0.5) safeFillRect(x2 - 1, Math.floor(y1 + Math.random() * (h - 1)), (w > 20 ? 2 : 1), 1, A);
+
             generateFavelaLabyrinth(x1, y1, x2, splitY - 1);
             generateFavelaLabyrinth(x1, splitY + rw + 1, x2, y2);
         } else {
-            // Vertical Split
             const splitX = Math.floor(x1 + 4 + Math.random() * (w - 8));
             const roadType = Math.random() > 0.7 ? S : A;
             const rw = roadType === S ? 1 : 0;
-
+            // STITCHING: Ensure road hits the parent boundaries
             safeFill(splitX, y1, splitX + rw, y2, roadType);
+
+            // --- AGGRESSIVE PUNCH-THROUGH (Favela) ---
+            if (Math.random() < 0.5) safeFillRect(Math.floor(x1 + Math.random() * (w - 1)), y1, 1, (h > 20 ? 2 : 1), A);
+            if (Math.random() < 0.5) safeFillRect(Math.floor(x1 + Math.random() * (w - 1)), y2 - 1, 1, (h > 20 ? 2 : 1), A);
 
             generateFavelaLabyrinth(x1, y1, splitX - 1, y2);
             generateFavelaLabyrinth(splitX + rw + 1, y1, x2, y2);
@@ -467,6 +473,45 @@ function generateMap(): number[][] {
     fill(165, 45, 215, 45, S); // Narrow street
     fill(165, 130, 215, 130, S);
 
+    // --- STRATEGIC FAVELA CONNECTORS (The "Veins") ---
+    // These link the deep labyrinths to the main grid without destroying dead-ends.
+
+    // 1. Far Left (X=10..35) to Rua Fernanda (X=40)
+    // Connectors at Y=100, Y=180
+    fill(10, 99, 45, 101, A);  // Beco horizontal em Y=100
+    fill(10, 179, 45, 181, A); // Beco horizontal em Y=180
+
+    // 2. Far Right (X=225..290) to Rua Severiano (X=220)
+    // Connectors at Y=60, Y=110, Y=220
+    fill(215, 60, 230, 60, A);  // Curto trecho ligando Rua do Império (Y=60)
+    fill(215, 109, 230, 111, A); // Ligando Rua Álvaro Alberto (Y=110)
+    fill(215, 219, 240, 221, A); // Novo conector em Y=220
+
+    // 3. South-West Loop (X=45..215, Y=205..280) to Main System
+    // Mid-block connector linking SW to Rua do Matadouro region
+    fill(40, 240, 220, 241, S); // Main connector artery for the South
+
+    // --- FINAL SCATTER PASS: "The Massive Leakage" ---
+    // High-density scan along major streets to force "vazamentos" (leaks)
+    const isStreetOrSidewalk = (t: number) => t === S || t === W;
+    for (let i = 0; i < 500; i++) {
+        const x = Math.floor(30 + Math.random() * (MAP_WIDTH - 60));
+        const y = Math.floor(30 + Math.random() * (MAP_HEIGHT - 60));
+
+        if (isStreetOrSidewalk(map[y][x])) {
+            const dx = Math.random() > 0.5 ? 1 : -1;
+            const dy = Math.random() > 0.5 ? 1 : -1;
+            // Punch through 2 tiles deep to break any building row
+            for (let d = 1; d <= 2; d++) {
+                const tx = x + dx * d, ty = y + dy * d;
+                if (tx >= 0 && tx < MAP_WIDTH && ty >= 0 && ty < MAP_HEIGHT) {
+                    const t = map[ty][tx];
+                    if (t === BL || t === BT || t === TILE_TYPES.WALL) map[ty][tx] = A;
+                }
+            }
+        }
+    }
+
     return map;
 }
 
@@ -538,51 +583,147 @@ export const POINTS_OF_INTEREST: POI[] = [
     { x: 240, y: 170, type: 'ronda', name: 'Estratega' },
 ];
 
+// ── Zone helpers ─────────────────────────────────────────────────────────────
+// "Urban" hubs: Santa Cruz Shopping center and the Train Station
+const URBAN_HUBS = [
+    { x: 130, y: 125 }, // Santa Cruz Shopping
+    { x: 242, y: 165 }, // Estação Santa Cruz
+];
+function distToNearestHub(tx: number, ty: number): number {
+    let best = Infinity;
+    for (const h of URBAN_HUBS) {
+        const d = Math.abs(tx - h.x) + Math.abs(ty - h.y); // Manhattan — fast, no sqrt
+        if (d < best) best = d;
+    }
+    return best;
+}
+
+// seededRandom already declared above; reuse it here
+// Inline for MapData scope (avoids import dependency)
+function mapSeededRand(sx: number, sy: number): number {
+    const n = Math.sin(sx * 17.391 + sy * 43.758) * 98765.4321;
+    return n - Math.floor(n);
+}
+
 export const CITY_LIGHTS: CityLight[] = [];
 for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
         const tile = MAP_DATA[y][x];
+        const dist = distToNearestHub(x, y);
 
-        // Street lights: Only on SIDEWALKS adjacent to STREETS
-        if (tile === TILE_TYPES.SIDEWALK && x % 8 === 0 && y % 8 === 0) {
-            // Check if there is a street nearby to justify a lamp
-            let servesStreet = false;
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    const nx = x + dx;
-                    const ny = y + dy;
-                    if (nx >= 0 && nx < MAP_WIDTH && ny >= 0 && ny < MAP_HEIGHT) {
-                        if (MAP_DATA[ny][nx] === TILE_TYPES.STREET) servesStreet = true;
-                    }
-                }
-            }
-            if (servesStreet) {
-                CITY_LIGHTS.push({ x, y, type: 'street' });
+        // ── STREET tiles: invisible road-glow (no physical post)
+        // Denser near hubs (every 5), sparser on periphery (every 10)
+        if (tile === TILE_TYPES.STREET) {
+            const glowStride = dist < 45 ? 5 : dist < 90 ? 7 : 10;
+            if ((x + y) % glowStride === 0) {
+                CITY_LIGHTS.push({ x, y, type: 'streetglow' });
             }
         }
 
-        // Plaza lights: sparse but consistent
-        if (tile === TILE_TYPES.PLAZA && x % 8 === 0 && y % 8 === 0) {
+        // ── SIDEWALK tiles → physical lampposts, zone-dependent
+        if (tile === TILE_TYPES.SIDEWALK) {
+            // Is this sidewalk tile directly adjacent to a road?
+            const adjN = y > 0 && (MAP_DATA[y - 1][x] === TILE_TYPES.STREET || MAP_DATA[y - 1][x] === TILE_TYPES.ALLEY);
+            const adjS = y < MAP_HEIGHT - 1 && (MAP_DATA[y + 1][x] === TILE_TYPES.STREET || MAP_DATA[y + 1][x] === TILE_TYPES.ALLEY);
+            const adjE = x < MAP_WIDTH - 1 && (MAP_DATA[y][x + 1] === TILE_TYPES.STREET || MAP_DATA[y][x + 1] === TILE_TYPES.ALLEY);
+            const adjW = x > 0 && (MAP_DATA[y][x - 1] === TILE_TYPES.STREET || MAP_DATA[y][x - 1] === TILE_TYPES.ALLEY);
+            const hasRoadNeighbor = adjN || adjS || adjE || adjW;
+            if (!hasRoadNeighbor) continue;
+
+            // A sidewalk "corner" faces 2+ perpendicular road directions → lamp priority
+            const isCorner = ((adjN || adjS) && (adjE || adjW));
+
+            if (dist < 45) {
+                // ── ZONE A: Well-planned urban center (near Shopping / Station)
+                // Corners always get a post; straight edges get one every 5 tiles
+                if (isCorner || (x + y * 3) % 5 === 0) {
+                    CITY_LIGHTS.push({ x, y, type: 'street' });
+                }
+            } else if (dist < 90) {
+                // ── ZONE B: Transitional mid-ring
+                // Less regular — corners only every other, straight every 9
+                if (isCorner && (x + y) % 2 === 0) {
+                    CITY_LIGHTS.push({ x, y, type: 'street' });
+                } else if (!isCorner && (x + y * 3) % 9 === 0) {
+                    CITY_LIGHTS.push({ x, y, type: 'street' });
+                }
+            } else {
+                // ── ZONE C: Peripheral / neglected residential
+                // Very sparse, random-feeling — only ~10% of eligible tiles
+                if (mapSeededRand(x, y) > 0.90) {
+                    CITY_LIGHTS.push({ x, y, type: 'street' });
+                }
+            }
+        }
+
+        // ── Alley lights: dim orange posts along becos
+        if (tile === TILE_TYPES.ALLEY && (x + y) % 12 === 0) {
+            CITY_LIGHTS.push({ x, y, type: 'alley' });
+        }
+
+        // ── Plaza lights: bright area flood lights (stride 9)
+        if (tile === TILE_TYPES.PLAZA && x % 9 === 0 && y % 9 === 0) {
             CITY_LIGHTS.push({ x, y, type: 'plaza' });
         }
 
-        // Residential lights: High density and brighter influence
+        // ── Residential: sparse window lights (stride 4)
         if ((tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL) &&
-            x % 2 === 0 && y % 2 === 0 && Math.random() > 0.25) {
+            x % 4 === 0 && y % 4 === 0 && mapSeededRand(x * 3, y * 7) > 0.3) {
             CITY_LIGHTS.push({ x, y, type: 'residential' });
         }
 
-        // Shopping lights: bright hubs
+        // ── Shopping: bright commercial hubs
         if (tile === TILE_TYPES.SHOPPING && x % 4 === 0 && y % 4 === 0) {
             CITY_LIGHTS.push({ x, y, type: 'shopping' });
         }
 
-        // Entrance/Alley lights
-        if (tile === TILE_TYPES.ENTRANCE || (tile === TILE_TYPES.ALLEY && x % 12 === 0)) {
+        // ── Entrance glow
+        if (tile === TILE_TYPES.ENTRANCE) {
             CITY_LIGHTS.push({ x, y, type: 'alley' });
         }
     }
 }
-export const LAMPPOST_POSITIONS = CITY_LIGHTS.filter(l => l.type === 'street' || l.type === 'plaza').map(l => ({ x: l.x, y: l.y }));
+
+// ── Special landmark lights: strong plaza-level illumination ────────────────
+// Igreja N.S. da Conceição — ring of lights AROUND the building, not inside it
+// Church center ~(130, 88). Ring at radius ~9 tiles in 8 directions.
+const churchCx = 130, churchCy = 88;
+const churchRingPositions = [
+    { dx: 0, dy: -9 },  // North
+    { dx: 7, dy: -6 },  // NE
+    { dx: 9, dy: 0 },  // East
+    { dx: 7, dy: 6 },  // SE
+    { dx: 0, dy: 9 },  // South
+    { dx: -7, dy: 6 },  // SW
+    { dx: -9, dy: 0 },  // West
+    { dx: -7, dy: -6 },  // NW
+];
+for (const p of churchRingPositions) {
+    CITY_LIGHTS.push({ x: churchCx + p.dx, y: churchCy + p.dy, type: 'plaza' });
+}
+// Estação Santa Cruz (232..260, 160..172)
+for (let ox = 0; ox <= 4; ox++) {
+    for (let oy = 0; oy <= 2; oy++) {
+        CITY_LIGHTS.push({ x: 232 + ox * 6, y: 160 + oy * 6, type: 'plaza' });
+    }
+}
+// Marco Imperial Onze (226..241, 131..146)
+for (let ox = 0; ox <= 3; ox++) {
+    for (let oy = 0; oy <= 3; oy++) {
+        CITY_LIGHTS.push({ x: 226 + ox * 5, y: 131 + oy * 5, type: 'plaza' });
+    }
+}
+// Praça Marques de Herval (149..164, 161..186)
+for (let ox = 0; ox <= 3; ox++) {
+    for (let oy = 0; oy <= 5; oy++) {
+        CITY_LIGHTS.push({ x: 149 + ox * 5, y: 161 + oy * 5, type: 'plaza' });
+    }
+}
+
+// Physical lamppost positions: ONLY sidewalk-based 'street' lights + plaza + alley
+// 'streetglow' (road-center) is intentionally excluded — no post mid-road!
+export const LAMPPOST_POSITIONS = CITY_LIGHTS
+    .filter(l => l.type === 'street' || l.type === 'plaza' || l.type === 'alley')
+    .map(l => ({ x: l.x, y: l.y }));
 
 

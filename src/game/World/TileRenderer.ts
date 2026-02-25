@@ -55,11 +55,11 @@ export class TileRenderer {
                 // Skip void
                 if (tile === TILE_TYPES.VOID) continue;
 
-                // 1. Buildings/Walls (Sidewalk Base)
-                // "Contour the houses" -> Draw sidewalk under them
+                // 1. Buildings/Walls — Simple sidewalk base (no heavy border strips)
                 if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL ||
                     tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.WALL) {
-                    renderer.drawIsoTile(camera, x, y, '#9a9a9a', '#8a8a8a'); // Sidewalk color
+                    // Use same color for stroke as base to remove the 'grid' look
+                    renderer.drawIsoTile(camera, x, y, '#888890', '#888890');
                     continue;
                 }
 
@@ -70,56 +70,201 @@ export class TileRenderer {
                     continue;
                 }
 
-                // 3. Streets & Alleys (Asphalt + Sidewalks)
+                // 3. Streets & Alleys — Asphalt + Sidewalks + Lightweight Edge Contours
                 if (tile === TILE_TYPES.STREET || tile === TILE_TYPES.ALLEY) {
-                    const xPos = (x - y) * TILE_WIDTH / 2;
-                    const yPos = (x + y) * TILE_HEIGHT / 2;
+                    const z = camera.zoom;
+                    const isAlley = tile === TILE_TYPES.ALLEY;
 
-                    // Check neighbors for connections
-                    // Safe access helpers
-                    const isRoad = (tx: number, ty: number) => {
-                        if (tx < 0 || ty < 0 || tx >= mapW || ty >= mapH) return false;
-                        const t = data[ty][tx];
-                        return t === TILE_TYPES.STREET || t === TILE_TYPES.ALLEY;
+                    // Inline road neighbor check (avoids function call overhead per tile)
+                    const getRoadType = (tx: number, ty: number): number => {
+                        if (tx < 0 || ty < 0 || tx >= mapW || ty >= mapH) return -1;
+                        return data[ty][tx];
                     };
+                    const isRoadType = (t: number) => t === TILE_TYPES.STREET || t === TILE_TYPES.ALLEY;
+                    const isSolidType = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL ||
+                        t === TILE_TYPES.SHOPPING || t === TILE_TYPES.WALL ||
+                        t === TILE_TYPES.CHURCH || t === TILE_TYPES.GRASS;
 
-                    const n = isRoad(x, y - 1);
-                    const s = isRoad(x, y + 1);
-                    const e = isRoad(x + 1, y);
-                    const w = isRoad(x - 1, y);
-                    const connections = (n ? 1 : 0) + (s ? 1 : 0) + (e ? 1 : 0) + (w ? 1 : 0);
+                    const tN = getRoadType(x, y - 1);
+                    const tS = getRoadType(x, y + 1);
+                    const tE = getRoadType(x + 1, y);
+                    const tW = getRoadType(x - 1, y);
 
-                    // 1. Base (Sidewalk Color) -> Only necessary if NOT full asphalt
-                    // If intersection (>=3 connections) or just desired style, we might skip sidewalk base
+                    const nRoad = isRoadType(tN), sRoad = isRoadType(tS);
+                    const eRoad = isRoadType(tE), wRoad = isRoadType(tW);
+                    const connections = (nRoad ? 1 : 0) + (sRoad ? 1 : 0) + (eRoad ? 1 : 0) + (wRoad ? 1 : 0);
                     const isIntersection = connections > 2;
 
-                    if (!isIntersection) {
-                        ctx.fillStyle = '#9a9a9a';
+                    // Screen-space isometric diamond corners
+                    const { sx, sy } = camera.worldToScreen(x, y);
+                    const hw = (TILE_WIDTH / 2) * z;
+                    const hh = (TILE_HEIGHT / 2) * z;
+
+                    // STEP 1 — Full-width asphalt (edge-to-edge, creates continuous roads)
+                    ctx.fillStyle = isAlley ? '#2e2e38' : '#48485a';
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy - hh);
+                    ctx.lineTo(sx + hw, sy);
+                    ctx.lineTo(sx, sy + hh);
+                    ctx.lineTo(sx - hw, sy);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // STEP 2 — Per-edge sidewalk strips (ONLY on building-facing edges)
+                    // Edge→neighbor mapping (verified for this isometric projection):
+                    //   ptTop→ptRight  ↔  N neighbor (x, y-1)
+                    //   ptRight→ptBot  ↔  E neighbor (x+1, y)
+                    //   ptBot→ptLeft   ↔  S neighbor (x, y+1)
+                    //   ptLeft→ptTop   ↔  W neighbor (x-1, y)
+                    const sw = isAlley ? '#5e5e64' : '#7a7a82';
+                    const si = isAlley ? 0.34 : 0.24;        // sidewalk inset fraction
+                    const isRes = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL;
+
+                    // North edge: faces neighbor tN (x, y-1)
+                    let drawN = !nRoad && isSolidType(tN);
+                    if (!drawN && !nRoad) {
+                        const hasResN = (eRoad && isRes(getRoadType(x + 1, y - 1))) || (wRoad && isRes(getRoadType(x - 1, y - 1)));
+                        if (hasResN && seededRandom(x, y * 7) < 0.6) drawN = true;
+                    }
+                    if (drawN) {
+                        ctx.fillStyle = sw;
                         ctx.beginPath();
-                        ctx.moveTo(xPos, yPos - TILE_HEIGHT / 2);
-                        ctx.lineTo(xPos + TILE_WIDTH / 2, yPos);
-                        ctx.lineTo(xPos, yPos + TILE_HEIGHT / 2);
-                        ctx.lineTo(xPos - TILE_WIDTH / 2, yPos);
-                        ctx.fill();
+                        ctx.moveTo(sx, sy - hh);           // ptTop
+                        ctx.lineTo(sx + hw, sy);                // ptRight
+                        ctx.lineTo(sx + hw * (1 - si), sy);                // inset ptRight
+                        ctx.lineTo(sx, sy - hh * (1 - si));    // inset ptTop
+                        ctx.closePath(); ctx.fill();
                     }
 
+                    // East edge: faces neighbor tE (x+1, y)
+                    let drawE = !eRoad && isSolidType(tE);
+                    if (!drawE && !eRoad) {
+                        const hasResE = (nRoad && isRes(getRoadType(x + 1, y - 1))) || (sRoad && isRes(getRoadType(x + 1, y + 1)));
+                        if (hasResE && seededRandom(100 + x, y * 3) < 0.6) drawE = true;
+                    }
+                    if (drawE) {
+                        ctx.fillStyle = sw;
+                        ctx.beginPath();
+                        ctx.moveTo(sx + hw, sy);                // ptRight
+                        ctx.lineTo(sx, sy + hh);           // ptBot
+                        ctx.lineTo(sx, sy + hh * (1 - si));    // inset ptBot
+                        ctx.lineTo(sx + hw * (1 - si), sy);                // inset ptRight
+                        ctx.closePath(); ctx.fill();
+                    }
 
-                    // 2. Asphalt
-                    // Intersection: 0 inset (Full width)
-                    // Street: Wide Sidewalks (0.3 inset = 30% each side)
-                    // Alley: Very Wide Sidewalks (0.4 inset)
-                    let inset = 0.3;
-                    if (tile === TILE_TYPES.ALLEY) inset = 0.4;
+                    // South edge: faces neighbor tS (x, y+1)
+                    let drawS = !sRoad && isSolidType(tS);
+                    if (!drawS && !sRoad) {
+                        const hasResS = (eRoad && isRes(getRoadType(x + 1, y + 1))) || (wRoad && isRes(getRoadType(x - 1, y + 1)));
+                        if (hasResS && seededRandom(200 + x, y * 5) < 0.6) drawS = true;
+                    }
+                    if (drawS) {
+                        ctx.fillStyle = sw;
+                        ctx.beginPath();
+                        ctx.moveTo(sx, sy + hh);           // ptBot
+                        ctx.lineTo(sx - hw, sy);                // ptLeft
+                        ctx.lineTo(sx - hw * (1 - si), sy);                // inset ptLeft
+                        ctx.lineTo(sx, sy + hh * (1 - si));    // inset ptBot
+                        ctx.closePath(); ctx.fill();
+                    }
 
-                    if (isIntersection) inset = 0; // Remove sidewalks at crossings
+                    // West edge: faces neighbor tW (x-1, y)
+                    let drawW = !wRoad && isSolidType(tW);
+                    if (!drawW && !wRoad) {
+                        const hasResW = (nRoad && isRes(getRoadType(x - 1, y - 1))) || (sRoad && isRes(getRoadType(x - 1, y + 1)));
+                        if (hasResW && seededRandom(300 + x, y * 11) < 0.6) drawW = true;
+                    }
+                    if (drawW) {
+                        ctx.fillStyle = sw;
+                        ctx.beginPath();
+                        ctx.moveTo(sx - hw, sy);                // ptLeft
+                        ctx.lineTo(sx, sy - hh);           // ptTop
+                        ctx.lineTo(sx, sy - hh * (1 - si));    // inset ptTop
+                        ctx.lineTo(sx + -hw * (1 - si), sy);                // inset ptLeft
+                        ctx.closePath(); ctx.fill();
+                    }
 
-                    ctx.fillStyle = '#5d5d6d'; // Lighter Blue-Grey for night effect
-                    ctx.beginPath();
-                    ctx.moveTo(xPos, yPos - TILE_HEIGHT / 2 * (1 - inset));
-                    ctx.lineTo(xPos + TILE_WIDTH / 2 * (1 - inset), yPos);
-                    ctx.lineTo(xPos, yPos + TILE_HEIGHT / 2 * (1 - inset));
-                    ctx.lineTo(xPos - TILE_WIDTH / 2 * (1 - inset), yPos);
-                    ctx.fill();
+                    // (asphalt is now full-width in STEP 1, per-edge sidewalk in STEP 2)
+
+                    // STEP 2b — Asphalt micro-texture (2 random specks, fully static/seeded)
+                    if (z > 0.8) {
+                        const r1 = seededRandom(x * 11, y * 7);
+                        const r2 = seededRandom(x * 7, y * 13);
+                        const r3 = seededRandom(x * 3, y * 17);
+                        // Speck 1
+                        ctx.fillStyle = isAlley ? 'rgba(30,30,38,0.5)' : 'rgba(45,45,58,0.45)';
+                        ctx.fillRect(
+                            (sx - hw * 0.4 + r1 * hw * 0.8) | 0,
+                            (sy - hh * 0.35 + r2 * hh * 0.7) | 0,
+                            Math.max(1, z * 0.8 | 0), Math.max(1, z * 0.8 | 0)
+                        );
+                        // Speck 2 (only when zoomed in enough)
+                        if (r3 > 0.4) {
+                            ctx.fillRect(
+                                (sx - hw * 0.3 + r3 * hw * 0.6) | 0,
+                                (sy - hh * 0.25 + r1 * hh * 0.5) | 0,
+                                Math.max(1, z * 0.6 | 0), Math.max(1, z * 0.6 | 0)
+                            );
+                        }
+                    }
+
+                    // STEP 3 — Curb: single stroke per building-facing edge (cheap)
+                    // Isometric mapping: N tile(x,y-1) → upper-left edge (ptLeft→ptTop)
+                    //                   E tile(x+1,y) → upper-right edge (ptTop→ptRight)
+                    //                   S tile(x,y+1) → lower-right edge (ptRight→ptBot)
+                    //                   W tile(x-1,y) → lower-left edge (ptBot→ptLeft)
+                    // STEP 3 — Curb stroke on the boundary between asphalt and sidewalk (inner inset)
+                    {
+                        const curbColor = isAlley ? 'rgba(110,108,102,0.9)' : 'rgba(150,150,158,0.9)';
+                        ctx.strokeStyle = curbColor;
+                        ctx.lineWidth = Math.max(0.8, z * 1.1);
+
+                        // Inner curb lines (separating sidewalk strip from asphalt center)
+                        if (drawN) {
+                            ctx.beginPath();
+                            ctx.moveTo(sx, sy - hh * (1 - si));
+                            ctx.lineTo(sx + hw * (1 - si), sy);
+                            ctx.stroke();
+                        }
+                        if (drawE) {
+                            ctx.beginPath();
+                            ctx.moveTo(sx + hw * (1 - si), sy);
+                            ctx.lineTo(sx, sy + hh * (1 - si));
+                            ctx.stroke();
+                        }
+                        if (drawS) {
+                            ctx.beginPath();
+                            ctx.moveTo(sx, sy + hh * (1 - si));
+                            ctx.lineTo(sx - hw * (1 - si), sy);
+                            ctx.stroke();
+                        }
+                        if (drawW) {
+                            ctx.beginPath();
+                            ctx.moveTo(sx - hw * (1 - si), sy);
+                            ctx.lineTo(sx, sy - hh * (1 - si));
+                            ctx.stroke();
+                        }
+                    }
+
+                    // STEP 4 — Road markings
+                    if (!isIntersection && !isAlley) {
+                        const seed = seededRandom(x, y);
+                        // Center-line dashes (yellow, shows road direction)
+                        if (seed > 0.55) {
+                            ctx.fillStyle = 'rgba(210, 195, 100, 0.32)';
+                            if (nRoad && sRoad) {
+                                // Vertical road → horizontal dash
+                                ctx.fillRect((sx - 1.5 * z) | 0, (sy - 0.4 * z) | 0, (3 * z) | 0, (0.8 * z) | 0);
+                            } else if (eRoad && wRoad) {
+                                // Horizontal road → vertical dash
+                                ctx.fillRect((sx - 0.4 * z) | 0, (sy - 1.5 * z) | 0, (0.8 * z) | 0, (3 * z) | 0);
+                            } else {
+                                // Mixed → small dot
+                                ctx.fillRect((sx - 0.6 * z) | 0, (sy - 0.6 * z) | 0, (1.2 * z) | 0, (1.2 * z) | 0);
+                            }
+                        }
+                    }
+
                     continue;
                 }
 

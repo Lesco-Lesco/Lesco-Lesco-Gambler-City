@@ -26,12 +26,14 @@ export interface LightSource {
 
 /** Light profile per category */
 const LIGHT_PROFILES: Record<CityLightType, { radius: number; color: string; intensity: number; flicker: boolean; radiusVariance: number }> = {
-    street: { radius: 240, color: '#ffbb44', intensity: 0.9, flicker: true, radiusVariance: 0 },
-    residential: { radius: 110, color: '#ffdd88', intensity: 0.75, flicker: true, radiusVariance: 25 },
-    plaza: { radius: 280, color: '#ffeecc', intensity: 0.95, flicker: false, radiusVariance: 0 },
-    shopping: { radius: 320, color: '#ccddff', intensity: 0.98, flicker: false, radiusVariance: 0 },
-    alley: { radius: 90, color: '#ff9955', intensity: 0.55, flicker: true, radiusVariance: 10 },
+    street: { radius: 280, color: '#ffbb44', intensity: 0.92, flicker: true, radiusVariance: 0 },
+    streetglow: { radius: 260, color: '#ffaa33', intensity: 0.82, flicker: false, radiusVariance: 0 },
+    residential: { radius: 90, color: '#ffcc66', intensity: 0.65, flicker: true, radiusVariance: 20 },
+    plaza: { radius: 360, color: '#fff0d0', intensity: 0.98, flicker: false, radiusVariance: 0 },
+    shopping: { radius: 380, color: '#ddeeff', intensity: 0.99, flicker: false, radiusVariance: 0 },
+    alley: { radius: 110, color: '#ff9933', intensity: 0.60, flicker: true, radiusVariance: 15 },
 };
+
 
 /** Simple seeded random for consistent per-light variance */
 function seededRand(seed: number): number {
@@ -43,8 +45,8 @@ export class Lighting {
     private lightCanvas: HTMLCanvasElement;
     private lightCtx: CanvasRenderingContext2D;
     private lights: LightSource[] = [];
-    private ambientDarkness: number = 0.35; // Significantly softened for visibility
-    private ambientColor: string = 'rgba(0, 0, 0, 1)'; // Back to classic black as requested
+    private ambientDarkness: number = 0.50; // Deeper night atmosphere
+    private ambientColor: string = 'rgba(0, 0, 0, 1)';
 
     // Fog system
     private fogParticles: { x: number; y: number; size: number; speed: number; opacity: number }[] = [];
@@ -166,9 +168,9 @@ export class Lighting {
             ctx.fillStyle = grad;
             ctx.fillRect(sx - radius, sy - radius, radius * 2, radius * 2);
 
-            // Detailed Volumetric Cone for Street/Plaza lamps
-            if (light.type === 'street' || light.type === 'plaza') {
-                this.renderLightCone(ctx, sx, sy, radius, light.color, effectiveIntensity * 0.2);
+            // Volumetric cone for street/plaza and alley lamps
+            if (light.type === 'street' || light.type === 'plaza' || light.type === 'alley') {
+                this.renderLightCone(ctx, sx, sy, radius, light.color, effectiveIntensity * (light.type === 'plaza' ? 0.35 : 0.2));
             }
         }
 
