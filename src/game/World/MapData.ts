@@ -736,9 +736,9 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
             }
         }
 
-        // ── Plaza lights
-        if (tile === TILE_TYPES.PLAZA && x % 8 === 0 && y % 8 === 0) {
-            if (canPlacePhysicalLamp(x, y, 4)) {
+        // ── Plaza lights (Spaced out for cleaner look)
+        if (tile === TILE_TYPES.PLAZA && x % 14 === 0 && y % 14 === 0) {
+            if (canPlacePhysicalLamp(x, y, 6)) {
                 CITY_LIGHTS.push({ x, y, type: 'plaza' });
                 physicalLampGrid[y][x] = true;
             }
@@ -780,22 +780,22 @@ const churchRingPositions = [
 for (const p of churchRingPositions) {
     CITY_LIGHTS.push({ x: churchCx + p.dx, y: churchCy + p.dy, type: 'plaza' });
 }
-// Estação Santa Cruz (232..260, 160..172)
-for (let ox = 0; ox <= 4; ox++) {
+// Estação Santa Cruz (Spaced pattern)
+for (let ox = 0; ox <= 3; ox++) {
+    for (let oy = 0; oy <= 1; oy++) {
+        CITY_LIGHTS.push({ x: 232 + ox * 9, y: 161 + oy * 10, type: 'plaza' });
+    }
+}
+// Marco Imperial Onze (Corner pattern)
+for (let ox = 0; ox <= 1; ox++) {
+    for (let oy = 0; oy <= 1; oy++) {
+        CITY_LIGHTS.push({ x: 228 + ox * 10, y: 133 + oy * 10, type: 'plaza' });
+    }
+}
+// Praça Marques de Herval (Symmetric pattern)
+for (let ox = 0; ox <= 1; ox++) {
     for (let oy = 0; oy <= 2; oy++) {
-        CITY_LIGHTS.push({ x: 232 + ox * 6, y: 160 + oy * 6, type: 'plaza' });
-    }
-}
-// Marco Imperial Onze (226..241, 131..146)
-for (let ox = 0; ox <= 3; ox++) {
-    for (let oy = 0; oy <= 3; oy++) {
-        CITY_LIGHTS.push({ x: 226 + ox * 5, y: 131 + oy * 5, type: 'plaza' });
-    }
-}
-// Praça Marques de Herval (149..164, 161..186)
-for (let ox = 0; ox <= 3; ox++) {
-    for (let oy = 0; oy <= 5; oy++) {
-        CITY_LIGHTS.push({ x: 149 + ox * 5, y: 161 + oy * 5, type: 'plaza' });
+        CITY_LIGHTS.push({ x: 151 + ox * 10, y: 165 + oy * 10, type: 'plaza' });
     }
 }
 

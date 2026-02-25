@@ -25,8 +25,8 @@ export class Player {
     // Initial position set in constructor
     public x: number = 0;
     public y: number = 0;
-    public width: number = 0.4;
-    public height: number = 0.4;
+    public width: number = 0.8;
+    public height: number = 0.8;
     public speed: number = 3.5;      // Tiles per second (walk)
     public runSpeed: number = 6.0;   // Tiles per second (run)
     public direction: PlayerDirection = 'down';
@@ -95,17 +95,29 @@ export class Player {
             if (this.stamina > this.maxStamina) this.stamina = this.maxStamina;
         }
 
-        // Apply movement with AABB collision
+        // Apply movement with AABB collision (Realistic Asymmetric Bounds)
         const nextX = this.x + dx * currentSpeed * dt;
         const nextY = this.y + dy * currentSpeed * dt;
-        const halfW = 0.2;
-        const halfH = 0.15;
 
-        // Check each axis
-        if (tileMap.isAreaWalkable(nextX, this.y, halfW, halfH)) {
+        // North/West (Front faces in this iso view) = 0.2 distance
+        // South/East (Back faces) = 0.4 distance
+        const padN = 0.2; // Front-Left face
+        const padW = 0.2; // Front-Right face
+        const padS = 0.4; // Back-Right face
+        const padE = 0.4; // Back-Left face
+
+        const canWalk = (cx: number, cy: number) => {
+            return tileMap.isWalkable(cx - padW, cy - padN) &&
+                tileMap.isWalkable(cx + padE, cy - padN) &&
+                tileMap.isWalkable(cx - padW, cy + padS) &&
+                tileMap.isWalkable(cx + padE, cy + padS);
+        };
+
+        // Check each axis separately for sliding
+        if (canWalk(nextX, this.y)) {
             this.x = nextX;
         }
-        if (tileMap.isAreaWalkable(this.x, nextY, halfW, halfH)) {
+        if (canWalk(this.x, nextY)) {
             this.y = nextY;
         }
 

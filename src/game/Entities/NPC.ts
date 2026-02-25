@@ -8,6 +8,7 @@
 
 import { Camera } from '../Core/Camera';
 import { TileMap } from '../World/TileMap';
+import { TILE_TYPES } from '../World/MapData';
 import { drawCharacter } from './CharacterRenderer';
 import type { CharacterAppearance } from './CharacterRenderer';
 
@@ -137,8 +138,8 @@ export class NPC {
     private appearance: NPCAppearance;
 
     // Physics
-    public width: number = 0.6; // Collision box size
-    public height: number = 0.6;
+    public width: number = 0.8; // Collision box size
+    public height: number = 0.8;
     private wanderTimer: number = 0;
     private wanderDirX: number = 0;
     private wanderDirY: number = 0;
@@ -360,11 +361,29 @@ export class NPC {
                 }
             }
 
-            // AABB Collision Check (Reduced for feet-level accuracy)
-            const halfW = 0.2; const halfH = 0.15;
-            // Use isNPCWalkable to restrict areas
-            if (tileMap.isNPCWalkable(nextX, this.y, halfW, halfH)) this.x = nextX;
-            if (tileMap.isNPCWalkable(this.x, nextY, halfW, halfH)) this.y = nextY;
+            // AABB Collision Check (Realistic Asymmetric Bounds)
+            const padN = 0.2; // North check
+            const padW = 0.2; // West check
+            const padS = 0.4; // South check
+            const padE = 0.4; // East check
+
+            const canWalkNPC = (cx: number, cy: number) => {
+                // Check all 4 corners with asymmetric padding
+                const cornersWalkable =
+                    tileMap.isWalkable(cx - padW, cy - padN) &&
+                    tileMap.isWalkable(cx + padE, cy - padN) &&
+                    tileMap.isWalkable(cx - padW, cy + padS) &&
+                    tileMap.isWalkable(cx + padE, cy + padS);
+
+                if (!cornersWalkable) return false;
+
+                // Additional NPC restriction (avoiding entrances/special tiles)
+                const tile = tileMap.getTile(cx, cy);
+                return tile !== TILE_TYPES.ENTRANCE;
+            };
+
+            if (canWalkNPC(nextX, this.y)) this.x = nextX;
+            if (canWalkNPC(this.x, nextY)) this.y = nextY;
 
             // --- STUCK DETECTOR ---
             // If we haven't moved much AND we are trying to move, teleport to spawn
