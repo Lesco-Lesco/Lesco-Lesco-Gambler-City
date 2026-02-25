@@ -124,6 +124,17 @@ export class ExplorationScene implements Scene {
         this.diceGame = new DiceGame();
         this.rondaGame = new RondaGame();
         this.dominoGame = new DominoGame();
+
+        // Zoom inicial — mobile usa zoom levemente maior para legibilidade
+        if (isMobile()) {
+            this.camera.zoom = 2.5;
+            this.camera.targetZoom = 2.5;
+            this.zoomStageIndex = 4; // aponta para zoomStages[4] = 2.5
+        } else {
+            this.camera.zoom = 2.0;
+            this.camera.targetZoom = 2.0;
+            this.zoomStageIndex = 3; // aponta para zoomStages[3] = 2.0
+        }
     }
 
     public resize(w: number, h: number) {
