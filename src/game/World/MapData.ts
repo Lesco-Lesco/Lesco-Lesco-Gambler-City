@@ -231,6 +231,26 @@ function generateMap(): number[][] {
         set(x, dfY, S);
     }
 
+    // 9. NEW: Rua Senador Camará (Central Residential) Y=115
+    const scmY = 115;
+    for (let x = 45; x < 215; x++) {
+        // Break for Shopping
+        if (x >= 117 && x <= 143) continue;
+        set(x, scmY, S);
+    }
+
+    // 10. NEW: Rua Lopes de Moura (West-Central) X=110
+    const lmX = 110;
+    for (let y = 80; y < 150; y++) {
+        set(lmX, y, S);
+    }
+
+    // 11. NEW: Rua General Canabarro (East-Central) X=190
+    const gcX = 190;
+    for (let y = 80; y < 150; y++) {
+        set(gcX, y, S);
+    }
+
 
     // --- ZONES & FILLING ---
 
@@ -473,36 +493,63 @@ function generateMap(): number[][] {
     fill(165, 45, 215, 45, S); // Narrow street
     fill(165, 130, 215, 130, S);
 
+    // 7. MASSIVE RESIDENTIAL INTERCONNECTIVITY ( ~120+ Interlinked Transpassos)
+    // Carving out a network ONLY within residential/favela sectors
+    const residentialZones = [
+        { x: [10, 35], y: [10, 290] },   // Far West Favela
+        { x: [45, 95], y: [10, 145] },   // West Residential
+        { x: [165, 215], y: [10, 145] }, // East Residential
+        { x: [225, 290], y: [10, 290] }, // Far East Favela
+        { x: [45, 215], y: [205, 290] }, // South Loop/Favela
+    ];
+
+    for (let i = 0; i < 140; i++) {
+        const zone = residentialZones[Math.floor(Math.random() * residentialZones.length)];
+        const isH = Math.random() > 0.5;
+        let x1 = Math.floor(zone.x[0] + Math.random() * (zone.x[1] - zone.x[0]));
+        let y1 = Math.floor(zone.y[0] + Math.random() * (zone.y[1] - zone.y[0]));
+
+        if (isH) {
+            let xS = x1, xE = Math.min(x1 + 35, zone.x[1]);
+            // Forced connectivity: 90% chance to reach a main vertical artery
+            if (Math.random() < 0.9) {
+                if (x1 < 100 && xE >= 95) xE = 100; // Hit Barão de Laguna
+                if (x1 > 215 && xS <= 225) xS = 220; // Hit Severiano
+                if (x1 < 45 && xE >= 35) xE = 40;   // Hit Rua Fernanda
+            }
+            fill(xS, y1, xE, y1, S);
+        } else {
+            let yS = y1, yEnd = Math.min(y1 + 35, zone.y[1]);
+            if (Math.random() < 0.9) {
+                if (y1 < 155 && yEnd >= 145) yEnd = 150; // Hit Felipe Cardoso
+                if (y1 < 245 && yEnd >= 235) yEnd = 240; // Hit Antares
+                if (y1 < 85 && yEnd >= 75) yEnd = 80;    // Hit General Olimpio
+            }
+            fill(x1, yS, x1, yEnd, S);
+        }
+    }
+
+    // Protect Shopping Center structure and main arteries after the mass carving
+    fill(117, 112, 143, 143, SH);
+    for (let x = 0; x < MAP_WIDTH; x++) { set(x, fcY - 1, S); set(x, fcY + 1, S); }
+    for (let y = 0; y < MAP_HEIGHT; y++) { set(blX, y, S); set(rfX, y, S); set(scX, y, S); }
+
     // --- STRATEGIC FAVELA CONNECTORS (The "Veins") ---
-    // These link the deep labyrinths to the main grid without destroying dead-ends.
-
-    // 1. Far Left (X=10..35) to Rua Fernanda (X=40)
-    // Connectors at Y=100, Y=180
-    fill(10, 99, 45, 101, A);  // Beco horizontal em Y=100
-    fill(10, 179, 45, 181, A); // Beco horizontal em Y=180
-
-    // 2. Far Right (X=225..290) to Rua Severiano (X=220)
-    // Connectors at Y=60, Y=110, Y=220
-    fill(215, 60, 230, 60, A);  // Curto trecho ligando Rua do Império (Y=60)
-    fill(215, 109, 230, 111, A); // Ligando Rua Álvaro Alberto (Y=110)
-    fill(215, 219, 240, 221, A); // Novo conector em Y=220
-
-    // 3. South-West Loop (X=45..215, Y=205..280) to Main System
-    // Mid-block connector linking SW to Rua do Matadouro region
-    fill(40, 240, 220, 241, S); // Main connector artery for the South
+    fill(10, 99, 45, 101, A); fill(10, 179, 45, 181, A);
+    fill(215, 60, 230, 60, A); fill(215, 109, 230, 111, A); fill(215, 219, 240, 221, A);
+    fill(40, 240, 220, 241, S);
 
     // --- FINAL SCATTER PASS: "The Massive Leakage" ---
-    // High-density scan along major streets to force "vazamentos" (leaks)
+    // ULTRA-HIGH DENSITY (4000 iterations) for 90% interconnectivity
     const isStreetOrSidewalk = (t: number) => t === S || t === W;
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 4000; i++) {
         const x = Math.floor(30 + Math.random() * (MAP_WIDTH - 60));
         const y = Math.floor(30 + Math.random() * (MAP_HEIGHT - 60));
 
         if (isStreetOrSidewalk(map[y][x])) {
-            const dx = Math.random() > 0.5 ? 1 : -1;
-            const dy = Math.random() > 0.5 ? 1 : -1;
-            // Punch through 2 tiles deep to break any building row
-            for (let d = 1; d <= 2; d++) {
+            const dx = Math.random() > 0.5 ? 1 : -1, dy = Math.random() > 0.5 ? 1 : -1;
+            const depth = Math.floor(Math.random() * 3) + 2;
+            for (let d = 1; d <= depth; d++) {
                 const tx = x + dx * d, ty = y + dy * d;
                 if (tx >= 0 && tx < MAP_WIDTH && ty >= 0 && ty < MAP_HEIGHT) {
                     const t = map[ty][tx];
@@ -536,6 +583,11 @@ export const STREET_SIGNS: StreetSign[] = [
     { x: 74, y: 100, name: 'R. São Benedito', direction: 'v' },
     { x: 150, y: 236, name: 'Av. Antares', direction: 'h' },
     { x: 170, y: 48, name: 'Tv. das Flores', direction: 'h' },
+
+    // New Residential Connections
+    { x: 112, y: 100, name: 'R. Lopes de Moura', direction: 'v' },
+    { x: 188, y: 100, name: 'R. Gen. Canabarro', direction: 'v' },
+    { x: 165, y: 113, name: 'R. Sen. Camará', direction: 'h' },
 ];
 
 export const BUS_STOPS: BusStop[] = [
@@ -606,23 +658,37 @@ function mapSeededRand(sx: number, sy: number): number {
 }
 
 export const CITY_LIGHTS: CityLight[] = [];
+// Helper for physical proximity (pole-to-pole)
+const physicalLampGrid: boolean[][] = Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(false));
+
+function canPlacePhysicalLamp(x: number, y: number, minDist: number): boolean {
+    for (let dy = -minDist; dy <= minDist; dy++) {
+        for (let dx = -minDist; dx <= minDist; dx++) {
+            const tx = x + dx, ty = y + dy;
+            if (tx >= 0 && tx < MAP_WIDTH && ty >= 0 && ty < MAP_HEIGHT) {
+                if (physicalLampGrid[ty][tx]) return false;
+            }
+        }
+    }
+    return true;
+}
+
 for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
         const tile = MAP_DATA[y][x];
         const dist = distToNearestHub(x, y);
 
-        // ── STREET tiles: invisible road-glow (no physical post)
-        // Denser near hubs (every 5), sparser on periphery (every 10)
+        // ── STREET tiles: invisible road-glow
         if (tile === TILE_TYPES.STREET) {
-            const glowStride = dist < 45 ? 5 : dist < 90 ? 7 : 10;
-            if ((x + y) % glowStride === 0) {
+            const glowStride = dist < 45 ? 6 : 4; // Denser glow in residential/periphery
+            // Use a pattern that avoids diagonals
+            if ((x % glowStride === 0 && y % 2 === 0) || (y % glowStride === 0 && x % 2 === 0)) {
                 CITY_LIGHTS.push({ x, y, type: 'streetglow' });
             }
         }
 
-        // ── SIDEWALK tiles → physical lampposts, zone-dependent
+        // ── SIDEWALK tiles → physical lampposts (Both sides of the street)
         if (tile === TILE_TYPES.SIDEWALK) {
-            // Is this sidewalk tile directly adjacent to a road?
             const adjN = y > 0 && (MAP_DATA[y - 1][x] === TILE_TYPES.STREET || MAP_DATA[y - 1][x] === TILE_TYPES.ALLEY);
             const adjS = y < MAP_HEIGHT - 1 && (MAP_DATA[y + 1][x] === TILE_TYPES.STREET || MAP_DATA[y + 1][x] === TILE_TYPES.ALLEY);
             const adjE = x < MAP_WIDTH - 1 && (MAP_DATA[y][x + 1] === TILE_TYPES.STREET || MAP_DATA[y][x + 1] === TILE_TYPES.ALLEY);
@@ -630,50 +696,63 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
             const hasRoadNeighbor = adjN || adjS || adjE || adjW;
             if (!hasRoadNeighbor) continue;
 
-            // A sidewalk "corner" faces 2+ perpendicular road directions → lamp priority
             const isCorner = ((adjN || adjS) && (adjE || adjW));
+            let shouldPlace = false;
 
             if (dist < 45) {
-                // ── ZONE A: Well-planned urban center (near Shopping / Station)
-                // Corners always get a post; straight edges get one every 5 tiles
-                if (isCorner || (x + y * 3) % 5 === 0) {
-                    CITY_LIGHTS.push({ x, y, type: 'street' });
+                // ZONE A: Urban Center
+                if (isCorner) {
+                    shouldPlace = canPlacePhysicalLamp(x, y, 2);
+                } else if (x % 6 === 0 || y % 6 === 0) {
+                    shouldPlace = canPlacePhysicalLamp(x, y, 2);
                 }
-            } else if (dist < 90) {
-                // ── ZONE B: Transitional mid-ring
-                // Less regular — corners only every other, straight every 9
-                if (isCorner && (x + y) % 2 === 0) {
-                    CITY_LIGHTS.push({ x, y, type: 'street' });
-                } else if (!isCorner && (x + y * 3) % 9 === 0) {
-                    CITY_LIGHTS.push({ x, y, type: 'street' });
+            } else if (dist < 100) {
+                // ZONE B: Intermediate (Residential)
+                if (isCorner && mapSeededRand(x, y) > 0.1) {
+                    shouldPlace = canPlacePhysicalLamp(x, y, 2);
+                } else if ((x % 6 === 0 || y % 6 === 0) && mapSeededRand(x, y) > 0.3) {
+                    shouldPlace = canPlacePhysicalLamp(x, y, 3);
                 }
             } else {
-                // ── ZONE C: Peripheral / neglected residential
-                // Very sparse, random-feeling — only ~10% of eligible tiles
-                if (mapSeededRand(x, y) > 0.90) {
-                    CITY_LIGHTS.push({ x, y, type: 'street' });
+                // ZONE C: Peripheral (Residential)
+                if (isCorner && mapSeededRand(x, y) > 0.2) {
+                    shouldPlace = canPlacePhysicalLamp(x, y, 2);
+                } else if (mapSeededRand(x, y) > 0.75) {
+                    shouldPlace = canPlacePhysicalLamp(x, y, 3);
                 }
+            }
+
+            if (shouldPlace) {
+                CITY_LIGHTS.push({ x, y, type: 'street' });
+                physicalLampGrid[y][x] = true;
             }
         }
 
-        // ── Alley lights: dim orange posts along becos
-        if (tile === TILE_TYPES.ALLEY && (x + y) % 12 === 0) {
-            CITY_LIGHTS.push({ x, y, type: 'alley' });
+        // ── Alley lights: increase frequency (Favela / Residential Interiors)
+        if (tile === TILE_TYPES.ALLEY && (x % 8 === 0 && y % 8 === 0)) {
+            if (canPlacePhysicalLamp(x, y, 3)) {
+                CITY_LIGHTS.push({ x, y, type: 'alley' });
+                physicalLampGrid[y][x] = true;
+            }
         }
 
-        // ── Plaza lights: bright area flood lights (stride 9)
-        if (tile === TILE_TYPES.PLAZA && x % 9 === 0 && y % 9 === 0) {
-            CITY_LIGHTS.push({ x, y, type: 'plaza' });
+        // ── Plaza lights
+        if (tile === TILE_TYPES.PLAZA && x % 8 === 0 && y % 8 === 0) {
+            if (canPlacePhysicalLamp(x, y, 4)) {
+                CITY_LIGHTS.push({ x, y, type: 'plaza' });
+                physicalLampGrid[y][x] = true;
+            }
         }
 
-        // ── Residential: sparse window lights (stride 4)
+        // ── Residential window lights: increase frequency
         if ((tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL) &&
-            x % 4 === 0 && y % 4 === 0 && mapSeededRand(x * 3, y * 7) > 0.3) {
+            x % 3 === 0 && y % 3 === 0 && mapSeededRand(x * 3, y * 7) > 0.3) {
             CITY_LIGHTS.push({ x, y, type: 'residential' });
         }
 
-        // ── Shopping: bright commercial hubs
-        if (tile === TILE_TYPES.SHOPPING && x % 4 === 0 && y % 4 === 0) {
+
+        // ── Shopping lights
+        if (tile === TILE_TYPES.SHOPPING && x % 5 === 0 && y % 5 === 0) {
             CITY_LIGHTS.push({ x, y, type: 'shopping' });
         }
 
