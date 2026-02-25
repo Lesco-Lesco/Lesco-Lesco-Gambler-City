@@ -44,9 +44,8 @@ export class PalitinhoUI {
                 this.game.chooseMatchstick(this.selectedIdx);
             }
         } else if (phase === 'reveal') {
-            // One second pause then result
             setTimeout(() => this.game.calculateResult(), 1500);
-            this.game.phase = 'flipping' as any; // Hack to avoid multi-trigger
+            this.game.phase = 'flipping' as any;
         } else if (phase === 'result') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
                 this.onPlayAgain(this.game.settle());
@@ -58,20 +57,20 @@ export class PalitinhoUI {
 
     public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);
+        const cx = screenW / 2;
+        const mobile = isMobile();
+        const fScale = mobile ? 1.1 : 1.0;
 
-        // Concrete/Sidewalk Background
+        // ── Fundo: calçada ──
         ctx.fillStyle = '#2a2a2a';
         ctx.fillRect(0, 0, screenW, screenH);
 
-        // Add some "concrete" texture/noise
         ctx.save();
-        ctx.globalAlpha = 0.1;
-        for (let i = 0; i < 500; i++) {
+        ctx.globalAlpha = 0.08;
+        for (let i = 0; i < 300; i++) {
             ctx.fillStyle = i % 2 === 0 ? '#fff' : '#000';
             ctx.fillRect(Math.random() * screenW, Math.random() * screenH, 2, 2);
         }
-
-        // Pavement cracks
         ctx.strokeStyle = '#1a1a1a';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -80,76 +79,103 @@ export class PalitinhoUI {
         ctx.stroke();
         ctx.restore();
 
-        const centerX = screenW / 2;
-        const centerY = screenH / 2;
-        const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
+        // ── Zonas de layout proporcionais ──
+        const TITLE_H = screenH * 0.12;
+        const CONTENT_H = screenH * 0.62;
+        const FOOTER_H = screenH * 0.26;
 
+        const titleY = TITLE_H * 0.65;
+        const contentY = TITLE_H + CONTENT_H * 0.5; // centro da área de conteúdo
+        const footerTop = TITLE_H + CONTENT_H;
+
+        // ── Título ──
         ctx.fillStyle = '#ff66cc';
-        ctx.font = `bold ${UIScale.r(36 * fScale)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 18 : 24)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText('PALITINHO', centerX, s(mobile ? 60 : 80));
+        ctx.fillText('PALITINHO', cx, titleY);
 
         const phase = this.game.phase;
 
         if (phase === 'betting') {
-            this.drawBettingUI(ctx, centerX, centerY);
+            this.drawBettingUI(ctx, cx, contentY, screenH);
         } else if (phase === 'dice_roll') {
-            this.drawDiceUI(ctx, centerX, centerY);
+            this.drawDiceUI(ctx, cx, contentY, fScale);
         } else if (phase === 'choosing' || (phase as any) === 'flipping' || phase === 'reveal' || phase === 'result') {
-            this.drawMatchsticks(ctx, centerX, centerY);
-            this.drawPlayersUI(ctx, centerX, centerY + s(mobile ? 100 : 120));
+            this.drawMatchsticks(ctx, cx, contentY - s(mobile ? 20 : 30), screenW);
+            this.drawPlayersUI(ctx, cx, footerTop + FOOTER_H * 0.22, fScale);
+
             if (phase === 'result') {
                 ctx.fillStyle = '#fff';
-                ctx.font = `${UIScale.r(24 * fScale)}px sans-serif`;
-                ctx.fillText(this.game.resultMessage, centerX, centerY + s(mobile ? 180 : 200));
-                ctx.font = `${UIScale.r(14 * fScale)}px monospace`;
+                ctx.font = `bold ${UIScale.r(mobile ? 13 : 16)}px "Segoe UI", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.game.resultMessage, cx, footerTop + FOOTER_H * 0.50);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
                 const resultHint = mobile
-                    ? '[OK] JOGAR NOVAMENTE | [E] SAIR'
-                    : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR';
-                ctx.fillText(resultHint, centerX, centerY + s(mobile ? 220 : 240));
+                    ? '[OK] NOVAMENTE | [E] SAIR'
+                    : 'ESPAÇO NOVAMENTE | ENTER SAIR';
+                ctx.fillText(resultHint, cx, footerTop + FOOTER_H * 0.78);
             }
         }
+
+        // Dica de controles (sempre visível)
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(mobile ? '[←→] Escolher  [E/OK] Confirmar  [✕] Sair' : '[←→] Escolher  [Enter] Confirmar  [ESC] Sair', cx, screenH - s(12));
     }
 
-    private drawBettingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
-        const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
-        ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(24 * fScale)}px sans-serif`;
-        ctx.fillText('APOSTA MÍNIMA: R$ ' + this.game.selectedBet, centerX, centerY);
-    }
-
-    private drawDiceUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, _screenH: number) {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
+        const fScale = mobile ? 1.1 : 1.0;
+
+        ctx.fillStyle = '#ccc';
+        ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText('APOSTA', cx, cy - s(50));
+
+        ctx.fillStyle = '#ff66cc';
+        ctx.font = `bold ${UIScale.r(mobile ? 40 : 52) * fScale}px "Segoe UI", sans-serif`;
+        ctx.shadowBlur = UIScale.s(14);
+        ctx.shadowColor = 'rgba(255,102,204,0.35)';
+        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(10));
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
+        ctx.fillText(mobile ? '[↑↓] Valor  [E/OK] Confirmar' : '[W/S ou ↑↓] Valor  [Enter] Confirmar', cx, cy + s(60));
+    }
+
+    private drawDiceUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, fScale: number) {
+        const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
 
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(20 * fScale)}px "Segoe UI", sans-serif`;
-        ctx.fillText('QUEM COMEÇA?', centerX, centerY - s(100));
+        ctx.font = `bold ${UIScale.r(mobile ? 11 : 14) * fScale}px "Press Start 2P", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText('QUEM COMEÇA?', cx, cy - s(80));
 
-        const spacing = s(mobile ? 120 : 180);
-        const startX = centerX - spacing;
+        const spacing = s(mobile ? 100 : 150);
+        const startX = cx - spacing;
 
         this.game.players.forEach((p, i) => {
             const x = startX + i * spacing;
             ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(14 * fScale)}px monospace`;
-            ctx.fillText(p.name.toUpperCase(), x, centerY + s(60));
-            this.drawSingleDice(ctx, x, centerY, p.diceValue);
+            ctx.font = `${UIScale.r(mobile ? 8 : 10)}px "Press Start 2P", monospace`;
+            ctx.fillText(p.name.toUpperCase(), x, cy + s(55));
+            this.drawSingleDice(ctx, x, cy, p.diceValue);
         });
     }
 
     private drawSingleDice(ctx: CanvasRenderingContext2D, x: number, y: number, value: number) {
         const s = UIScale.s.bind(UIScale);
-        const size = s(40);
+        const size = s(38);
 
-        // Dice Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(x - size / 2 + s(4), y - size / 2 + s(4), size, size);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(x - size / 2 + s(3), y - size / 2 + s(3), size, size);
 
-        // Dice Body
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = '#333';
         ctx.lineWidth = s(2);
@@ -158,13 +184,10 @@ export class PalitinhoUI {
         ctx.fill();
         ctx.stroke();
 
-        // Dots
         ctx.fillStyle = '#111';
         const r = s(3);
         const offset = size / 4;
-        if (value % 2 !== 0) {
-            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-        }
+        if (value % 2 !== 0) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
         if (value >= 2) {
             ctx.beginPath(); ctx.arc(x - offset, y - offset, r, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(x + offset, y + offset, r, 0, Math.PI * 2); ctx.fill();
@@ -179,103 +202,96 @@ export class PalitinhoUI {
         }
     }
 
-    private drawPlayersUI(ctx: CanvasRenderingContext2D, centerX: number, y: number) {
+    private drawPlayersUI(ctx: CanvasRenderingContext2D, cx: number, y: number, fScale: number) {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
-        const spacing = s(mobile ? 110 : 150);
-        const startX = centerX - spacing;
+        const spacing = s(mobile ? 100 : 140);
+        const startX = cx - spacing;
 
         this.game.players.forEach((p, i) => {
             const px = startX + i * spacing;
             const isTurn = this.game.currentPlayerIdx === p.order && this.game.phase === 'choosing';
 
-            ctx.fillStyle = isTurn ? '#ff66cc' : (p.isLoser ? '#ff3333' : '#fff');
-            ctx.font = (isTurn ? 'bold ' : '') + `${UIScale.r(18 * fScale)}px sans-serif`;
+            ctx.fillStyle = isTurn ? '#ff66cc' : (p.isLoser ? '#ff4444' : 'rgba(255,255,255,0.6)');
+            ctx.font = (isTurn ? 'bold ' : '') + `${UIScale.r(mobile ? 10 : 12) * fScale}px "Press Start 2P", monospace`;
+            ctx.textAlign = 'center';
             ctx.fillText(p.name.toUpperCase(), px, y);
 
             if (isTurn) {
-                ctx.font = `${UIScale.r(12 * fScale)}px monospace`;
-                ctx.fillText('SUA VEZ!', px, y + s(20));
+                ctx.fillStyle = '#ff66cc';
+                ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
+                ctx.fillText('SUA VEZ!', px, y + s(16));
             }
         });
     }
 
-    private drawMatchsticks(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+    private drawMatchsticks(ctx: CanvasRenderingContext2D, cx: number, cy: number, screenW: number) {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
-        const spacing = s(mobile ? 100 : 120);
-        const startX = centerX - spacing;
+        const fScale = mobile ? 1.1 : 1.0;
+
+        // Espaçamento proporcional à largura disponível
+        const spacing = Math.min(s(mobile ? 90 : 120), screenW * 0.27);
+        const startX = cx - spacing;
 
         this.game.matchsticks.forEach((m, i) => {
             const x = startX + i * spacing;
-            const isSelected = this.selectedIdx === i && this.game.phase === 'choosing' && this.game.players.find(p => p.isHuman)?.order === this.game.currentPlayerIdx;
+            const isSelected = this.selectedIdx === i
+                && this.game.phase === 'choosing'
+                && this.game.players.find(p => p.isHuman)?.order === this.game.currentPlayerIdx;
             const isPicked = m.pickedBy !== null;
             const isReveal = this.game.phase === 'result' || (this.game.phase as any) === 'flipping';
+            const stickH = s(mobile ? 90 : 110);
 
-            // Area highlight
             if (isSelected) {
-                ctx.fillStyle = 'rgba(255, 102, 204, 0.1)';
+                ctx.fillStyle = 'rgba(255,102,204,0.1)';
                 ctx.beginPath();
-                ctx.arc(x, centerY, s(60), 0, Math.PI * 2);
+                ctx.arc(x, cy, s(55), 0, Math.PI * 2);
                 ctx.fill();
                 ctx.strokeStyle = '#ff66cc';
                 ctx.lineWidth = s(2);
                 ctx.stroke();
             }
 
-            // Matchstick
             if (isPicked) {
-                const headY = isReveal && m.isBroken ? centerY - s(10) : centerY - s(70);
+                const headY = isReveal && m.isBroken ? cy - s(8) : cy - stickH * 0.65;
 
-                // Shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                ctx.fillRect(x, centerY - s(40), s(6), s(80));
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillRect(x, cy - stickH * 0.38, s(5), stickH * 0.75);
 
-                // Wood Stick
                 const woodGrad = ctx.createLinearGradient(x - s(4), 0, x + s(4), 0);
-                woodGrad.addColorStop(0, '#d2b48c');
-                woodGrad.addColorStop(0.5, '#f5deb3');
-                woodGrad.addColorStop(1, '#d2b48c');
+                woodGrad.addColorStop(0, '#c2a07c');
+                woodGrad.addColorStop(0.5, '#e8cfa0');
+                woodGrad.addColorStop(1, '#c2a07c');
                 ctx.fillStyle = woodGrad;
-                ctx.fillRect(x - s(4), centerY - s(50), s(8), s(100));
-
-                // Texture lines on wood
-                ctx.strokeStyle = '#8b4513';
-                ctx.globalAlpha = 0.3;
-                ctx.beginPath();
-                ctx.moveTo(x - s(2), centerY - s(40)); ctx.lineTo(x - s(2), centerY + s(40));
-                ctx.stroke();
-                ctx.globalAlpha = 1;
+                ctx.fillRect(x - s(4), cy - stickH * 0.48, s(8), stickH);
 
                 if (isReveal && m.isBroken) {
-                    // Splintered break
                     ctx.fillStyle = '#111';
                     ctx.beginPath();
-                    ctx.moveTo(x - s(5), centerY - s(15));
-                    ctx.lineTo(x + s(5), centerY - s(12));
-                    ctx.lineTo(x + s(5), centerY - s(18));
+                    ctx.moveTo(x - s(5), cy - s(14));
+                    ctx.lineTo(x + s(5), cy - s(11));
+                    ctx.lineTo(x + s(5), cy - s(17));
                     ctx.fill();
                 }
 
-                // Phosphorous Head
                 const headGrad = ctx.createRadialGradient(x - s(2), headY - s(2), s(1), x, headY, s(8));
                 headGrad.addColorStop(0, '#ff4444');
                 headGrad.addColorStop(1, '#880000');
                 ctx.fillStyle = headGrad;
                 ctx.beginPath();
-                ctx.ellipse(x, headY, s(7), s(10), 0, 0, Math.PI * 2);
+                ctx.ellipse(x, headY, s(6), s(9), 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Name label
-                ctx.fillStyle = isReveal && m.isBroken ? '#ff4444' : '#fff';
-                ctx.font = `bold ${UIScale.r(12 * fScale)}px monospace`;
-                ctx.fillText(m.pickedBy?.toUpperCase() || '', x, centerY + s(70));
+                ctx.fillStyle = isReveal && m.isBroken ? '#ff4444' : 'rgba(255,255,255,0.7)';
+                ctx.font = `bold ${UIScale.r(mobile ? 9 : 10) * fScale}px "Press Start 2P", monospace`;
+                ctx.textAlign = 'center';
+                ctx.fillText(m.pickedBy?.toUpperCase() || '', x, cy + stickH * 0.62);
             } else {
-                ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                ctx.font = `bold ${UIScale.r(40 * fScale)}px serif`;
-                ctx.fillText('?', x, centerY);
+                ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                ctx.font = `bold ${UIScale.r(mobile ? 30 : 38) * fScale}px serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText('?', x, cy + s(12));
             }
         });
     }

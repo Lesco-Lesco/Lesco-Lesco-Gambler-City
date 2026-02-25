@@ -16,27 +16,27 @@ export class SlotMachine {
     static readonly THEMES: Record<SlotTheme, { symbols: string[], payouts: Record<string, number> }> = {
         fruits: {
             symbols: ['🍒', '🍋', '🔔', '💎', '7️⃣', '⭐'],
-            payouts: { '🍒': 3, '🍋': 5, '🔔': 8, '💎': 15, '7️⃣': 25, '⭐': 50 }
+            payouts: { '🍒': 2, '🍋': 3, '🔔': 4, '💎': 6, '7️⃣': 10, '⭐': 15 }
         },
         animals: {
             symbols: ['🐶', '🐱', '🦊', '🐯', '🦁', '🐉'],
-            payouts: { '🐶': 3, '🐱': 5, '🦊': 8, '🐯': 15, '🦁': 25, '🐉': 50 }
+            payouts: { '🐶': 2, '🐱': 3, '🦊': 4, '🐯': 6, '🦁': 10, '🐉': 15 }
         },
         shapes: {
             symbols: ['🔴', '🟦', '🔺', '⭐', '💎', '☀️'],
-            payouts: { '🔴': 3, '🟦': 5, '🔺': 8, '⭐': 15, '💎': 25, '☀️': 50 }
+            payouts: { '🔴': 2, '🟦': 3, '🔺': 4, '⭐': 6, '💎': 10, '☀️': 15 }
         },
         food: {
             symbols: ['🍕', '🍔', '🍟', '🍦', '🍩', '🍰'],
-            payouts: { '🍕': 3, '🍔': 5, '🍟': 8, '🍦': 15, '🍩': 25, '🍰': 50 }
+            payouts: { '🍕': 2, '🍔': 3, '🍟': 4, '🍦': 6, '🍩': 10, '🍰': 15 }
         },
         ocean: {
             symbols: ['🐟', '🐙', '🐚', '🦀', '🦈', '🧜'],
-            payouts: { '🐟': 3, '🐙': 5, '🐚': 8, '🦀': 15, '🦈': 25, '🧜': 50 }
+            payouts: { '🐟': 2, '🐙': 3, '🐚': 4, '🦀': 6, '🦈': 10, '🧜': 15 }
         },
         space: {
             symbols: ['🚀', '🛸', '🪐', '👽', '☄️', '🌌'],
-            payouts: { '🚀': 3, '🛸': 5, '🪐': 8, '👽': 15, '☄️': 25, '🌌': 50 }
+            payouts: { '🚀': 2, '🛸': 3, '🪐': 4, '👽': 6, '☄️': 10, '🌌': 15 }
         }
     };
 
@@ -65,13 +65,13 @@ export class SlotMachine {
 
         if (s0 === s1 && s1 === s2) {
             // Three of a kind
-            const multi = theme.payouts[s0] || 3;
+            const multi = theme.payouts[s0] || 2;
             payout = bet * multi;
-            // Last symbol in list is typically the jackpot
+            // Last symbol in list is the jackpot
             if (s0 === symbolsList[symbolsList.length - 1]) isJackpot = true;
         } else if (s0 === s1 || s1 === s2 || s0 === s2) {
-            // Two of a kind — small return
-            payout = Math.floor(bet * 1.5);
+            // Two of a kind — devolver a aposta (empata)
+            payout = bet;
         }
 
         return {

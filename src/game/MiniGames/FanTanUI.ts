@@ -56,55 +56,65 @@ export class FanTanUI {
     }
 
     public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
-        const s = UIScale.s.bind(UIScale);
 
-        // Red Silk Texture/Background
+        // Fundo seda vermelha
         ctx.fillStyle = '#4a0404';
         ctx.fillRect(0, 0, screenW, screenH);
 
-        // Grid/Board
-        const centerX = screenW / 2;
-        const centerY = screenH / 2;
+        const cx = screenW / 2;
         const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
+        const fScale = mobile ? 1.1 : 1.0;
 
-        // Discrete Dragon
-        this.drawDragon(ctx, centerX, centerY);
+        // ── Zonas proporcionais ──
+        // TITLE 12% | DRAGON/BOARD 50% | RESULT 22% | FOOTER 16%
+        const TITLE_H = screenH * 0.12;
+        const BOARD_H = screenH * 0.50;
+        const RESULT_H = screenH * 0.22;
+        const FOOTER_H = screenH * 0.16;
 
+        const titleY = TITLE_H * 0.65;
+        const boardCY = TITLE_H + BOARD_H * 0.50;
+        const resultTop = TITLE_H + BOARD_H;
+        const footerY = resultTop + RESULT_H + FOOTER_H * 0.55;
+
+        // Dragão decorativo (fundo)
+        this.drawDragon(ctx, cx, boardCY);
+
+        // Título
         ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${UIScale.r(36 * fScale)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${UIScale.r(mobile ? 22 : 30) * fScale}px "Segoe UI", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('FAN-TAN', centerX, s(mobile ? 60 : 80));
+        ctx.fillText('FAN-TAN', cx, titleY);
 
         const phase = this.game.phase;
 
         if (phase === 'betting') {
-            this.drawBettingUI(ctx, centerX, centerY);
+            this.drawBettingUI(ctx, cx, boardCY);
         } else {
-            this.drawBoard(ctx, centerX, centerY);
-            if (phase === 'choosing') {
-                // Handled in drawBoard
-            } else if (phase === 'reveal' || phase === 'counting' || phase === 'result') {
-                this.drawGrains(ctx, centerX, centerY);
+            this.drawBoard(ctx, cx, boardCY);
+            if (phase === 'reveal' || phase === 'counting' || phase === 'result') {
+                this.drawGrains(ctx, cx, boardCY, fScale);
                 if (phase === 'result') {
-                    this.drawResultUI(ctx, centerX, centerY + s(220));
+                    this.drawResultUI(ctx, cx, resultTop, RESULT_H, fScale);
                 }
             }
         }
 
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
-        ctx.font = `${UIScale.r(12 * fScale)}px monospace`;
+        // Dica de controles (rodapé)
+        ctx.fillStyle = 'rgba(255,215,0,0.45)';
+        ctx.font = `${UIScale.r(mobile ? 8 : 10) * fScale}px monospace`;
+        ctx.textAlign = 'center';
         let helpText: string;
         if (mobile) {
             helpText = phase === 'choosing'
-                ? `ESCOLHA 2 POSIÇÕES (${this.game.currentPlayerChoices.length}/2) | [E] CONFIRMAR | [✕] SAIR`
+                ? `ESCOLHA (${this.game.currentPlayerChoices.length}/2) | [E] CONFIRMAR | [✕] SAIR`
                 : '[E] CONFIRMAR | [✕] SAIR';
         } else {
             helpText = phase === 'choosing'
-                ? `ESCOLHA 2 POSIÇÕES (${this.game.currentPlayerChoices.length}/2) | ENTER CONFIRMAR | ESC SAIR`
+                ? `ESCOLHA (${this.game.currentPlayerChoices.length}/2) | ENTER CONFIRMAR | ESC SAIR`
                 : 'ENTER CONFIRMAR | ESC SAIR';
         }
-        ctx.fillText(helpText, centerX, screenH - s(mobile ? 30 : 40));
+        ctx.fillText(helpText, cx, footerY);
     }
 
     private drawDragon(ctx: CanvasRenderingContext2D, x: number, y: number) {
@@ -193,10 +203,9 @@ export class FanTanUI {
         ctx.fillText(`R$ ${this.game.selectedBet}`, centerX, centerY + s(20));
     }
 
-    private drawGrains(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    private drawGrains(ctx: CanvasRenderingContext2D, x: number, y: number, fScale: number) {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
         const count = this.game.displayedGrains;
         const phase = this.game.phase;
 
@@ -233,18 +242,26 @@ export class FanTanUI {
         }
     }
 
-    private drawResultUI(ctx: CanvasRenderingContext2D, centerX: number, y: number) {
+    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, fScale: number) {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
 
+        const msgY = zoneTop + zoneH * 0.30;
+        const hintY = zoneTop + zoneH * 0.65;
+
+        ctx.textAlign = 'center';
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(24 * fScale)}px sans-serif`;
-        ctx.fillText(this.game.resultMessage, centerX, y);
-        ctx.font = `${UIScale.r(16 * fScale)}px monospace`;
-        const resultHint = mobile
-            ? '[OK] JOGAR NOVAMENTE | [E] SAIR'
-            : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR';
-        ctx.fillText(resultHint, centerX, y + s(mobile ? 30 : 40));
+        const msgSize = Math.floor(Math.min(UIScale.r(mobile ? 16 : 22) * fScale, zoneH * 0.28));
+        ctx.font = `bold ${msgSize}px sans-serif`;
+        ctx.fillText(this.game.resultMessage, cx, msgY);
+
+        ctx.fillStyle = 'rgba(255,215,0,0.7)';
+        ctx.font = `${UIScale.r(mobile ? 8 : 10) * fScale}px monospace`;
+        ctx.fillText(
+            mobile ? '[OK] JOGAR NOVAMENTE | [E] SAIR' : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR',
+            cx, hintY
+        );
+        // avoid unused warning
+        void s;
     }
 }

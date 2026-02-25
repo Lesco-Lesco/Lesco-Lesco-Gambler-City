@@ -13,7 +13,8 @@ export class Renderer {
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
-        const context = canvas.getContext('2d');
+        // alpha: false → canvas fundo sempre opaco, elimina compositing com o HTML
+        const context = canvas.getContext('2d', { alpha: false });
         if (!context) throw new Error('Could not get 2D context');
         this.ctx = context;
         this.width = canvas.width;

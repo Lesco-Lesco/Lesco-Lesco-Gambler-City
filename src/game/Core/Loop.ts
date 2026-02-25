@@ -95,6 +95,13 @@ export class GameLoop {
         try {
             if (this.activeScene) {
                 this.activeScene.update(dt);
+
+                // Limpa o canvas e reseta estado antes de cada render
+                // Previne acúmulo de transparency/compositeOperation entre frames e cenas
+                this.ctx.globalAlpha = 1;
+                this.ctx.globalCompositeOperation = 'source-over';
+                this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+
                 this.activeScene.render(this.ctx);
             }
         } catch (e: any) {
