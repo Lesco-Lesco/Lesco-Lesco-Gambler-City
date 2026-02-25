@@ -68,7 +68,6 @@ export class HeadsTailsUI {
         // TITLE  12% | CONTENT  60% | FOOTER  28%
         const TITLE_H = screenH * 0.12;
         const CONTENT_H = screenH * 0.60;
-        const FOOTER_H = screenH * 0.28;
 
         const titleY = TITLE_H * 0.65;
         const contentCY = TITLE_H + CONTENT_H * 0.5;  // centro da área de conteúdo

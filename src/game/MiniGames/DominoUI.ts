@@ -84,7 +84,6 @@ export class DominoUI {
         const s = UIScale.s.bind(UIScale);
         const cx = width / 2;
         const mobile = isMobile();
-        const fScale = mobile ? 1.1 : 1.0;
 
         // ── Zonas de layout proporcionais ──
         // Dividimos a tela em faixas que se adaptam a qualquer tamanho.
