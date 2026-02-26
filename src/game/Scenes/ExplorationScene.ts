@@ -343,8 +343,20 @@ export class ExplorationScene implements Scene {
 
     private checkInteractions() {
         // 1. Map Transitions (Casino/Subsolo)
-        const playerTile = this.tileMap.getTile(this.player.x, this.player.y);
-        if (playerTile === TILE_TYPES.ENTRANCE || playerTile === TILE_TYPES.STAIRS_DOWN) {
+        // CHECK RADIUS: Increased proximity detection for transitions (1.5 range)
+        let isAtEntrance = false;
+        for (let dy = -1.5; dy <= 1.5; dy += 0.5) {
+            for (let dx = -1.5; dx <= 1.5; dx += 0.5) {
+                const tile = this.tileMap.getTile(this.player.x + dx, this.player.y + dy);
+                if (tile === TILE_TYPES.ENTRANCE || tile === TILE_TYPES.STAIRS_DOWN) {
+                    isAtEntrance = true;
+                    break;
+                }
+            }
+            if (isAtEntrance) break;
+        }
+
+        if (isAtEntrance) {
             this.player.nearbyInteraction = '▶ E - Entrar no Subsolo';
             if (this.input.wasPressed('KeyE')) {
                 if (this.onEnterCasino) this.onEnterCasino();
@@ -375,7 +387,7 @@ export class ExplorationScene implements Scene {
             } else {
                 this.player.nearbyInteraction = null;
             }
-        } else if (playerTile !== TILE_TYPES.ENTRANCE && playerTile !== TILE_TYPES.STAIRS_DOWN) {
+        } else if (!isAtEntrance) {
             this.player.nearbyInteraction = null;
         }
     }

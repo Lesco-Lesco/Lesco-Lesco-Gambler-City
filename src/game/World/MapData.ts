@@ -48,7 +48,7 @@ export const AREA_LABELS: { x: number; y: number; name: string; type: 'neighborh
 export interface POI {
     x: number;
     y: number;
-    type: 'purrinha' | 'ronda' | 'dice' | 'domino' | 'npc_homeless' | 'npc_info' | 'bingo' | 'pedinte' | 'domino_table';
+    type: 'purrinha' | 'ronda' | 'dice' | 'domino' | 'npc_homeless' | 'npc_info' | 'npc_casino_promoter' | 'bingo' | 'pedinte' | 'domino_table';
     name: string;
 }
 
@@ -601,7 +601,7 @@ export const CROSSWALKS: Crosswalk[] = [
 
 export const POINTS_OF_INTEREST: POI[] = [
     { x: 128, y: 147, type: 'pedinte', name: 'Zumbi do Shopping' },
-    { x: 114, y: 120, type: 'npc_info', name: 'Leão do Norte' },
+    { x: 114, y: 121, type: 'npc_casino_promoter', name: 'Leão do Norte' },
     // Marco Imperial Domino Players
     { x: 229, y: 137, type: 'domino_table', name: 'Geraldo' },
     { x: 229, y: 143, type: 'domino_table', name: 'Seu Jorge' },

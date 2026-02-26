@@ -47,6 +47,7 @@ export class NPCManager {
                 let type: NPCType = 'citizen';
                 if (poi.type === 'npc_homeless') type = 'homeless';
                 if (poi.type === 'npc_info') type = 'info';
+                if (poi.type === 'npc_casino_promoter' as any) type = 'casino_promoter';
                 this.npcs.push(new NPC(poi.x, poi.y, type, poi.name));
             }
         }

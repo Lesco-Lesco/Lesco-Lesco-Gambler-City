@@ -12,7 +12,7 @@ import { TILE_TYPES } from '../World/MapData';
 import { drawCharacter } from './CharacterRenderer';
 import type { CharacterAppearance } from './CharacterRenderer';
 
-export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police';
+export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police' | 'casino_promoter';
 export type MinigameType = 'purrinha' | 'dice' | 'ronda' | 'domino' | 'heads_tails' | 'palitinho' | 'fan_tan' | null;
 
 interface NPCAppearance extends CharacterAppearance {
@@ -52,10 +52,18 @@ const DIALOGUES = {
         ["Tem um trocado pro café?", "Deus te abençoe..."],
         ["A rua tá fria hoje...", "Me ajuda aí, irmão."],
         ["Tô com fome... fortalece o lanche?", "Qualquer moeda serve."],
+        ["Dizem que a sorte mora no subsolo do shopping.", "Mas eu só moro na calçada, esperando um milagre."],
+        ["Aquele beco ali tem cheiro de comida de bacana.", "Alguém tá ganhando muito dinheiro lá embaixo hoje."],
+        ["Não entra naquele porão não, irmão.", "Vi gente entrar sorrindo e sair sem nem as calças."],
+        ["O shopping brilha por fora, mas o porão devora.", "Cuidado com o que você aposta lá embaixo."],
     ],
     pedinte_aggressive: [
         ["Ei doutor! Preciso comer!", "Não vai negar um prato de comida?", "Tô vendo essa carteira cheia aí!"],
         ["Qual foi? Vai passar direto?", "Ajuda quem precisa!", "A humidade dói, sabia?"],
+        ["Vai lá pro cassino gastar tudo?", "Me dá 10 que eu te dou um palpite de ouro!"],
+        ["Vi você olhando pro 'Leão'.", "Aquele ali é o porteiro do inferno... ou do céu."],
+        ["Sumiram com o meu parceiro ali no fundo.", "Ganhou muito e não deixaram ele sair com o prêmio."],
+        ["A sorte tá no ar, doutor! Sinto cheiro de jackpot.", "Me ajuda agora que eu te abençoo a banca!"],
     ],
     gambler: [
         ["Hoje eu quebro a banca!", "Sente o cheiro da vitória."],
@@ -123,6 +131,21 @@ const DIALOGUES = {
         ["Cuidado com o que aposta, o preço pode ser alto demais.", "Belo dia pra uma batida, não acha?"],
         ["Documentos? Ah, deixa pra lá, tô vendo que o problema é outro.", "Esse 'Lesco Lesco' ainda vai te meter em encrenca."],
         ["Se eu pegar você jogando, o prejuízo vai ser grande.", "A lei é clara, mas o seu juízo parece meio nublado."]
+    ],
+    casino_promoter: [
+        ["O shopping é para gastar seu suor, o porão é para colher os frutos.", "Já sentiu que hoje é o seu dia de virar o jogo?"],
+        ["Tem uma reunião importante acontecendo ali embaixo... só para quem tem visão.", "O café é por nossa conta, a sorte é por sua."],
+        ["Cansado de olhar vitrines? Ali no subsolo a diversão é mais lucrativa.", "O segredo do shopping não está nas lojas, está no que elas escondem."],
+        ["O leão guarda a porta, mas o seu olhar de vencedor é a única senha necessária.", "O barulho lá embaixo é música para quem gosta de notas novas."],
+        ["A roleta da vida gira mais rápido naquele beco, quer ver onde ela para?", "Não deixa outro levar o que o destino separou para você."],
+        ["O ar-condicionado lá embaixo é o melhor da cidade, e as máquinas nunca dormem.", "Quem conhece o caminho não perde tempo batendo perna no corredor."],
+        ["O brilho das luzes lá embaixo é hipnotizante, não acha?", "Vem sentir o arrepio que só o risco calculado pode te dar."],
+        ["Já viu o que acontece quando o 'Lesco Lesco' encontra o bolso cheio?", "Dizem que o porão do shopping tem mais ouro que as joalherias do térreo."],
+        ["A banca está esperando um cavalheiro com a sua coragem. Vai deixar ela esperando?", "O prêmio está maduro, só falta alguém para colher."],
+        ["Não é jogo, é investimento emocional... com retorno imediato em papel moeda.", "Vem fugir desse sol e ver como a sorte se refresca no subsolo."],
+        ["O patrão mandou dizer que a mesa está posta. O banquete é de fichas.", "Viu aquele sorriso de quem saiu por ali agora? Pode ser o seu."],
+        ["As máquinas estão inquietas hoje, parece que o jackpot está para explodir.", "Sabe a diferença entre um comprador e um vencedor? A direção que eles tomam."],
+        ["O destino sussurrou seu nome lá embaixo. Eu só estou aqui para repetir.", "A oportunidade não bate na porta, ela fica esperando você descer a escada."]
     ]
 };
 
@@ -252,6 +275,9 @@ export class NPC {
             const key = `propaganda_${this.minigameType || 'purrinha'}`;
             const set = (DIALOGUES as any)[key] || DIALOGUES.citizen;
             return set[Math.floor(seededRandom(seed) * set.length)];
+        } else if (this.type === 'casino_promoter') {
+            const set = DIALOGUES.casino_promoter;
+            return set[Math.floor(seededRandom(seed) * set.length)];
         } else {
             // Citizen/Info
             if (seededRandom(seed) > 0.7) {
@@ -285,9 +311,11 @@ export class NPC {
         // --- BEHAVIOR ---
         // 0. Exclusion Zone: Shopping Side Entrance (114, 120)
         // If too close, push away with higher priority than wandering
+        // EXCEPT for casino promoters who invite people in.
+        const isCasinoPromoter = this.type === 'casino_promoter';
         const distToEntrance = Math.sqrt((this.x - 114) ** 2 + (this.y - 120) ** 2);
         const exclusionRadius = 2.5;
-        if (distToEntrance < exclusionRadius) {
+        if (!isCasinoPromoter && distToEntrance < exclusionRadius) {
             // Protect against division by zero if NPC is exactly at (114, 120)
             const safeDist = Math.max(distToEntrance, 0.001);
             const pushDirX = (this.x - 114) / safeDist;
