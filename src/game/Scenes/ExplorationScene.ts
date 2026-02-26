@@ -724,7 +724,7 @@ export class ExplorationScene implements Scene {
         const drawables = this.tileRenderer.getStructureDrawables(this.renderer, this.camera, this.tileMap);
 
         drawables.push({
-            y: this.player.y,
+            y: this.player.x + this.player.y,
             draw: () => this.player.draw(ctx, this.camera),
         });
 
@@ -733,7 +733,7 @@ export class ExplorationScene implements Scene {
             const { sx, sy } = this.camera.worldToScreen(npc.x, npc.y);
             if (sx > -50 && sx < this.screenW + 50 && sy > -50 && sy < this.screenH + 50) {
                 drawables.push({
-                    y: npc.y,
+                    y: npc.x + npc.y,
                     draw: () => npc.draw(ctx, this.camera),
                 });
             }

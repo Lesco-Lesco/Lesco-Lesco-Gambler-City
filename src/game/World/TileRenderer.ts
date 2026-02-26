@@ -352,7 +352,7 @@ export class TileRenderer {
 
                 if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL || tile === TILE_TYPES.SHOPPING) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             // Check connections
                             const isSame = (tx: number, ty: number) => {
@@ -422,7 +422,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.CHURCH) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             // Church Visuals
                             // Tall (40)
@@ -457,7 +457,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.SHOPPING) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             const c = BUILDING_COLORS.shopping;
                             // 3 Layers representing "crescent layers from bottom up"
@@ -558,7 +558,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.BENCH) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             // Simple Bench (Wooden)
                             const h = 3;
@@ -571,7 +571,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.FOUNTAIN) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             // Tiered Fountain
                             // Base (Stone)
@@ -584,7 +584,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.DOMINO_TABLE) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             const h = 6;
                             // Wooden Domino Table
@@ -602,7 +602,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.MONUMENT) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             // Historical Marco Imperial Onze (Milestone)
                             const cTop = '#f8f8f8';
@@ -619,7 +619,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.WALL) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             const h = 4; // Consistent wall height
                             const ci = Math.floor(rand * BUILDING_COLORS.wall.length);
@@ -632,7 +632,7 @@ export class TileRenderer {
                     });
                 } else if (tile === TILE_TYPES.TREE) {
                     drawables.push({
-                        y: tileY + 0.5,
+                        y: tileX + tileY + 0.5,
                         draw: () => {
                             this.drawTree(ctx, camera, tileX, tileY, rand);
                         },
@@ -644,7 +644,7 @@ export class TileRenderer {
         // Add Street Lamps as drawables
         for (const lamp of LAMPPOST_POSITIONS) {
             drawables.push({
-                y: lamp.y + 0.5,
+                y: lamp.x + lamp.y + 0.5,
                 draw: () => {
                     this.drawStreetLamp(ctx, camera, lamp.x, lamp.y);
                 }
@@ -654,7 +654,7 @@ export class TileRenderer {
         // Add Bus Stops as drawables
         for (const stop of BUS_STOPS) {
             drawables.push({
-                y: stop.y + 0.8, // slightly in front of tile center
+                y: stop.x + stop.y + 0.8, // slightly in front of tile center
                 draw: () => {
                     this.drawBusStop(ctx, camera, stop.x, stop.y, stop.direction === 'h');
                 },

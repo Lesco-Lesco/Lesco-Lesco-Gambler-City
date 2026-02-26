@@ -361,11 +361,11 @@ export class NPC {
                 }
             }
 
-            // AABB Collision Check (Realistic Asymmetric Bounds)
-            const padN = 0.2; // North check
-            const padW = 0.2; // West check
-            const padS = 0.4; // South check
-            const padE = 0.4; // East check
+            // AABB Collision Check (Realistic Asymmetric Bounds) - Tight front, safe back
+            const padN = 0.05;
+            const padW = 0.05;
+            const padS = 0.45;
+            const padE = 0.45;
 
             const canWalkNPC = (cx: number, cy: number) => {
                 // Check all 4 corners with asymmetric padding

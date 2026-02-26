@@ -99,12 +99,12 @@ export class Player {
         const nextX = this.x + dx * currentSpeed * dt;
         const nextY = this.y + dy * currentSpeed * dt;
 
-        // North/West (Front faces in this iso view) = 0.2 distance
-        // South/East (Back faces) = 0.4 distance
-        const padN = 0.2; // Front-Left face
-        const padW = 0.2; // Front-Right face
-        const padS = 0.4; // Back-Right face
-        const padE = 0.4; // Back-Left face
+        // North/West (Front faces) = tight padding for maximum proximity
+        // South/East (Back faces) = larger padding to prevent clipping behind building walls
+        const padN = 0.05;
+        const padW = 0.05;
+        const padS = 0.45;
+        const padE = 0.45;
 
         const canWalk = (cx: number, cy: number) => {
             return tileMap.isWalkable(cx - padW, cy - padN) &&
