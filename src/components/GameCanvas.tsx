@@ -36,13 +36,13 @@ const GameCanvas = () => {
             setSplashFade(true); // Ensure visible immediately
             setShowSplash(true);
 
-            // Show for 2.0s
-            await new Promise(r => setTimeout(r, 2000));
+            // Show for 1.0s
+            await new Promise(r => setTimeout(r, 1000));
 
             setSplashFade(false); // Start fade out
             setTimeout(() => {
                 if (isMounted) setShowSplash(false);
-            }, 700); // More breathing room for mobile (transition is 0.6s)
+            }, 400); // Sharp fade out matching CSS (0.3s)
         };
 
         const init = async () => {

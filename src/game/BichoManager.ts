@@ -81,22 +81,27 @@ export class BichoManager {
 
                 const result = this.bicho.getResult();
                 const animalName = JogoDoBicho.ANIMALS[bet.animal].name;
-                const winnerName = JogoDoBicho.ANIMALS[result.winningAnimal].name;
-                const winnerEmoji = JogoDoBicho.ANIMALS[result.winningAnimal].emoji;
 
-                const betGroup = Math.floor(bet.animal / 5);
-                const winningGroup = Math.floor(result.winningAnimal / 5);
-
-                if (bet.animal === result.winningAnimal) {
-                    const payout = bet.amount * GameConfig.BICHO_EXACT_MATCH_MULTIPLIER;
-                    economy.addMoney(payout);
-                    this.addNotification(`+R$${payout}! DEU ${winnerEmoji} ${winnerName.toUpperCase()}!`, 5);
-                } else if (betGroup === winningGroup) {
-                    const payout = GameConfig.BICHO_GROUP_MATCH_PAYOUT;
-                    economy.addMoney(payout);
-                    this.addNotification(`+R$${payout}! Quase! Acertou o GRUPO do ${winnerName}!`, 4);
+                if (result.winningAnimal === -1) {
+                    this.addNotification(`A banca ganhou tudo! Nenhum bicho sorteado.`, 5);
                 } else {
-                    this.addNotification(`Deu ${winnerEmoji} ${winnerName}. Seu ${animalName} perdeu.`, 4);
+                    const winnerName = JogoDoBicho.ANIMALS[result.winningAnimal].name;
+                    const winnerEmoji = JogoDoBicho.ANIMALS[result.winningAnimal].emoji;
+
+                    const betGroup = Math.floor(bet.animal / 5);
+                    const winningGroup = Math.floor(result.winningAnimal / 5);
+
+                    if (bet.animal === result.winningAnimal) {
+                        const payout = bet.amount * GameConfig.BICHO_EXACT_MATCH_MULTIPLIER;
+                        economy.addMoney(payout);
+                        this.addNotification(`+R$${payout}! DEU ${winnerEmoji} ${winnerName.toUpperCase()}!`, 5);
+                    } else if (betGroup === winningGroup) {
+                        const payout = GameConfig.BICHO_GROUP_MATCH_PAYOUT;
+                        economy.addMoney(payout);
+                        this.addNotification(`+R$${payout}! Ganhou prêmio no GRUPO do ${winnerName}!`, 4);
+                    } else {
+                        this.addNotification(`Deu ${winnerEmoji} ${winnerName}. Seu ${animalName} perdeu.`, 4);
+                    }
                 }
 
                 this.bicho.newRound();

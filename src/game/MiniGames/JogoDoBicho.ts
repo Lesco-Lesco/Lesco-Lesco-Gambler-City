@@ -61,12 +61,19 @@ export class JogoDoBicho {
 
         // Pseudo-random based on seed
         const hash = Math.sin(this.seed * 12.9898 + 78.233) * 43758.5453;
-        const winningAnimal = Math.floor((hash - Math.floor(hash)) * 25);
-        const animal = JogoDoBicho.ANIMALS[winningAnimal];
+        const normalized = (hash - Math.floor(hash));
+
+        // 15% House Edge (no winner)
+        let winningAnimal = -1;
+        if (normalized > 0.15) {
+            winningAnimal = Math.floor(((normalized - 0.15) / 0.85) * 25);
+        }
+
+        const animal = winningAnimal >= 0 ? JogoDoBicho.ANIMALS[winningAnimal] : null;
 
         this.lastResult = {
             winningAnimal,
-            numbers: animal.numbers,
+            numbers: animal ? animal.numbers : [],
             timestamp: Date.now(),
         };
 
