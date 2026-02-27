@@ -180,8 +180,24 @@ export class NPCManager {
     }
 
     public update(dt: number, playerX: number, playerY: number, tileMap: TileMap) {
-        for (const npc of this.npcs) {
-            npc.update(dt, playerX, playerY, tileMap);
+        // Optimization: LOD (Level of Detail) Update System
+        // Update physics and logic fully for nearby NPCs, 
+        // but throttle updates for those far away to save CPU.
+        for (let i = 0; i < this.npcs.length; i++) {
+            const npc = this.npcs[i];
+
+            const dx = npc.x - playerX;
+            const dy = npc.y - playerY;
+            const distSq = dx * dx + dy * dy;
+
+            // Full update for anyone within 15 tiles
+            if (distSq < 225) {
+                npc.update(dt, playerX, playerY, tileMap);
+            }
+            // Budget update for far NPCs: once every 10 frames
+            else if ((i + Math.floor(Date.now() / 16)) % 10 === 0) {
+                npc.update(dt * 10, playerX, playerY, tileMap);
+            }
         }
     }
 

@@ -442,8 +442,10 @@ export class NPC {
         }
 
         // --- PLAYER INTERACTION ---
-        const distToPlayer = Math.sqrt((this.x - playerX) ** 2 + (this.y - playerY) ** 2);
-        this.isPlayerNearby = distToPlayer < 2.0;
+        const dx = this.x - playerX;
+        const dy = this.y - playerY;
+        const distSqToPlayer = dx * dx + dy * dy;
+        this.isPlayerNearby = distSqToPlayer < 4.0; // 2.0 squared
 
         if (this.isPlayerNearby && !this.showDialogue) {
             this.showDialogue = true;

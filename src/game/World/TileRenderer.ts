@@ -15,6 +15,13 @@ function seededRandom(x: number, y: number): number {
     return n - Math.floor(n);
 }
 
+// Optimization: Hoisted helpers to avoid re-definition in loops
+const isRoadType = (t: number) => t === TILE_TYPES.STREET || t === TILE_TYPES.ALLEY;
+const isSolidType = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL ||
+    t === TILE_TYPES.SHOPPING || t === TILE_TYPES.WALL ||
+    t === TILE_TYPES.CHURCH || t === TILE_TYPES.GRASS;
+const isRes = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL;
+
 export class TileRenderer {
     /**
      * PASS 1: Render only ground tiles (flat surfaces).
@@ -75,20 +82,10 @@ export class TileRenderer {
                     const z = camera.zoom;
                     const isAlley = tile === TILE_TYPES.ALLEY;
 
-                    // Inline road neighbor check (avoids function call overhead per tile)
-                    const getRoadType = (tx: number, ty: number): number => {
-                        if (tx < 0 || ty < 0 || tx >= mapW || ty >= mapH) return -1;
-                        return data[ty][tx];
-                    };
-                    const isRoadType = (t: number) => t === TILE_TYPES.STREET || t === TILE_TYPES.ALLEY;
-                    const isSolidType = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL ||
-                        t === TILE_TYPES.SHOPPING || t === TILE_TYPES.WALL ||
-                        t === TILE_TYPES.CHURCH || t === TILE_TYPES.GRASS;
-
-                    const tN = getRoadType(x, y - 1);
-                    const tS = getRoadType(x, y + 1);
-                    const tE = getRoadType(x + 1, y);
-                    const tW = getRoadType(x - 1, y);
+                    const tN = (y > 0) ? data[y - 1][x] : -1;
+                    const tS = (y < mapH - 1) ? data[y + 1][x] : -1;
+                    const tE = (x < mapW - 1) ? data[y][x + 1] : -1;
+                    const tW = (x > 0) ? data[y][x - 1] : -1;
 
                     const nRoad = isRoadType(tN), sRoad = isRoadType(tS);
                     const eRoad = isRoadType(tE), wRoad = isRoadType(tW);
@@ -118,12 +115,13 @@ export class TileRenderer {
                     //   ptLeft→ptTop   ↔  W neighbor (x-1, y)
                     const sw = isAlley ? '#5e5e64' : '#7a7a82';
                     const si = isAlley ? 0.34 : 0.24;        // sidewalk inset fraction
-                    const isRes = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL;
 
                     // North edge: faces neighbor tN (x, y-1)
                     let drawN = !nRoad && isSolidType(tN);
                     if (!drawN && !nRoad) {
-                        const hasResN = (eRoad && isRes(getRoadType(x + 1, y - 1))) || (wRoad && isRes(getRoadType(x - 1, y - 1)));
+                        const tNE = (y > 0 && x < mapW - 1) ? data[y - 1][x + 1] : -1;
+                        const tNW = (y > 0 && x > 0) ? data[y - 1][x - 1] : -1;
+                        const hasResN = (eRoad && isRes(tNE)) || (wRoad && isRes(tNW));
                         if (hasResN && seededRandom(x, y * 7) < 0.6) drawN = true;
                     }
                     if (drawN) {
@@ -139,7 +137,9 @@ export class TileRenderer {
                     // East edge: faces neighbor tE (x+1, y)
                     let drawE = !eRoad && isSolidType(tE);
                     if (!drawE && !eRoad) {
-                        const hasResE = (nRoad && isRes(getRoadType(x + 1, y - 1))) || (sRoad && isRes(getRoadType(x + 1, y + 1)));
+                        const tEN = (y > 0 && x < mapW - 1) ? data[y - 1][x + 1] : -1;
+                        const tES = (y < mapH - 1 && x < mapW - 1) ? data[y + 1][x + 1] : -1;
+                        const hasResE = (nRoad && isRes(tEN)) || (sRoad && isRes(tES));
                         if (hasResE && seededRandom(100 + x, y * 3) < 0.6) drawE = true;
                     }
                     if (drawE) {
@@ -155,7 +155,9 @@ export class TileRenderer {
                     // South edge: faces neighbor tS (x, y+1)
                     let drawS = !sRoad && isSolidType(tS);
                     if (!drawS && !sRoad) {
-                        const hasResS = (eRoad && isRes(getRoadType(x + 1, y + 1))) || (wRoad && isRes(getRoadType(x - 1, y + 1)));
+                        const tSE = (y < mapH - 1 && x < mapW - 1) ? data[y + 1][x + 1] : -1;
+                        const tSW = (y < mapH - 1 && x > 0) ? data[y + 1][x - 1] : -1;
+                        const hasResS = (eRoad && isRes(tSE)) || (wRoad && isRes(tSW));
                         if (hasResS && seededRandom(200 + x, y * 5) < 0.6) drawS = true;
                     }
                     if (drawS) {
@@ -171,7 +173,9 @@ export class TileRenderer {
                     // West edge: faces neighbor tW (x-1, y)
                     let drawW = !wRoad && isSolidType(tW);
                     if (!drawW && !wRoad) {
-                        const hasResW = (nRoad && isRes(getRoadType(x - 1, y - 1))) || (sRoad && isRes(getRoadType(x - 1, y + 1)));
+                        const tWN = (y > 0 && x > 0) ? data[y - 1][x - 1] : -1;
+                        const tWS = (y < mapH - 1 && x > 0) ? data[y + 1][x - 1] : -1;
+                        const hasResW = (nRoad && isRes(tWN)) || (sRoad && isRes(tWS));
                         if (hasResW && seededRandom(300 + x, y * 11) < 0.6) drawW = true;
                     }
                     if (drawW) {
