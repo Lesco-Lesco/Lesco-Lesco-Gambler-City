@@ -56,6 +56,12 @@ export class Camera {
         this.zoom += (this.targetZoom - this.zoom) * lerp;
     }
 
+    /** Immediately snap to a target world position */
+    public snapTo(targetWX: number, targetWY: number) {
+        this.x = (targetWX - targetWY) * (TILE_WIDTH / 2);
+        this.y = (targetWX + targetWY) * (TILE_HEIGHT / 2);
+    }
+
     public shake(intensity: number, duration: number) {
         this.shakeIntensity = intensity;
         this.shakeDuration = duration;

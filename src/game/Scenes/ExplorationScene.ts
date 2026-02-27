@@ -19,6 +19,7 @@ import { NPCManager } from '../Entities/NPCManager';
 import { HouseDialogueManager } from '../Entities/HouseDialogueManager';
 import { BichoManager } from '../BichoManager';
 import { HUD } from '../UI/HUD';
+import { NewspaperUI } from '../UI/NewspaperUI';
 import { PurrinhaGame } from '../MiniGames/PurrinhaGame';
 import { PurrinhaUI } from '../MiniGames/PurrinhaUI';
 import { DiceGame } from '../MiniGames/DiceGame';
@@ -53,6 +54,7 @@ export class ExplorationScene implements Scene {
     public player: Player;
     private npcManager: NPCManager;
     private houseDialogue: HouseDialogueManager;
+    private newspaper: NewspaperUI;
 
     // Minigames
     private purrinhaUI: PurrinhaUI | null = null;
@@ -119,6 +121,7 @@ export class ExplorationScene implements Scene {
         this.lighting.resize(screenW, screenH);
         this.lighting.addLight(this.playerLight);
         this.hud = new HUD();
+        this.newspaper = new NewspaperUI();
 
         // Minigames
         this.diceGame = new DiceGame();
@@ -135,6 +138,9 @@ export class ExplorationScene implements Scene {
             this.camera.targetZoom = 2.0;
             this.zoomStageIndex = 3; // aponta para zoomStages[3] = 2.0
         }
+
+        // Snap camera to player initially to avoid "running camera" effect
+        this.camera.snapTo(this.player.x, this.player.y);
     }
 
     public resize(w: number, h: number) {
@@ -164,6 +170,13 @@ export class ExplorationScene implements Scene {
         const bmanager = BichoManager.getInstance();
         const pm = PoliceManager.getInstance();
         const isIllegal = this.activeMinigame !== 'none' && this.activeMinigame !== 'domino';
+
+        // 0. Newspaper Blocking
+        if (this.newspaper.isVisible()) {
+            this.newspaper.update(dt, this.input);
+            return;
+        }
+
         pm.update(dt, this.player.x, this.player.y, bmanager.playerMoney, isIllegal);
 
         // High Risk Warning logic
@@ -632,6 +645,11 @@ export class ExplorationScene implements Scene {
         }
 
         this.renderPoliceOverlay(ctx);
+
+        // 8. Newspaper (Final Overlay)
+        if (this.newspaper.isVisible()) {
+            this.newspaper.render(ctx, this.screenW, this.screenH);
+        }
     }
 
     private renderPoliceOverlay(ctx: CanvasRenderingContext2D) {

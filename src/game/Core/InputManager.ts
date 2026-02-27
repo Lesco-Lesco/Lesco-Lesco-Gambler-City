@@ -71,6 +71,10 @@ export class InputManager {
         this.justReleased.clear();
     }
 
+    public anyKeyPressed(): boolean {
+        return this.justPressed.size > 0 || this.mouseDown;
+    }
+
     public isDown(code: string): boolean {
         return this.keys.get(code) === true;
     }
