@@ -64,7 +64,8 @@ export class TileRenderer {
 
                 // 1. Buildings/Walls — Simple sidewalk base (no heavy border strips)
                 if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL ||
-                    tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.WALL) {
+                    tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.WALL ||
+                    tile === TILE_TYPES.DECORATIVE_ENTRANCE) {
                     // Use same color for stroke as base to remove the 'grid' look
                     renderer.drawIsoTile(camera, x, y, '#888890', '#888890');
                     continue;
@@ -293,11 +294,6 @@ export class TileRenderer {
                 // Entrance glow
                 if (tile === TILE_TYPES.ENTRANCE) {
                     this.drawEntrance(ctx, camera, x, y);
-                }
-
-                // Decorative Entrance
-                if (tile === TILE_TYPES.DECORATIVE_ENTRANCE) {
-                    this.drawDecorativeEntrance(ctx, camera, x, y);
                 }
 
                 // Fence (drawn on ground pass since it's low)
@@ -564,6 +560,13 @@ export class TileRenderer {
                             // Windows on Top
                             this.drawWindows(renderer, camera, tileX, tileY, h2, rand, TILE_TYPES.SHOPPING, h1, 0.75);
                         },
+                    });
+                } else if (tile === TILE_TYPES.DECORATIVE_ENTRANCE) {
+                    drawables.push({
+                        y: tileX + tileY + 0.8, // slightly in front of tile center
+                        draw: () => {
+                            this.drawDecorativeEntrance(ctx, camera, tileX, tileY);
+                        }
                     });
                 } else if (tile === TILE_TYPES.BENCH) {
                     drawables.push({
@@ -1038,46 +1041,267 @@ export class TileRenderer {
     private drawDecorativeEntrance(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
-        const s = (val: number) => val * z;
+
 
         ctx.save();
 
         const isShopping = tileX < 150; // Shopping is at ~130, Station ~242
 
         if (isShopping) {
-            // Modern Glass Entrance for Shopping
-            ctx.fillStyle = 'rgba(100, 200, 255, 0.2)';
-            ctx.fillRect(sx - s(8), sy - s(16), s(16), s(16));
+            // Isometric Glass Entrance (Left Face Protruding)
+            const hw = 24 * z; // half-width of a tile (wider)
+            const hh = 12 * z; // half-height of a tile (wider)
+            const dh = 24 * z; // door height (taller)
 
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = s(1.5);
-            ctx.strokeRect(sx - s(8), sy - s(16), s(16), s(16));
+            // Calculate the position so it's flush against the shopping's wall
+            // The shopping's wall starts behind the entrance tile.
+            // Move it slightly north-east to glue it to the wall
+            const px = sx + hw * 0.1;
+            const py = sy - hh * 0.1;
 
-            // Neon strips
+            // Geometry of the Protruding Box
+            // Left Face (Faces the street)
+            const lf_p1 = { x: px - hw, y: py };
+            const lf_p2 = { x: px, y: py + hh };
+            const lf_p3 = { x: px, y: py + hh - dh };
+            const lf_p4 = { x: px - hw, y: py - dh };
+
+            // Right Face of the protrusion (Connects back to wall)
+            const rf_p1 = { x: px, y: py + hh };
+            const rf_p2 = { x: sx, y: sy + hh };
+            const rf_p3 = { x: sx, y: sy + hh - dh };
+            const rf_p4 = { x: px, y: py + hh - dh };
+
+            // Roof of the protrusion (Awning)
+            const top_p1 = { x: px - hw, y: py - dh };
+            const top_p2 = { x: px, y: py + hh - dh };
+            const top_p3 = { x: sx, y: sy + hh - dh };
+            const top_p4 = { x: sx - hw, y: sy - dh };
+
+            // --- DRAW RIGHT FACE ---
+            ctx.fillStyle = 'rgba(80, 180, 220, 0.4)';
             ctx.beginPath();
-            ctx.moveTo(sx - s(4), sy - s(16));
-            ctx.lineTo(sx - s(4), sy);
-            ctx.moveTo(sx + s(4), sy - s(16));
-            ctx.lineTo(sx + s(4), sy);
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-            ctx.stroke();
-        } else {
-            // Classic Stone Arch for Station
-            ctx.fillStyle = '#8a8a8a';
-            // Pillars
-            ctx.fillRect(sx - s(10), sy - s(20), s(4), s(20));
-            ctx.fillRect(sx + s(6), sy - s(20), s(4), s(20));
-
-            // Arch
-            ctx.beginPath();
-            ctx.arc(sx, sy - s(20), s(10), Math.PI, 0);
-            ctx.lineTo(sx + s(10), sy - s(10));
-            ctx.lineTo(sx - s(10), sy - s(10));
+            ctx.moveTo(rf_p1.x, rf_p1.y);
+            ctx.lineTo(rf_p2.x, rf_p2.y);
+            ctx.lineTo(rf_p3.x, rf_p3.y);
+            ctx.lineTo(rf_p4.x, rf_p4.y);
             ctx.closePath();
             ctx.fill();
 
+            ctx.strokeStyle = '#00cccc';
+            ctx.lineWidth = 1 * z;
+            ctx.stroke();
+
+            // --- DRAW LEFT FACE (The Main Glass Doors) ---
+            ctx.fillStyle = 'rgba(120, 230, 255, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(lf_p1.x, lf_p1.y);
+            ctx.lineTo(lf_p2.x, lf_p2.y);
+            ctx.lineTo(lf_p3.x, lf_p3.y);
+            ctx.lineTo(lf_p4.x, lf_p4.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 1.5 * z;
+            ctx.stroke();
+
+            // Glass Dividers on Left Face
+            ctx.beginPath();
+            ctx.moveTo(px - hw * 0.33, py + hh * 0.33);
+            ctx.lineTo(px - hw * 0.33, py + hh * 0.33 - dh);
+            ctx.moveTo(px - hw * 0.67, py + hh * 0.67);
+            ctx.lineTo(px - hw * 0.67, py + hh * 0.67 - dh);
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+            ctx.lineWidth = 1 * z;
+            ctx.stroke();
+
+            // --- DRAW ROOF / AWNING ---
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.moveTo(top_p1.x, top_p1.y);
+            ctx.lineTo(top_p2.x, top_p2.y);
+            ctx.lineTo(top_p3.x, top_p3.y);
+            ctx.lineTo(top_p4.x, top_p4.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1 * z;
+            ctx.stroke();
+
+            // --- DECORATIVE MARQUEE ON AWNING'S LEFT EDGE ---
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.moveTo(top_p1.x, top_p1.y);
+            ctx.lineTo(top_p2.x, top_p2.y);
+            ctx.lineTo(top_p2.x, top_p2.y + 4 * z);
+            ctx.lineTo(top_p1.x, top_p1.y + 4 * z);
+            ctx.closePath();
+            ctx.fill();
+
+            // Twinkling lights on Marquee
+            const time = Date.now();
+            for (let i = 0; i < 5; i++) {
+                const frac = (i + 0.5) / 5;
+                const lx = top_p1.x + (top_p2.x - top_p1.x) * frac;
+                const ly = top_p1.y + (top_p2.y - top_p1.y) * frac + 2 * z;
+
+                const flicker = Math.sin(time / 150 + i * 0.8) > -0.2;
+                if (flicker) {
+                    ctx.fillStyle = i % 2 === 0 ? '#fff' : '#0ff';
+                    ctx.shadowBlur = 4 * z;
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.fillRect(lx - 0.5 * z, ly - 0.5 * z, 1.5 * z, 1.5 * z);
+                    ctx.shadowBlur = 0;
+                }
+            }
+        } else {
+            // Estação Santa Cruz - Classic Train Station Entrance Pavilion
+            const scale = 5;
+            const hFull = 38 * z * scale; // Imposing Main height
+            const hArch = 26 * z * scale;
+
+            // Geometry offsets
+            const hw = 16 * z * scale;
+            const hh = 8 * z * scale;
+
+            const px = sx;
+            const py = sy;
+
+            // Base Rectangle
+            const b_N = { x: px, y: py - hh };
+            const b_E = { x: px + hw, y: py };
+            const b_S = { x: px, y: py + hh };
+            const b_W = { x: px - hw, y: py };
+
+            const t_N = { x: b_N.x, y: b_N.y - hFull };
+            const t_E = { x: b_E.x, y: b_E.y - hFull };
+            const t_S = { x: b_S.x, y: b_S.y - hFull };
+            const t_W = { x: b_W.x, y: b_W.y - hFull };
+
+            // Colors for classic 19th-century railway architecture
+            const colorLeftFace = '#8a857a';
+            const colorRightFace = '#9c978b';
+            const colorArch = '#2a2824';
+            const colorTrim = '#d1cca8';
+            const colorRoof = '#3c4046';
+
+            // --- Right Face (+X, SE) ---
+            ctx.fillStyle = colorRightFace;
+            ctx.beginPath();
+            ctx.moveTo(b_E.x, b_E.y); ctx.lineTo(b_S.x, b_S.y); ctx.lineTo(t_S.x, t_S.y); ctx.lineTo(t_E.x, t_E.y);
+            ctx.closePath();
+            ctx.fill();
             ctx.strokeStyle = '#555';
-            ctx.lineWidth = s(1);
+            ctx.lineWidth = 1 * z * scale;
+            ctx.stroke();
+
+            // Right Face Archway
+            ctx.fillStyle = colorArch;
+            ctx.beginPath();
+            ctx.moveTo(px + hw * 0.15, py + hh * 0.15);
+            ctx.lineTo(px + hw * 0.85, py + hh * 0.85);
+            ctx.lineTo(px + hw * 0.85, py + hh * 0.85 - hArch);
+            ctx.lineTo(px + hw * 0.15, py + hh * 0.15 - hArch);
+            ctx.closePath();
+            ctx.fill();
+
+            // Arch trim Right
+            ctx.strokeStyle = colorTrim;
+            ctx.lineWidth = 1.8 * z * scale;
+            ctx.stroke();
+
+            // Internal Grid Right
+            ctx.beginPath();
+            ctx.moveTo(px + hw * 0.5, py + hh * 0.5); ctx.lineTo(px + hw * 0.5, py + hh * 0.5 - hArch);
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 1 * z * scale;
+            ctx.stroke();
+
+            // --- Left Face (+Y, SW) ---
+            ctx.fillStyle = colorLeftFace;
+            ctx.beginPath();
+            ctx.moveTo(b_W.x, b_W.y); ctx.lineTo(b_S.x, b_S.y); ctx.lineTo(t_S.x, t_S.y); ctx.lineTo(t_W.x, t_W.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1 * z * scale;
+            ctx.stroke();
+
+            // Left Face Archway (The Main Visual Entrance)
+            ctx.fillStyle = colorArch;
+            ctx.beginPath();
+            ctx.moveTo(px - hw * 0.15, py + hh * 0.15);
+            ctx.lineTo(px - hw * 0.85, py + hh * 0.85);
+            ctx.lineTo(px - hw * 0.85, py + hh * 0.85 - hArch);
+            ctx.lineTo(px - hw * 0.15, py + hh * 0.15 - hArch);
+            ctx.closePath();
+            ctx.fill();
+
+            // Arch trim Left
+            ctx.strokeStyle = colorTrim;
+            ctx.lineWidth = 1.8 * z * scale;
+            ctx.stroke();
+
+            // Internal Grid Left
+            ctx.beginPath();
+            ctx.moveTo(px - hw * 0.5, py + hh * 0.5); ctx.lineTo(px - hw * 0.5, py + hh * 0.5 - hArch);
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 1 * z * scale;
+            ctx.stroke();
+
+            // Warm Glow inside the arches
+            ctx.fillStyle = 'rgba(255, 200, 100, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(px - hw * 0.2, py + hh * 0.2);
+            ctx.lineTo(px - hw * 0.8, py + hh * 0.8);
+            ctx.lineTo(px - hw * 0.8, py + hh * 0.8 - hArch);
+            ctx.lineTo(px - hw * 0.2, py + hh * 0.2 - hArch);
+            ctx.closePath();
+            ctx.fill();
+
+            // --- Top Face (Roof) ---
+            ctx.fillStyle = colorRoof;
+            ctx.beginPath();
+            ctx.moveTo(t_N.x, t_N.y); ctx.lineTo(t_E.x, t_E.y); ctx.lineTo(t_S.x, t_S.y); ctx.lineTo(t_W.x, t_W.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#223';
+            ctx.lineWidth = 1 * z * scale;
+            ctx.stroke();
+
+            // Adding a small decorative dome/ridge on the roof
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.moveTo(t_N.x, t_N.y); ctx.lineTo(t_E.x - 4 * z * scale, t_E.y - 2 * z * scale);
+            ctx.lineTo(t_S.x, t_S.y - 4 * z * scale); ctx.lineTo(t_W.x + 4 * z * scale, t_W.y - 2 * z * scale);
+            ctx.closePath();
+            ctx.fill();
+
+            // --- Big Railway Station Clock on Left Face ---
+            const clockX = px - hw * 0.5;
+            const clockY = py + hh * 0.5 - hFull + 6 * z * scale; // Centered near the top
+            const clockR = 5 * z * scale;
+
+            // Outer Gold Frame
+            ctx.fillStyle = '#b89947';
+            ctx.beginPath();
+            ctx.ellipse(clockX, clockY, clockR * 0.7, clockR, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // White Face
+            ctx.fillStyle = '#fff9ef';
+            ctx.beginPath();
+            ctx.ellipse(clockX, clockY, clockR * 0.5, clockR * 0.8, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hands
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 0.8 * z * scale;
+            ctx.beginPath();
+            ctx.moveTo(clockX, clockY); ctx.lineTo(clockX - 1.2 * z * scale, clockY - 1.8 * z * scale);
+            ctx.moveTo(clockX, clockY); ctx.lineTo(clockX + 1.5 * z * scale, clockY - 0.7 * z * scale);
             ctx.stroke();
         }
 

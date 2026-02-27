@@ -550,7 +550,7 @@ function generateMap(): number[][] {
         }
     }
 
-    // Protect Shopping Center structure and main arteries after the mass carving
+    // --- FINAL PROTECTION & POLISH ---
     fill(117, 112, 143, 143, SH);
     for (let x = 0; x < MAP_WIDTH; x++) { set(x, fcY - 1, S); set(x, fcY + 1, S); }
     for (let y = 0; y < MAP_HEIGHT; y++) { set(blX, y, S); set(rfX, y, S); set(scX, y, S); }
@@ -561,13 +561,10 @@ function generateMap(): number[][] {
     fill(40, 240, 220, 241, S);
 
     // --- CRITICAL: CLEAR STATION CASINO ENTRANCE ---
-    // Ensure the area around the NEW hidden entrance (226, 175) is NEVER blocked
     fill(225, 176, 227, 178, W); // Clear path through fence (X=226)
     fill(225, 173, 227, 175, A); // Clearing small "alcove" for the entrance
-    set(226, 175, EN); // Restore entrance at the hidden spot
 
     // --- FINAL SCATTER PASS: "The Massive Leakage" ---
-    // ULTRA-HIGH DENSITY (4000 iterations) for 90% interconnectivity
     const isStreetOrSidewalk = (t: number) => t === S || t === W;
     for (let i = 0; i < 4000; i++) {
         const x = Math.floor(30 + Math.random() * (MAP_WIDTH - 60));
@@ -585,6 +582,15 @@ function generateMap(): number[][] {
             }
         }
     }
+
+    // --- CLEAR STATION ENTRANCE PLAZA ---
+    // Make sure the 5x larger entrance has plenty of space
+    fill(235, 149, 250, 161, PZ);
+
+    // Final specific placements (Aesthetic & Social) - MUST BE LAST TO AVOID OVERWRITE
+    set(130, 143, DE); // Shopping Santa Cruz Entrance facing Felipe Cardoso
+    set(242, 155, DE); // Estação Santa Cruz Entrance
+    set(226, 175, EN); // Hidden Station Casino Entrance
 
     return map;
 }
