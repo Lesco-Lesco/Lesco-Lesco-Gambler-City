@@ -42,6 +42,14 @@ const DIALOGUES = {
         ["Eles dizem que vão arrumar, mas nunca arrumam.", "Política é tudo igual."],
         ["Cuidado com a carteira, amigo.", "Tem muito malandro por aí."],
     ],
+    station_hints: [
+        ["Ouviu esse barulho de fichas? Não é o trem não...", "Tem gente ganhando o dia lá no subsolo."],
+        ["Cuidado com o 'all-in' ali perto dos trilhos.", "Vi um cara entrar com o terno e sair de bermuda hoje."],
+        ["O porão da estação tem mais história que os trilhos.", "Se o leão deixar você passar, a sorte te abraça."],
+        ["Escutei que o blackjack lá embaixo tá fervendo.", "As cartas giram mais rápido que os rodeiros do trem."],
+        ["Dizem que se você bater 3 vezes na viga certa, o 'Leão' aparece.", "Cuidado pra não apostar a passagem de volta."],
+        ["A sorte mora no subsolo hoje, doutor.", "Viu aquele brilho vindo do ralo? É ouro, ou quase isso."],
+    ],
     sarcastic: [
         ["Olha a roupa desse playboy...", "Achou que aqui era a Zona Sul?"],
         ["Tá perdido, doutor?", "O GPS não funciona na favela não."],
@@ -389,7 +397,7 @@ export class NPC {
                 }
             }
 
-            // AABB Collision Check (Realistic Asymmetric Bounds) - Tight front, safe back
+            // AABB Collision Check (Realistic Asymmetric Bounds)
             const padN = 0.05;
             const padW = 0.05;
             const padS = 0.45;

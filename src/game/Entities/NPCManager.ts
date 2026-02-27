@@ -108,10 +108,15 @@ export class NPCManager {
             const pmanager = PoliceManager.getInstance();
             let finalType: NPCType = type;
             if (type === 'citizen') {
-                const isPeriphery = pmanager.isPeriphery(x, y);
-                const policeChance = isPeriphery ? 0.25 : 0.05; // 25% in periphery, 5% in city
-                if (Math.random() < policeChance) {
-                    finalType = 'police';
+                const distToStation = Math.sqrt((x - 242) ** 2 + (y - 165) ** 2);
+                if (distToStation < 35 && Math.random() < 0.6) {
+                    finalType = 'station_hints' as any;
+                } else {
+                    const isPeriphery = pmanager.isPeriphery(x, y);
+                    const policeChance = isPeriphery ? 0.25 : 0.05; // 25% in periphery, 5% in city
+                    if (Math.random() < policeChance) {
+                        finalType = 'police';
+                    }
                 }
             }
 

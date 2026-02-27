@@ -12,6 +12,10 @@ import { BichoManager } from '../BichoManager';
 import { isMobile } from '../Core/MobileDetect';
 import { HUD } from '../UI/HUD';
 import { UIScale } from '../Core/UIScale';
+import { BlackjackGame } from '../MiniGames/BlackjackGame';
+import { BlackjackUI } from '../MiniGames/BlackjackUI';
+import { PokerGame } from '../MiniGames/PokerGame';
+import { PokerUI } from '../MiniGames/PokerUI';
 
 /** Objeto visual de uma máquina no cassino (slot ou bicho) */
 interface CasinoMachine {
@@ -22,16 +26,17 @@ interface CasinoMachine {
     color: string;
     glowColor: string;
     glowPhase: number;
-    type: 'slot' | 'bicho';
+    type: 'slot' | 'bicho' | 'blackjack' | 'poker';
     theme?: SlotTheme;
 }
 
 /** Estado da cena do cassino */
-type CasinoState = 'floor' | 'slot' | 'bicho';
+type CasinoState = 'floor' | 'slot' | 'bicho' | 'blackjack' | 'poker';
 
 export class CasinoScene implements Scene {
     public name = 'casino';
 
+    private type: 'shopping' | 'station';
     private screenW: number;
     private screenH: number;
     private input: InputManager;
@@ -43,6 +48,8 @@ export class CasinoScene implements Scene {
 
     // Mini-jogos
     private slotMachine: SlotMachine;
+    private blackjack: { game: BlackjackGame, ui: BlackjackUI } | null = null;
+    private poker: { game: PokerGame, ui: PokerUI } | null = null;
 
     // Dados compartilhados com ExplorationScene via BichoManager
     public gameHour: number = 20;
@@ -71,11 +78,20 @@ export class CasinoScene implements Scene {
     public onGameOver?: () => void;
     private hud: HUD = new HUD();
 
-    constructor(screenW: number, screenH: number) {
+    constructor(screenW: number, screenH: number, type: 'shopping' | 'station' = 'shopping') {
         this.screenW = screenW;
         this.screenH = screenH;
+        this.type = type;
         this.input = InputManager.getInstance();
         this.slotMachine = new SlotMachine();
+
+        if (this.type === 'station') {
+            const bjGame = new BlackjackGame();
+            this.blackjack = { game: bjGame, ui: new BlackjackUI(bjGame, () => this.state = 'floor') };
+            const pkGame = new PokerGame();
+            this.poker = { game: pkGame, ui: new PokerUI(pkGame, () => this.state = 'floor') };
+        }
+
         this.rebuildLayout();
     }
 
@@ -87,8 +103,18 @@ export class CasinoScene implements Scene {
         this.particles = [];
 
         const themes: SlotTheme[] = ['fruits', 'animals', 'shapes', 'food', 'ocean', 'space'];
-        const cols = 3; // 3 colunas em mobile e PC — evita superlotação
-        const totalItems = themes.length + 1; // 6 slots + 1 bicho
+
+        const items: ('slot' | 'bicho' | 'blackjack' | 'poker')[] = [];
+        if (this.type === 'shopping') {
+            themes.forEach(() => items.push('slot'));
+            items.push('bicho');
+        } else {
+            items.push('blackjack');
+            items.push('poker');
+        }
+
+        const cols = items.length <= 3 ? items.length : 3;
+        const totalItems = items.length;
         const rows = Math.ceil(totalItems / cols);
 
         // Máquina proporcional à tela
@@ -114,31 +140,36 @@ export class CasinoScene implements Scene {
                 const mX = startX + c * spacingX;
                 const mY = startY + r * spacingY;
 
-                if (idx < themes.length) {
+                if (items[idx] === 'slot') {
                     // Máquina caça-níquel
                     this.machines.push({
                         x: mX, y: mY,
                         width: machineW, height: machineH,
-                        // Cores vivas e saturadas — legíveis em qualquer monitor
                         color: `hsl(${(idx * 60) % 360}, 70%, 28%)`,
                         glowColor: ['#ff66cc', '#ffdd00', '#00ccff', '#ff6600', '#66ffcc', '#cc66ff'][idx] || '#ff66cc',
                         glowPhase: (idx / totalItems) * Math.PI * 2,
                         type: 'slot',
                         theme: themes[idx]
                     });
-                } else {
-                    // Banca do Jogo do Bicho — ligeiramente maior
+                } else if (items[idx] === 'bicho') {
                     const extraW = machineW * 0.15;
                     const extraH = machineH * 0.15;
                     this.machines.push({
-                        x: mX - extraW / 2,
-                        y: mY - extraH / 2,
-                        width: machineW + extraW,
-                        height: machineH + extraH,
-                        color: '#0d3d18',   // verde escuro mas visível
-                        glowColor: '#44ff88',
-                        glowPhase: 0,
-                        type: 'bicho'
+                        x: mX - extraW / 2, y: mY - extraH / 2,
+                        width: machineW + extraW, height: machineH + extraH,
+                        color: '#0d3d18', glowColor: '#44ff88', glowPhase: 0, type: 'bicho'
+                    });
+                } else if (items[idx] === 'blackjack') {
+                    this.machines.push({
+                        x: mX, y: mY,
+                        width: machineW * 1.8, height: machineH,
+                        color: '#1a4a1a', glowColor: '#daa520', glowPhase: 0, type: 'blackjack'
+                    });
+                } else if (items[idx] === 'poker') {
+                    this.machines.push({
+                        x: mX, y: mY,
+                        width: machineW * 1.8, height: machineH,
+                        color: '#0a3a0a', glowColor: '#ffee44', glowPhase: 0, type: 'poker'
                     });
                 }
             }
@@ -202,6 +233,10 @@ export class CasinoScene implements Scene {
             this.updateSlot(dt);
         } else if (this.state === 'bicho') {
             this.updateBicho();
+        } else if (this.state === 'blackjack' && this.blackjack) {
+            this.blackjack.ui.update(dt);
+        } else if (this.state === 'poker' && this.poker) {
+            this.poker.ui.update(dt);
         }
 
         if (this.input.wasPressed('Escape') && this.state === 'floor') {
@@ -259,6 +294,10 @@ export class CasinoScene implements Scene {
             if (m.type === 'bicho') {
                 this.state = 'bicho';
                 this.bichoMessage = '';
+            } else if (m.type === 'blackjack') {
+                this.state = 'blackjack';
+            } else if (m.type === 'poker') {
+                this.state = 'poker';
             } else {
                 this.state = 'slot';
                 this.slotResult = null;
@@ -362,17 +401,24 @@ export class CasinoScene implements Scene {
             this.renderSlotUI(ctx);
         } else if (this.state === 'bicho') {
             this.renderBichoUI(ctx);
+        } else if (this.state === 'blackjack' && this.blackjack) {
+            this.blackjack.ui.render(ctx, this.screenW, this.screenH);
+        } else if (this.state === 'poker' && this.poker) {
+            this.poker.ui.render(ctx, this.screenW, this.screenH);
         }
 
         // Partículas de vitória
         this.renderParticles(ctx);
 
-        // ── HUD: dinheiro (canto superior esquerdo) ──
+        // ── HUD: dinheiro e notificações ──
+        // Renderizado por último para estar sempre sobre os mini-jogos
         const bmanager = BichoManager.getInstance();
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `${UIScale.r(14)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'left';
-        ctx.fillText(`R$ ${bmanager.playerMoney}`, s(16), s(28));
+        this.hud.render(
+            ctx, this.screenW, this.screenH,
+            bmanager.playerMoney,
+            -1, -1, -1, // Hide stamina/fps in casino
+            null
+        );
 
         // Notificações globais
         this.hud.renderNotifications(ctx, this.screenW, bmanager.getNotifications());
@@ -475,7 +521,8 @@ export class CasinoScene implements Scene {
         ctx.fillStyle = '#ee99ff';
         ctx.font = `bold ${UIScale.r(mobile ? 14 : 20)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText('CASSINO CLANDESTINO', cx, s(mobile ? 36 : 48));
+        const title = this.type === 'station' ? 'CASSINO DA ESTAÇÃO' : 'CASSINO CLANDESTINO';
+        ctx.fillText(title, cx, s(mobile ? 36 : 48));
         ctx.shadowBlur = 0;
 
         // Máquinas
@@ -487,8 +534,20 @@ export class CasinoScene implements Scene {
             // Gradiente vertical para dar volume à máquina
             const bodyGrad = ctx.createLinearGradient(m.x, m.y, m.x, m.y + m.height);
             bodyGrad.addColorStop(0, m.color);
-            bodyGrad.addColorStop(1, m.type === 'bicho' ? '#061806' : `hsl(${parseInt(m.color.slice(4, 6) || '0')}, 50%, 12%)`);
-            ctx.fillStyle = m.color;  // solido sem gradiente para evitar bugs de parse hsl
+
+            let bottomColor = '#000';
+            if (m.type === 'bicho') {
+                bottomColor = '#061806';
+            } else if (m.type === 'slot') {
+                const hueMatch = m.color.match(/\d+/);
+                const hue = hueMatch ? hueMatch[0] : '0';
+                bottomColor = `hsl(${hue}, 50%, 12%)`;
+            } else {
+                bottomColor = 'rgba(0,0,0,0.5)';
+            }
+            bodyGrad.addColorStop(1, bottomColor);
+
+            ctx.fillStyle = bodyGrad;
             ctx.shadowBlur = isSelected ? s(24) : s(6) + glowPulse * s(8);
             ctx.shadowColor = m.glowColor;
             ctx.fillRect(m.x, m.y, m.width, m.height);
@@ -564,6 +623,30 @@ export class CasinoScene implements Scene {
                 ctx.fillText(m.theme?.toUpperCase() || '', m.x + m.width / 2, m.y + m.height - s(8));
                 ctx.shadowBlur = 0;
 
+            } else if (m.type === 'blackjack') {
+                // Mesa de Blackjack
+                ctx.fillStyle = '#1a4a1a';
+                ctx.fillRect(m.x, m.y, m.width, m.height);
+                ctx.strokeStyle = m.glowColor;
+                ctx.strokeRect(m.x, m.y, m.width, m.height);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P"`;
+                ctx.fillText('BLACKJACK', m.x + m.width / 2, m.y + s(30));
+                ctx.font = `32px Arial`;
+                ctx.fillText('🃏', m.x + m.width / 2, m.y + m.height * 0.7);
+            } else if (m.type === 'poker') {
+                // Mesa de Poker
+                ctx.fillStyle = '#0a3a0a';
+                ctx.fillRect(m.x, m.y, m.width, m.height);
+                ctx.strokeStyle = m.glowColor;
+                ctx.strokeRect(m.x, m.y, m.width, m.height);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${UIScale.r(10)}px "Press Start 2P"`;
+                ctx.fillText('TEXAS HOLDEM', m.x + m.width / 2, m.y + s(30));
+                ctx.font = `32px Arial`;
+                ctx.fillText('🎴', m.x + m.width / 2, m.y + m.height * 0.7);
             } else {
                 // ── Banca do Bicho ──
                 ctx.shadowBlur = s(10);

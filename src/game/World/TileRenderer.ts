@@ -291,6 +291,11 @@ export class TileRenderer {
                     this.drawEntrance(ctx, camera, x, y);
                 }
 
+                // Decorative Entrance
+                if (tile === TILE_TYPES.DECORATIVE_ENTRANCE) {
+                    this.drawDecorativeEntrance(ctx, camera, x, y);
+                }
+
                 // Fence (drawn on ground pass since it's low)
                 if (tile === TILE_TYPES.FENCE) {
                     this.drawFence(ctx, camera, x, y);
@@ -852,6 +857,7 @@ export class TileRenderer {
         const ctx = renderer.getContext();
         const { sx, sy: baseSy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
+        const s = (val: number) => val * z;
         const sy = baseSy - elevation * z; // Adjust sy based on elevation
         const h = blockHeight * z;
         const time = Date.now();
@@ -907,9 +913,12 @@ export class TileRenderer {
                         // Lower flicker for real immersion
                         const flickerAlpha = alpha * (0.9 + Math.sin(time / 800 + unique) * 0.05);
 
+                        // --- OPTIMIZED GLOW (No shadowBlur) ---
+                        // Simulated glow using a larger semi-transparent rect
+                        ctx.fillStyle = `${baseColor}, ${flickerAlpha * 0.35})`;
+                        ctx.fillRect(wx - s(1.5), wy - s(1.5), winW + s(3), winH + s(3));
+
                         ctx.fillStyle = `${baseColor}, ${flickerAlpha * 0.95})`;
-                        ctx.shadowBlur = 8 * z;
-                        ctx.shadowColor = isCool ? 'rgba(150, 200, 255, 0.3)' : 'rgba(255, 200, 50, 0.4)';
                         ctx.fillRect(wx, wy, winW, winH);
 
                         // Subtle window detail: silhoutte or curtain (stable)
@@ -991,9 +1000,9 @@ export class TileRenderer {
 
         // Layered bloom for richness
         const bloomSize = 12 * z * flicker;
+        // Optimized: Simplified gradient with fewer stops
         const bloomGrad = ctx.createRadialGradient(lx, ly, 0, lx, ly, bloomSize);
-        bloomGrad.addColorStop(0, 'rgba(255, 240, 200, 0.9)');
-        bloomGrad.addColorStop(0.4, 'rgba(255, 200, 50, 0.3)');
+        bloomGrad.addColorStop(0, 'rgba(255, 240, 200, 0.6)');
         bloomGrad.addColorStop(1, 'rgba(255, 200, 50, 0)');
 
         ctx.fillStyle = bloomGrad;
@@ -1018,6 +1027,56 @@ export class TileRenderer {
         ctx.strokeRect(sx - 5 * z, sy - 10 * z, 10 * z, 10 * z);
         ctx.fillStyle = 'rgba(80, 160, 255, 0.15)';
         ctx.fillRect(sx - 5 * z, sy - 10 * z, 10 * z, 10 * z);
+        ctx.restore();
+    }
+
+    /** Draw aesthetic (non-functional) entrance */
+    private drawDecorativeEntrance(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const s = (val: number) => val * z;
+
+        ctx.save();
+
+        const isShopping = tileX < 150; // Shopping is at ~130, Station ~242
+
+        if (isShopping) {
+            // Modern Glass Entrance for Shopping
+            ctx.fillStyle = 'rgba(100, 200, 255, 0.2)';
+            ctx.fillRect(sx - s(8), sy - s(16), s(16), s(16));
+
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = s(1.5);
+            ctx.strokeRect(sx - s(8), sy - s(16), s(16), s(16));
+
+            // Neon strips
+            ctx.beginPath();
+            ctx.moveTo(sx - s(4), sy - s(16));
+            ctx.lineTo(sx - s(4), sy);
+            ctx.moveTo(sx + s(4), sy - s(16));
+            ctx.lineTo(sx + s(4), sy);
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+            ctx.stroke();
+        } else {
+            // Classic Stone Arch for Station
+            ctx.fillStyle = '#8a8a8a';
+            // Pillars
+            ctx.fillRect(sx - s(10), sy - s(20), s(4), s(20));
+            ctx.fillRect(sx + s(6), sy - s(20), s(4), s(20));
+
+            // Arch
+            ctx.beginPath();
+            ctx.arc(sx, sy - s(20), s(10), Math.PI, 0);
+            ctx.lineTo(sx + s(10), sy - s(10));
+            ctx.lineTo(sx - s(10), sy - s(10));
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = s(1);
+            ctx.stroke();
+        }
+
         ctx.restore();
     }
 
@@ -1072,7 +1131,7 @@ export class TileRenderer {
 
             if (sx < -100 || sx > ctx.canvas.width + 100 || sy < -100 || sy > ctx.canvas.height + 100) continue;
 
-            const fontSize = 6.5 * z;
+            const fontSize = 7.5 * z;
             ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
             const textWidth = ctx.measureText(sign.name).width;
             const signH = 10 * z;
@@ -1085,12 +1144,12 @@ export class TileRenderer {
 
             // Sign plate background (Green)
             ctx.fillStyle = '#0a5a1a';
-            ctx.fillRect(signX - 3 * z, signY, textWidth + 6 * z, signH);
+            ctx.fillRect(signX - 2 * z, signY, textWidth + 4 * z, signH);
 
             // White border
             ctx.strokeStyle = '#eee';
             ctx.lineWidth = 1 * z;
-            ctx.strokeRect(signX - 3 * z, signY, textWidth + 6 * z, signH);
+            ctx.strokeRect(signX - 2 * z, signY, textWidth + 4 * z, signH);
 
             // Text
             ctx.fillStyle = '#ffffff';
@@ -1107,7 +1166,7 @@ export class TileRenderer {
             if (sx < -200 || sx > ctx.canvas.width + 200 || sy < -200 || sy > ctx.canvas.height + 200) continue;
 
             const lines = label.name.split('\n');
-            const fontSize = label.type === 'shopping' ? 7 * z : 6 * z;
+            const fontSize = label.type === 'shopping' ? 8.5 * z : 7.5 * z;
             ctx.font = `${fontSize}px "Press Start 2P", monospace`;
             ctx.textAlign = 'center';
 
@@ -1122,10 +1181,10 @@ export class TileRenderer {
 
             // Draw Background Box for Readability
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(sx - maxWidth / 2 - 5 * z, boxY - 3 * z, maxWidth + 10 * z, totalH + 6 * z);
+            ctx.fillRect(sx - maxWidth / 2 - 3 * z, boxY - 3 * z, maxWidth + 6 * z, totalH + 6 * z);
             ctx.strokeStyle = label.type === 'shopping' ? 'rgba(255, 136, 204, 0.6)' : 'rgba(170, 221, 170, 0.6)';
             ctx.lineWidth = 1 * z;
-            ctx.strokeRect(sx - maxWidth / 2 - 5 * z, boxY - 3 * z, maxWidth + 10 * z, totalH + 6 * z);
+            ctx.strokeRect(sx - maxWidth / 2 - 3 * z, boxY - 3 * z, maxWidth + 6 * z, totalH + 6 * z);
 
             for (let i = 0; i < lines.length; i++) {
                 const ly = boxY + i * lineHeight + fontSize + 1 * z;

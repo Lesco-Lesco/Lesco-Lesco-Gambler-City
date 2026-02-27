@@ -31,7 +31,8 @@ export class TileMap {
             tile === TILE_TYPES.GRASS ||
             tile === TILE_TYPES.STAIRS_UP ||
             tile === TILE_TYPES.STAIRS_DOWN ||
-            tile === TILE_TYPES.ENTRANCE
+            tile === TILE_TYPES.ENTRANCE ||
+            tile === TILE_TYPES.DECORATIVE_ENTRANCE
         );
     }
 

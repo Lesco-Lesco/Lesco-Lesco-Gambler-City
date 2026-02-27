@@ -244,11 +244,11 @@ export class HouseDialogueManager {
     }
 
     private drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, z: number, isPeripheral: boolean) {
-        ctx.font = `${Math.max(10, 9 * z)}px "Press Start 2P", monospace`;
+        ctx.font = `${Math.max(11, 8.8 * z)}px monospace`;
         const metrics = ctx.measureText(text);
-        const padding = 8 * z;
+        const padding = 5 * z;
         const w = metrics.width + padding * 2;
-        const h = 20 * z;
+        const h = 18 * z;
 
         // Argument Check
         const isArgument = text === text.toUpperCase() && /[A-Z]/.test(text); // All caps -> Argument

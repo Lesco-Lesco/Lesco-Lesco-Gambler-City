@@ -38,29 +38,33 @@ export class HUD {
         ctx.fillText('GRANA', s(20), s(50));
 
         // --- Stamina bar (bottom-left) ---
-        const staminaW = s(100);
-        const staminaY = s(62);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(s(10), staminaY, staminaW + s(10), s(14));
+        if (stamina >= 0) {
+            const staminaW = s(100);
+            const staminaY = s(62);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(s(10), staminaY, staminaW + s(10), s(14));
 
-        ctx.fillStyle = '#333';
-        ctx.fillRect(s(15), staminaY + s(3), staminaW, s(8));
+            ctx.fillStyle = '#333';
+            ctx.fillRect(s(15), staminaY + s(3), staminaW, s(8));
 
-        const staminaRatio = stamina / maxStamina;
-        const staminaColor = staminaRatio > 0.5 ? '#44aaff' : staminaRatio > 0.2 ? '#ffaa44' : '#ff4444';
-        ctx.fillStyle = staminaColor;
-        ctx.fillRect(s(15), staminaY + s(3), staminaW * staminaRatio, s(8));
+            const staminaRatio = stamina / maxStamina;
+            const staminaColor = staminaRatio > 0.5 ? '#44aaff' : staminaRatio > 0.2 ? '#ffaa44' : '#ff4444';
+            ctx.fillStyle = staminaColor;
+            ctx.fillRect(s(15), staminaY + s(3), staminaW * staminaRatio, s(8));
 
-        ctx.fillStyle = '#888';
-        ctx.font = `${UIScale.r(8)}px monospace`;
-        ctx.textAlign = 'left';
-        ctx.fillText('STAMINA', s(15), staminaY + s(24));
+            ctx.fillStyle = '#888';
+            ctx.font = `${UIScale.r(8)}px monospace`;
+            ctx.textAlign = 'left';
+            ctx.fillText('STAMINA', s(15), staminaY + s(24));
+        }
 
         // --- FPS (top-right, subtle) ---
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.font = `${UIScale.r(10)}px monospace`;
-        ctx.textAlign = 'right';
-        ctx.fillText(`${fps} FPS`, screenW - s(15), s(22));
+        if (fps >= 0) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.font = `${UIScale.r(10)}px monospace`;
+            ctx.textAlign = 'right';
+            ctx.fillText(`${fps} FPS`, screenW - s(15), s(22));
+        }
 
         // --- Interaction hint (bottom-center) ---
         if (interactionHint) {

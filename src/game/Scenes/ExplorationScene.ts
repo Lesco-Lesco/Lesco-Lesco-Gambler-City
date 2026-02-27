@@ -91,7 +91,7 @@ export class ExplorationScene implements Scene {
     };
 
     // Callbacks
-    public onEnterCasino?: () => void;
+    public onEnterCasino?: (type: 'shopping' | 'station') => void;
     public onGameOver?: () => void;
 
     constructor(renderer: Renderer, screenW: number, screenH: number) {
@@ -259,12 +259,46 @@ export class ExplorationScene implements Scene {
         // Interactions
         this.checkInteractions();
 
+        // 6. Adaptive Player Light logic (Fluid and Automatic)
+        this.updateAdaptiveLighting(dt);
+
         // Zoom Debug
         if (this.input.wasPressed('Equal') || this.input.wasPressed('NumpadAdd')) {
             this.camera.targetZoom = Math.min(3.0, this.camera.targetZoom + 0.25);
         }
         if (this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract')) {
             this.camera.targetZoom = Math.max(0.5, this.camera.targetZoom - 0.25);
+        }
+    }
+
+    private updateAdaptiveLighting(dt: number) {
+        // 1. Calculate environmental light at my position
+        const originalIntensity = this.playerLight.intensity;
+        this.playerLight.intensity = 0;
+        const envLight = this.lighting.getLightIntensityAt(this.player.x, this.player.y);
+        this.playerLight.intensity = originalIntensity;
+
+        // 2. Define target states - COMPLETE DARKNESS ONLY
+        // Player light ONLY appears if ambient light is basically zero (< 0.1)
+        let targetIntensity = 0;
+        let targetRadius = 0;
+
+        if (envLight < 0.1) {
+            // Scale light up as it gets even darker (0.1 -> 0.0)
+            const darknessFactor = 1.0 - (envLight / 0.1);
+            targetIntensity = darknessFactor * 0.85;
+            targetRadius = darknessFactor * 220;
+        }
+
+        // 3. Fluid and slow transition (10x smoother)
+        const speed = 0.8;
+        this.playerLight.intensity += (targetIntensity - this.playerLight.intensity) * speed * dt;
+        this.playerLight.radius += (targetRadius - this.playerLight.radius) * speed * dt;
+
+        // Cutoff to prevent oscillation/flicker
+        if (this.playerLight.intensity < 0.01) {
+            this.playerLight.intensity = 0;
+            this.playerLight.radius = 0;
         }
     }
 
@@ -359,7 +393,8 @@ export class ExplorationScene implements Scene {
         if (isAtEntrance) {
             this.player.nearbyInteraction = '▶ E - Entrar no Subsolo';
             if (this.input.wasPressed('KeyE')) {
-                if (this.onEnterCasino) this.onEnterCasino();
+                const isStation = this.player.x > 200; // Station is roughly at x=242
+                if (this.onEnterCasino) this.onEnterCasino(isStation ? 'station' : 'shopping');
                 return;
             }
         }
@@ -546,23 +581,11 @@ export class ExplorationScene implements Scene {
         }
 
         // 4. Overlays
-        this.tileRenderer.renderOverlays(ctx, this.camera);
-        this.houseDialogue.draw(ctx, this.camera);
-        this.npcManager.drawUI(ctx, this.camera);
-
-        // 5. UI / HUD
-        this.hud.render(
-            ctx, this.screenW, this.screenH,
-            BichoManager.getInstance().playerMoney,
-            this.player.stamina,
-            this.player.maxStamina,
-            this.fps,
-            this.player.nearbyInteraction
-        );
-
-        // 6. Global Notifications
-        this.hud.renderNotifications(ctx, this.screenW, BichoManager.getInstance().getNotifications());
-        this.minimap.render(ctx, this.screenW, this.screenH, this.player.x, this.player.y, this.camera, this.npcManager.npcs);
+        if (isNavigating) {
+            this.tileRenderer.renderOverlays(ctx, this.camera);
+            this.houseDialogue.draw(ctx, this.camera);
+            this.npcManager.drawUI(ctx, this.camera);
+        }
 
         // 5. Minigames
         if (this.activeMinigame === 'purrinha' && this.purrinhaUI) {
@@ -579,26 +602,31 @@ export class ExplorationScene implements Scene {
             if (this.fanTanUI) this.fanTanUI.draw(ctx, this.screenW, this.screenH);
         }
 
-        // --- POLICE GIROFLEX (Smooth Fade) ---
+        // 6. UI / HUD (Rendered AFTER minigames to be always visible)
+        this.hud.render(
+            ctx, this.screenW, this.screenH,
+            BichoManager.getInstance().playerMoney,
+            this.player.stamina,
+            this.player.maxStamina,
+            this.fps,
+            isNavigating ? this.player.nearbyInteraction : null
+        );
+
+        // 7. Global Notifications & Minimap
+        this.hud.renderNotifications(ctx, this.screenW, BichoManager.getInstance().getNotifications());
+        this.minimap.render(ctx, this.screenW, this.screenH, this.player.x, this.player.y, this.camera, this.npcManager.npcs);
+
+        // --- POLICE GIROFLEX ---
         const pmanager = PoliceManager.getInstance();
         if (pmanager.phase !== 'none') {
-            // Use sine wave for smooth transition
-            // Speed of transition (0.8 = slow, gradativo)
             const pulse = (Math.sin(pmanager.giroflexTimer * 2.5) + 1) / 2;
-
-            // Red Layer
             ctx.fillStyle = `rgba(255, 0, 0, ${pulse * 0.12})`;
             ctx.fillRect(0, 0, this.screenW, this.screenH);
-
-            // Blue Layer
             ctx.fillStyle = `rgba(0, 0, 255, ${(1 - pulse) * 0.12})`;
             ctx.fillRect(0, 0, this.screenW, this.screenH);
-
-            // Subtle vignette strobe
-            const vignetteIntensity = 0.05 + pulse * 0.05;
             const grad = ctx.createRadialGradient(this.screenW / 2, this.screenH / 2, 100, this.screenW / 2, this.screenH / 2, this.screenH);
             grad.addColorStop(0, 'transparent');
-            grad.addColorStop(1, `rgba(0, 0, 0, ${vignetteIntensity})`);
+            grad.addColorStop(1, `rgba(0, 0, 0, 0.1)`);
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, this.screenW, this.screenH);
         }

@@ -53,7 +53,6 @@ const GameCanvas = () => {
 
                 // Create scenes attempt
                 let scene: ExplorationScene;
-                let casinoScene: CasinoScene;
                 let gameOverScene: GameOverScene;
 
                 try {
@@ -62,51 +61,51 @@ const GameCanvas = () => {
                     const { GameOverScene } = await import('../game/Scenes/GameOverScene');
 
                     scene = new ExplorationScene(renderer, w, h);
-                    casinoScene = new CasinoScene(w, h);
+                    const casinoShopping = new CasinoScene(w, h, 'shopping');
+                    const casinoStation = new CasinoScene(w, h, 'station');
                     gameOverScene = new GameOverScene();
 
                     // Link Scenes
-                    scene.onEnterCasino = () => {
-                        // Clock system removed (Endless Night), Casino uses internal timers
-                        loop.setScene('casino');
+                    scene.onEnterCasino = (type: 'shopping' | 'station' = 'shopping') => {
+                        loop.setScene(type === 'station' ? 'casino_station' : 'casino_shopping');
                     };
 
-                    casinoScene.onSceneExitRequest = () => {
-                        loop.setScene('exploration');
-                    };
+                    casinoShopping.onSceneExitRequest = () => loop.setScene('exploration');
+                    casinoStation.onSceneExitRequest = () => loop.setScene('exploration');
 
-                    const handleGameOver = () => {
-                        loop.setScene('gameover');
-                    };
-
+                    const handleGameOver = () => loop.setScene('gameover');
                     scene.onGameOver = handleGameOver;
-                    casinoScene.onGameOver = handleGameOver;
+                    casinoShopping.onGameOver = handleGameOver;
+                    casinoStation.onGameOver = handleGameOver;
 
                     gameOverScene.onRestart = () => {
-                        // Reset global state
                         EconomyManager.getInstance().reset();
-                        triggerSplash(); // Show splash on restart
+                        triggerSplash();
                         loop.setScene('exploration');
                     };
+
+                    // Register scenes
+                    loop.addScene(scene);
+
+                    casinoShopping.name = 'casino_shopping';
+                    loop.addScene(casinoShopping);
+
+                    casinoStation.name = 'casino_station';
+                    loop.addScene(casinoStation);
+
+                    loop.addScene(gameOverScene);
+                    loop.setScene('exploration');
+
+                    // Start loop
+                    loop.start();
+                    triggerSplash(); // Show splash on first start
+                    engineRef.current = { loop, renderer, scene, casinoScene: casinoShopping, gameOverScene };
 
                     console.log("Scenes initialized successfully");
                 } catch (sceneErr: any) {
                     console.error("Scene Load Error:", sceneErr);
                     throw new Error("Scene Constructor/Module Failed: " + sceneErr.message);
                 }
-
-                if (!isMounted) return;
-
-                // Register scenes
-                loop.addScene(scene);
-                loop.addScene(casinoScene);
-                loop.addScene(gameOverScene);
-                loop.setScene('exploration');
-
-                // Start loop
-                loop.start();
-                triggerSplash(); // Show splash on first start
-                engineRef.current = { loop, renderer, scene, casinoScene, gameOverScene };
 
                 // Handle resize
                 const handleResize = () => {

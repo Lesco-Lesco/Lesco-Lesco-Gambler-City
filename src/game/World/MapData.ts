@@ -31,6 +31,7 @@ export const TILE_TYPES = {
     FOUNTAIN: 18,
     DOMINO_TABLE: 19,
     MONUMENT: 20,
+    DECORATIVE_ENTRANCE: 21,
 } as const;
 
 export type TileType = typeof TILE_TYPES[keyof typeof TILE_TYPES];
@@ -78,6 +79,7 @@ const FT = TILE_TYPES.FOUNTAIN;
 const CH = TILE_TYPES.CHURCH;
 const DT = TILE_TYPES.DOMINO_TABLE;
 const MT = TILE_TYPES.MONUMENT;
+const DE = TILE_TYPES.DECORATIVE_ENTRANCE;
 
 function generateMap(): number[][] {
     const map: number[][] = [];
@@ -261,7 +263,7 @@ function generateMap(): number[][] {
     fill(117, 112, 143, 143, SH);
     // Entrance facing Felipe Cardoso
     fill(127, 144, 133, 146, PZ);
-    set(130, 143, EN);
+    set(130, 143, DE); // Aesthetic Entrance
 
     // *** CLANDESTINE CASINO ***
     // Hidden entrance at the back/side of the shopping
@@ -275,6 +277,19 @@ function generateMap(): number[][] {
     // New Location: South-East corner (X=225..260, Y=155..175)
     fill(225, 155, 260, 175, BT); // Station Building
     fill(225, 176, 260, 178, FN); // Station Fence
+
+    // --- NEW: STATION PASSAGES (Refined) ---
+    // Carve one vertical and one horizontal passage through the station with more randomness
+    const carveX = 227 + Math.floor(Math.random() * 32); // Random through building width (225-260)
+    const carveY = 157 + Math.floor(Math.random() * 16); // Random through building height (155-175)
+
+    fill(carveX, 155, carveX, 175, A); // Vertical passage
+    fill(225, carveY, 260, carveY, A); // Horizontal passage
+
+    // Open a gap in the fence at the back for the hidden entrance
+    set(226, 176, W);
+    set(226, 177, W);
+    set(226, 178, W);
 
     // *** MARCO IMPERIAL ONZE (Plaza) ***
     // North-East corner of Felipe/Severiano (X=225..245, Y=130..149)
@@ -309,6 +324,12 @@ function generateMap(): number[][] {
     set(235, 136, BN); set(235, 144, BN);
     // Marco Imperial Center Monument
     set(235, 140, MT);
+
+    // Hidden Station Casino Entrance (Santa Cruz Station - South Corner)
+    set(226, 175, EN);
+
+    // Station Main Entrance (Aesthetic - Non-functional)
+    set(242, 155, DE);
 
     // Domino Tables (5 tables)
     set(229, 137, DT); set(229, 143, DT);
@@ -539,6 +560,12 @@ function generateMap(): number[][] {
     fill(215, 60, 230, 60, A); fill(215, 109, 230, 111, A); fill(215, 219, 240, 221, A);
     fill(40, 240, 220, 241, S);
 
+    // --- CRITICAL: CLEAR STATION CASINO ENTRANCE ---
+    // Ensure the area around the NEW hidden entrance (226, 175) is NEVER blocked
+    fill(225, 176, 227, 178, W); // Clear path through fence (X=226)
+    fill(225, 173, 227, 175, A); // Clearing small "alcove" for the entrance
+    set(226, 175, EN); // Restore entrance at the hidden spot
+
     // --- FINAL SCATTER PASS: "The Massive Leakage" ---
     // ULTRA-HIGH DENSITY (4000 iterations) for 90% interconnectivity
     const isStreetOrSidewalk = (t: number) => t === S || t === W;
@@ -633,6 +660,11 @@ export const POINTS_OF_INTEREST: POI[] = [
     { x: 235, y: 160, type: 'ronda', name: 'da Estação' },
     { x: 250, y: 165, type: 'ronda', name: 'do Trem' },
     { x: 240, y: 170, type: 'ronda', name: 'Estratega' },
+
+    // Station Pedintes (With new hints)
+    { x: 230, y: 162, type: 'pedinte', name: 'Cego da Estação' },
+    { x: 245, y: 158, type: 'pedinte', name: 'Velho do Trem' },
+    { x: 255, y: 168, type: 'pedinte', name: '瘸子 (Manco)' },
 ];
 
 // ── Zone helpers ─────────────────────────────────────────────────────────────
@@ -729,8 +761,8 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
         }
 
         // ── Alley lights: increase frequency (Favela / Residential Interiors)
-        if (tile === TILE_TYPES.ALLEY && (x % 8 === 0 && y % 8 === 0)) {
-            if (canPlacePhysicalLamp(x, y, 3)) {
+        if (tile === TILE_TYPES.ALLEY && (x % 6 === 0 && y % 6 === 0)) {
+            if (canPlacePhysicalLamp(x, y, 2)) {
                 CITY_LIGHTS.push({ x, y, type: 'alley' });
                 physicalLampGrid[y][x] = true;
             }
@@ -746,7 +778,7 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
 
         // ── Residential window lights: increase frequency
         if ((tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL) &&
-            x % 3 === 0 && y % 3 === 0 && mapSeededRand(x * 3, y * 7) > 0.3) {
+            x % 2 === 0 && y % 2 === 0 && mapSeededRand(x * 3, y * 7) > 0.2) {
             CITY_LIGHTS.push({ x, y, type: 'residential' });
         }
 

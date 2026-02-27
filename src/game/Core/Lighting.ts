@@ -28,10 +28,10 @@ export interface LightSource {
 const LIGHT_PROFILES: Record<CityLightType, { radius: number; color: string; intensity: number; flicker: boolean; radiusVariance: number }> = {
     street: { radius: 280, color: '#ffbb44', intensity: 0.92, flicker: true, radiusVariance: 0 },
     streetglow: { radius: 260, color: '#ffaa33', intensity: 0.82, flicker: false, radiusVariance: 0 },
-    residential: { radius: 90, color: '#ffcc66', intensity: 0.65, flicker: true, radiusVariance: 20 },
+    residential: { radius: 120, color: '#ffcc66', intensity: 0.75, flicker: true, radiusVariance: 25 },
     plaza: { radius: 360, color: '#fff0d0', intensity: 0.98, flicker: false, radiusVariance: 0 },
     shopping: { radius: 380, color: '#ddeeff', intensity: 0.99, flicker: false, radiusVariance: 0 },
-    alley: { radius: 110, color: '#ff9933', intensity: 0.60, flicker: true, radiusVariance: 15 },
+    alley: { radius: 140, color: '#ff9933', intensity: 0.70, flicker: true, radiusVariance: 20 },
 };
 
 
@@ -261,5 +261,27 @@ export class Lighting {
             ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         }
         ctx.restore();
+    }
+    /**
+     * Calculates the total light intensity at a specific world coordinate.
+     * Returns a value from 0 (pitch black) to 1+ (brightly lit).
+     */
+    public getLightIntensityAt(worldX: number, worldY: number): number {
+        let intensity = 0;
+        for (const light of this.lights) {
+            const dx = light.worldX - worldX;
+            const dy = light.worldY - worldY;
+            const distSq = dx * dx + dy * dy;
+            // Radius is in screen pixels, roughly 100px per world tile
+            const radiusInTiles = light.radius / 100;
+            const radiusSq = radiusInTiles * radiusInTiles;
+
+            if (distSq < radiusSq) {
+                const dist = Math.sqrt(distSq);
+                const falloff = 1 - (dist / radiusInTiles);
+                intensity += falloff * light.intensity;
+            }
+        }
+        return intensity;
     }
 }
