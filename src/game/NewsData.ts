@@ -43,8 +43,6 @@ export function getFullNews(): NewsItem {
             "",
             "--- RECOMENDAÇÕES DA PREFEITURA ---",
             randomTip,
-            "",
-            "Aperte qualquer tecla para entrar no bairro..."
         ]
     };
 }
