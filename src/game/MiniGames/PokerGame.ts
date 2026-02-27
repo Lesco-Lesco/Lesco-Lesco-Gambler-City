@@ -108,18 +108,17 @@ export class PokerGame implements IMinigame {
     }
 
     private calculateWinner() {
-        // Simplified hand evaluation: High Card / Pair (placeholder for now)
-        // In a real implementation we would use a hand ranker
         let bestScore = -1;
         let bestPlayer: PokerPlayer | null = null;
 
-        this.players.filter(p => !p.folded).forEach(p => {
+        const activePlayers = this.players.filter(p => !p.folded);
+        for (const p of activePlayers) {
             const score = this.evaluateHand(p.hand, this.communityCards);
             if (score > bestScore) {
                 bestScore = score;
                 bestPlayer = p;
             }
-        });
+        }
 
         this.winner = bestPlayer;
         if (bestPlayer) {
