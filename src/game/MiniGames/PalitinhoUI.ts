@@ -35,10 +35,10 @@ export class PalitinhoUI {
             this.game.update(dt);
         } else if (phase === 'choosing') {
             if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
-                this.selectedIdx = (this.selectedIdx + 2) % 3;
+                this.selectedIdx = (this.selectedIdx + 3) % 4; // 4 sticks
             }
             if (this.input.wasPressed('ArrowRight') || this.input.wasPressed('KeyD')) {
-                this.selectedIdx = (this.selectedIdx + 1) % 3;
+                this.selectedIdx = (this.selectedIdx + 1) % 4; // 4 sticks
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.chooseMatchstick(this.selectedIdx);
@@ -157,8 +157,8 @@ export class PalitinhoUI {
         ctx.textAlign = 'center';
         ctx.fillText('QUEM COMEÇA?', cx, cy - s(80));
 
-        const spacing = s(mobile ? 100 : 150);
-        const startX = cx - spacing;
+        const spacing = s(mobile ? 75 : 110);
+        const startX = cx - (spacing * 1.5);
 
         this.game.players.forEach((p, i) => {
             const x = startX + i * spacing;
@@ -205,8 +205,8 @@ export class PalitinhoUI {
     private drawPlayersUI(ctx: CanvasRenderingContext2D, cx: number, y: number, fScale: number) {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
-        const spacing = s(mobile ? 100 : 140);
-        const startX = cx - spacing;
+        const spacing = s(mobile ? 75 : 110);
+        const startX = cx - (spacing * 1.5);
 
         this.game.players.forEach((p, i) => {
             const px = startX + i * spacing;
@@ -231,8 +231,8 @@ export class PalitinhoUI {
         const fScale = mobile ? 1.1 : 1.0;
 
         // Espaçamento proporcional à largura disponível
-        const spacing = Math.min(s(mobile ? 90 : 120), screenW * 0.27);
-        const startX = cx - spacing;
+        const spacing = Math.min(s(mobile ? 75 : 100), screenW * 0.22);
+        const startX = cx - (spacing * 1.5);
 
         this.game.matchsticks.forEach((m, i) => {
             const x = startX + i * spacing;

@@ -41,7 +41,8 @@ export class PalitinhoGame implements IMinigame {
         this.players = [
             { name: 'Você', isHuman: true, diceValue: 0, order: 0, choice: null, isLoser: false },
             { name: 'Soneca', isHuman: false, diceValue: 0, order: 0, choice: null, isLoser: false },
-            { name: 'Gato', isHuman: false, diceValue: 0, order: 0, choice: null, isLoser: false }
+            { name: 'Gato', isHuman: false, diceValue: 0, order: 0, choice: null, isLoser: false },
+            { name: 'Buda', isHuman: false, diceValue: 0, order: 0, choice: null, isLoser: false }
         ];
     }
 
@@ -70,13 +71,21 @@ export class PalitinhoGame implements IMinigame {
             if (original) original.order = i;
         });
 
-        // Setup matchsticks
+        // Setup matchsticks (4 sticks, 2 broken)
         this.matchsticks = [
+            { isBroken: false, pickedBy: null },
             { isBroken: false, pickedBy: null },
             { isBroken: false, pickedBy: null },
             { isBroken: false, pickedBy: null }
         ];
-        this.matchsticks[Math.floor(Math.random() * 3)].isBroken = true;
+        
+        // Randomly pick 2 distinct indices to be broken
+        const indices = [0, 1, 2, 3];
+        for (let i = 0; i < 2; i++) {
+            const randIdx = Math.floor(Math.random() * indices.length);
+            const stickIdx = indices.splice(randIdx, 1)[0];
+            this.matchsticks[stickIdx].isBroken = true;
+        }
     }
 
     public update(dt: number) {
@@ -126,17 +135,19 @@ export class PalitinhoGame implements IMinigame {
     }
 
     public calculateResult() {
-        const loserIdx = this.matchsticks.findIndex(m => m.isBroken);
-        const loserName = this.matchsticks[loserIdx].pickedBy;
-        const loser = this.players.find(p => p.name === loserName);
-        if (loser) loser.isLoser = true;
+        const brokenSticks = this.matchsticks.filter(m => m.isBroken);
+        const losers = this.players.filter(p => brokenSticks.some(m => m.pickedBy === p.name));
+        
+        losers.forEach(l => l.isLoser = true);
 
-        if (loser?.isHuman) {
+        const human = this.players.find(p => p.isHuman);
+        if (human?.isLoser) {
             this.resultMessage = `❌ Você quebrou o palito! Perdeu R$${this.betAmount}.`;
         } else {
-            const winnersCount = this.players.length - 1;
+            const winnersCount = this.players.length - 2; // 2 winners, 2 losers
             const payout = Math.floor(this.pot / (winnersCount * 10)) * 10;
-            this.resultMessage = `🎉 ${loser?.name} perdeu! Você ganhou R$${payout}.`;
+            const npcLosersNames = losers.filter(p => !p.isHuman).map(p => p.name).join(' e ');
+            this.resultMessage = `🎉 ${npcLosersNames} perderam! Você ganhou R$${payout}.`;
         }
         this.phase = 'result';
     }
@@ -146,7 +157,7 @@ export class PalitinhoGame implements IMinigame {
         if (!human) return 0;
         if (human.isLoser) return -this.betAmount;
 
-        const winnersCount = this.players.length - 1;
+        const winnersCount = this.players.length - 2; // 2 winners, 2 losers
         const payout = Math.floor(this.pot / (winnersCount * 10)) * 10;
         return payout - this.betAmount; // Net profit
     }
