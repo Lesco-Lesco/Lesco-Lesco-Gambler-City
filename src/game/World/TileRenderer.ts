@@ -7,7 +7,7 @@
 import { Camera, TILE_WIDTH, TILE_HEIGHT } from '../Core/Camera';
 import { Renderer } from '../Core/Renderer';
 import { TileMap } from './TileMap';
-import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, BUS_STOPS, CROSSWALKS, LAMPPOST_POSITIONS } from './MapData';
+import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, CROSSWALKS, LAMPPOST_POSITIONS } from './MapData';
 
 // Simple seeded random for consistent visuals per tile
 function seededRandom(x: number, y: number): number {
@@ -663,15 +663,6 @@ export class TileRenderer {
             });
         }
 
-        // Add Bus Stops as drawables
-        for (const stop of BUS_STOPS) {
-            drawables.push({
-                y: stop.x + stop.y + 0.8, // slightly in front of tile center
-                draw: () => {
-                    this.drawBusStop(ctx, camera, stop.x, stop.y, stop.direction === 'h');
-                },
-            });
-        }
 
         return drawables;
     }
@@ -720,35 +711,6 @@ export class TileRenderer {
         ctx.restore();
     }
 
-    /** Draw a bus stop shelter */
-    private drawBusStop(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, _horizontal: boolean) {
-        const { sx, sy } = camera.worldToScreen(tileX, tileY);
-        const z = camera.zoom;
-        const roofY = sy - 14 * z;
-
-        ctx.fillStyle = '#3a3a4a'; // dark metal
-        ctx.fillRect(sx - 6 * z, roofY, 12 * z, 2 * z); // top
-
-        ctx.fillStyle = '#555';
-        ctx.fillRect(sx - 5 * z, roofY + 2 * z, 1 * z, 12 * z); // left post
-        ctx.fillRect(sx + 5 * z, roofY + 2 * z, 1 * z, 12 * z); // right post
-
-        ctx.fillStyle = 'rgba(100, 200, 255, 0.3)';
-        ctx.fillRect(sx - 5 * z, roofY + 4 * z, 10 * z, 8 * z); // glass
-
-        ctx.fillStyle = '#8a6a4a';
-        ctx.fillRect(sx - 4 * z, sy - 4 * z, 8 * z, 2 * z); // bench
-
-        // Bus sign
-        ctx.fillStyle = '#1a5aca';
-        ctx.fillRect(sx + 6 * z, sy - 16 * z, 4 * z, 4 * z);
-        ctx.fillStyle = '#fff';
-        ctx.font = `${3 * z}px monospace`;
-        ctx.fillText('BUS', sx + 8 * z, sy - 13 * z);
-
-        ctx.fillStyle = '#555';
-        ctx.fillRect(sx + 7.5 * z, sy - 12 * z, 1 * z, 12 * z); // sign post
-    }
 
     /** Draw mortar/brick lines on walls */
     private drawMortarLines(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, blockHeight: number, seed: number) {
@@ -1157,14 +1119,14 @@ export class TileRenderer {
                 }
             }
         } else {
-            // Estação Santa Cruz - Classic Train Station Entrance Pavilion
-            const scale = 5;
-            const hFull = 38 * z * scale; // Imposing Main height
-            const hArch = 26 * z * scale;
+            // Estação Santa Cruz - Compact Modern Station Entrance
+            const scale = 2.5; // Reduced from 5 to 2.5
+            const hFull = 18 * z * scale; // Much lower (was 38)
+            const hArch = 12 * z * scale; // Much lower (was 26)
 
-            // Geometry offsets
-            const hw = 16 * z * scale;
-            const hh = 8 * z * scale;
+            // Geometry offsets (Reduced footprint by 20%)
+            const hw = 12.8 * z * scale;
+            const hh = 6.4 * z * scale;
 
             const px = sx;
             const py = sy;
@@ -1180,12 +1142,12 @@ export class TileRenderer {
             const t_S = { x: b_S.x, y: b_S.y - hFull };
             const t_W = { x: b_W.x, y: b_W.y - hFull };
 
-            // Colors for classic 19th-century railway architecture
-            const colorLeftFace = '#8a857a';
-            const colorRightFace = '#9c978b';
-            const colorArch = '#2a2824';
-            const colorTrim = '#d1cca8';
-            const colorRoof = '#3c4046';
+            // Colors for modern concrete/glass architecture
+            const colorLeftFace = '#7a7a85';  // Concrete shadow
+            const colorRightFace = '#8a8a95'; // Concrete base
+            const colorArch = '#1a1f26';      // Dark glass background
+            const colorTrim = '#a0a0b0';      // Aluminum trim
+            const colorRoof = '#2c3036';      // Dark metal roof
 
             // --- Right Face (+X, SE) ---
             ctx.fillStyle = colorRightFace;
@@ -1193,29 +1155,22 @@ export class TileRenderer {
             ctx.moveTo(b_E.x, b_E.y); ctx.lineTo(b_S.x, b_S.y); ctx.lineTo(t_S.x, t_S.y); ctx.lineTo(t_E.x, t_E.y);
             ctx.closePath();
             ctx.fill();
-            ctx.strokeStyle = '#555';
-            ctx.lineWidth = 1 * z * scale;
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 0.8 * z * scale;
             ctx.stroke();
 
-            // Right Face Archway
+            // Right Face Glass Panel
             ctx.fillStyle = colorArch;
             ctx.beginPath();
-            ctx.moveTo(px + hw * 0.15, py + hh * 0.15);
-            ctx.lineTo(px + hw * 0.85, py + hh * 0.85);
-            ctx.lineTo(px + hw * 0.85, py + hh * 0.85 - hArch);
-            ctx.lineTo(px + hw * 0.15, py + hh * 0.15 - hArch);
+            ctx.moveTo(px + hw * 0.2, py + hh * 0.2);
+            ctx.lineTo(px + hw * 0.8, py + hh * 0.8);
+            ctx.lineTo(px + hw * 0.8, py + hh * 0.8 - hArch);
+            ctx.lineTo(px + hw * 0.2, py + hh * 0.2 - hArch);
             ctx.closePath();
             ctx.fill();
 
-            // Arch trim Right
+            // Glass/Metal Trim Right
             ctx.strokeStyle = colorTrim;
-            ctx.lineWidth = 1.8 * z * scale;
-            ctx.stroke();
-
-            // Internal Grid Right
-            ctx.beginPath();
-            ctx.moveTo(px + hw * 0.5, py + hh * 0.5); ctx.lineTo(px + hw * 0.5, py + hh * 0.5 - hArch);
-            ctx.strokeStyle = '#111';
             ctx.lineWidth = 1 * z * scale;
             ctx.stroke();
 
@@ -1225,39 +1180,45 @@ export class TileRenderer {
             ctx.moveTo(b_W.x, b_W.y); ctx.lineTo(b_S.x, b_S.y); ctx.lineTo(t_S.x, t_S.y); ctx.lineTo(t_W.x, t_W.y);
             ctx.closePath();
             ctx.fill();
-            ctx.strokeStyle = '#555';
-            ctx.lineWidth = 1 * z * scale;
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 0.8 * z * scale;
             ctx.stroke();
 
-            // Left Face Archway (The Main Visual Entrance)
+            // Left Face Glass Panel (The Main Visual Entrance)
             ctx.fillStyle = colorArch;
-            ctx.beginPath();
-            ctx.moveTo(px - hw * 0.15, py + hh * 0.15);
-            ctx.lineTo(px - hw * 0.85, py + hh * 0.85);
-            ctx.lineTo(px - hw * 0.85, py + hh * 0.85 - hArch);
-            ctx.lineTo(px - hw * 0.15, py + hh * 0.15 - hArch);
-            ctx.closePath();
-            ctx.fill();
-
-            // Arch trim Left
-            ctx.strokeStyle = colorTrim;
-            ctx.lineWidth = 1.8 * z * scale;
-            ctx.stroke();
-
-            // Internal Grid Left
-            ctx.beginPath();
-            ctx.moveTo(px - hw * 0.5, py + hh * 0.5); ctx.lineTo(px - hw * 0.5, py + hh * 0.5 - hArch);
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 1 * z * scale;
-            ctx.stroke();
-
-            // Warm Glow inside the arches
-            ctx.fillStyle = 'rgba(255, 200, 100, 0.15)';
             ctx.beginPath();
             ctx.moveTo(px - hw * 0.2, py + hh * 0.2);
             ctx.lineTo(px - hw * 0.8, py + hh * 0.8);
             ctx.lineTo(px - hw * 0.8, py + hh * 0.8 - hArch);
             ctx.lineTo(px - hw * 0.2, py + hh * 0.2 - hArch);
+            ctx.closePath();
+            ctx.fill();
+
+            // Glass/Metal Trim Left
+            ctx.strokeStyle = colorTrim;
+            ctx.lineWidth = 1 * z * scale;
+            ctx.stroke();
+
+            // Modern "Station" Logo/Icon (Simplified M for Metro/Station)
+            const logoX = px - hw * 0.5;
+            const logoY = py + hh * 0.5 - hArch * 0.5;
+            ctx.fillStyle = '#ff3333'; // Bright red for the logo
+            ctx.beginPath();
+            ctx.arc(logoX, logoY, 2 * z * scale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${3 * z * scale}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('S', logoX, logoY + 1 * z * scale);
+
+            // Cold/Modern Glow inside the glass
+            const pulse = Math.sin(Date.now() / 800) * 0.1 + 0.2;
+            ctx.fillStyle = `rgba(100, 220, 255, ${pulse})`;
+            ctx.beginPath();
+            ctx.moveTo(px - hw * 0.22, py + hh * 0.22);
+            ctx.lineTo(px - hw * 0.78, py + hh * 0.78);
+            ctx.lineTo(px - hw * 0.78, py + hh * 0.78 - hArch);
+            ctx.lineTo(px - hw * 0.22, py + hh * 0.22 - hArch);
             ctx.closePath();
             ctx.fill();
 
@@ -1267,42 +1228,26 @@ export class TileRenderer {
             ctx.moveTo(t_N.x, t_N.y); ctx.lineTo(t_E.x, t_E.y); ctx.lineTo(t_S.x, t_S.y); ctx.lineTo(t_W.x, t_W.y);
             ctx.closePath();
             ctx.fill();
-            ctx.strokeStyle = '#223';
+            ctx.strokeStyle = '#111';
             ctx.lineWidth = 1 * z * scale;
             ctx.stroke();
 
-            // Adding a small decorative dome/ridge on the roof
+            // --- Small Modern Clock on the side ---
+            const clockX = px + hw * 0.5;
+            const clockY = py - hFull + 4 * z * scale;
+            const clockR = 2 * z * scale;
+
+            // Frame
             ctx.fillStyle = '#222';
             ctx.beginPath();
-            ctx.moveTo(t_N.x, t_N.y); ctx.lineTo(t_E.x - 4 * z * scale, t_E.y - 2 * z * scale);
-            ctx.lineTo(t_S.x, t_S.y - 4 * z * scale); ctx.lineTo(t_W.x + 4 * z * scale, t_W.y - 2 * z * scale);
-            ctx.closePath();
+            ctx.ellipse(clockX, clockY, clockR * 0.8, clockR, Math.PI / -4, 0, Math.PI * 2);
             ctx.fill();
 
-            // --- Big Railway Station Clock on Left Face ---
-            const clockX = px - hw * 0.5;
-            const clockY = py + hh * 0.5 - hFull + 6 * z * scale; // Centered near the top
-            const clockR = 5 * z * scale;
-
-            // Outer Gold Frame
-            ctx.fillStyle = '#b89947';
+            // Face
+            ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.ellipse(clockX, clockY, clockR * 0.7, clockR, Math.PI / 4, 0, Math.PI * 2);
+            ctx.ellipse(clockX, clockY, clockR * 0.6, clockR * 0.8, Math.PI / -4, 0, Math.PI * 2);
             ctx.fill();
-
-            // White Face
-            ctx.fillStyle = '#fff9ef';
-            ctx.beginPath();
-            ctx.ellipse(clockX, clockY, clockR * 0.5, clockR * 0.8, Math.PI / 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Hands
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 0.8 * z * scale;
-            ctx.beginPath();
-            ctx.moveTo(clockX, clockY); ctx.lineTo(clockX - 1.2 * z * scale, clockY - 1.8 * z * scale);
-            ctx.moveTo(clockX, clockY); ctx.lineTo(clockX + 1.5 * z * scale, clockY - 0.7 * z * scale);
-            ctx.stroke();
         }
 
         ctx.restore();

@@ -54,7 +54,6 @@ export interface POI {
 }
 
 export interface StreetSign { x: number; y: number; name: string; direction: 'h' | 'v'; }
-export interface BusStop { x: number; y: number; direction: 'h' | 'v'; }
 export interface Crosswalk { x: number; y: number; direction: 'h' | 'v'; }
 export type CityLightType = 'street' | 'streetglow' | 'residential' | 'plaza' | 'shopping' | 'alley';
 export interface CityLight { x: number; y: number; type: CityLightType; }
@@ -623,9 +622,6 @@ export const STREET_SIGNS: StreetSign[] = [
     { x: 165, y: 113, name: 'R. Sen. Camará', direction: 'h' },
 ];
 
-export const BUS_STOPS: BusStop[] = [
-    { x: 135, y: 152, direction: 'h' }, // Shopping BRT
-];
 
 export const CROSSWALKS: Crosswalk[] = [
     { x: 130, y: 150, direction: 'v' },
