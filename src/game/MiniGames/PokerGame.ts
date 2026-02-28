@@ -80,16 +80,24 @@ export class PokerGame implements IMinigame {
         this.players.forEach(p => {
             p.hand = [this.deck.pop()!, this.deck.pop()!];
             p.folded = false;
-            p.currentBet = 0;
-            p.lastAction = '';
+            p.currentBet = this.betAmount; // Everyone pays the initial BB
+            this.pot += this.betAmount;
+            p.lastAction = 'Call';
         });
 
-        // Blind posts (simplified)
-        this.players[0].currentBet = this.betAmount; // Human as BB
-        this.pot = this.betAmount;
-
         this.phase = 'pre_flop';
-        this.activePlayerIndex = 1; // NPC starts
+        this.activePlayerIndex = 0; // Human starts
+    }
+
+    /** Allow player to increase the bet (NPCs automatically call) */
+    public raiseHand(extraAmount: number) {
+        if (extraAmount <= 0) return;
+
+        this.players.forEach(p => {
+            p.currentBet += extraAmount;
+            this.pot += extraAmount;
+            p.lastAction = 'Raise';
+        });
     }
 
     public nextPhase() {
@@ -113,7 +121,17 @@ export class PokerGame implements IMinigame {
 
         const activePlayers = this.players.filter(p => !p.folded);
         for (const p of activePlayers) {
-            const score = this.evaluateHand(p.hand, this.communityCards);
+            let score = this.evaluateHand(p.hand, this.communityCards);
+
+            // House Edge: NPCs get a 10% base bonus and a 20% chance to "bluff/play aggressive" (extra 15% bonus)
+            if (!p.isHuman) {
+                score *= 1.10; // Base 10% bonus
+                if (Math.random() < 0.20) {
+                    score *= 1.15; // Aggressive/Bluff bonus
+                    p.lastAction = 'Agressivo';
+                }
+            }
+
             if (score > bestScore) {
                 bestScore = score;
                 bestPlayer = p;
@@ -129,13 +147,16 @@ export class PokerGame implements IMinigame {
 
     private evaluateHand(hand: PokerCard[], community: PokerCard[]): number {
         const allCards = [...hand, ...community];
-        // Placeholder: Sum of ranks + count of pairs
+        // Simplified scoring: Sum of ranks + specific pattern bonuses
         let rankSum = allCards.reduce((sum, c) => sum + c.rank, 0);
         const counts: { [rank: number]: number } = {};
         allCards.forEach(c => counts[c.rank] = (counts[c.rank] || 0) + 1);
+
         let pairBonus = Object.values(counts).filter(v => v === 2).length * 100;
         let threeBonus = Object.values(counts).filter(v => v === 3).length * 500;
-        return rankSum + pairBonus + threeBonus;
+        let fourBonus = Object.values(counts).filter(v => v === 4).length * 2000;
+
+        return rankSum + pairBonus + threeBonus + fourBonus;
     }
 
     public settle(): number {

@@ -42,9 +42,17 @@ export class Player {
 
     constructor() {
         this.input = InputManager.getInstance();
+        this.respawn();
+    }
+
+    public respawn() {
         const spawn = findSafeSpawn();
         this.x = spawn.x;
         this.y = spawn.y;
+        this.direction = 'down';
+        this.isMoving = false;
+        this.isRunning = false;
+        this.stamina = this.maxStamina;
     }
 
     public update(dt: number, tileMap: TileMap) {

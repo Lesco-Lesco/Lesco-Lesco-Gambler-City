@@ -32,6 +32,7 @@ export const TILE_TYPES = {
     DOMINO_TABLE: 19,
     MONUMENT: 20,
     DECORATIVE_ENTRANCE: 21,
+    INFORMATION_BOOTH: 22,
 } as const;
 
 export type TileType = typeof TILE_TYPES[keyof typeof TILE_TYPES];
@@ -588,7 +589,7 @@ function generateMap(): number[][] {
 
     // Final specific placements (Aesthetic & Social) - MUST BE LAST TO AVOID OVERWRITE
     set(130, 143, DE); // Shopping Santa Cruz Entrance facing Felipe Cardoso
-    set(242, 155, DE); // Estação Santa Cruz Entrance
+    set(242, 155, TILE_TYPES.INFORMATION_BOOTH); // Estação Santa Cruz Info Booth (Replaced DE)
     set(226, 175, EN); // Hidden Station Casino Entrance
 
     return map;

@@ -50,19 +50,23 @@ export class EconomyManager {
         this.balance = this._balance + delta;
     }
 
-    /** Dynamic bet limits based on max wealth reached */
+    /** Dynamic bet limits based on max wealth reached, capped by current balance */
     public getBetLimits(): { min: number; max: number } {
         const bonusMin = Math.floor(this._maxMoneyReached * GameConfig.BET_MIN_BONUS_RATE);
         const bonusMax = Math.floor(this._maxMoneyReached * GameConfig.BET_MAX_BONUS_RATE);
 
-        const min = Math.min(
+        let min = Math.min(
             GameConfig.BET_MIN_CAP,
             Math.max(GameConfig.BET_MIN_BASE, Math.floor((GameConfig.BET_MIN_BASE + bonusMin) / GameConfig.MONEY_UNIT) * GameConfig.MONEY_UNIT)
         );
-        const max = Math.min(
+        let max = Math.min(
             GameConfig.BET_MAX_CAP,
             Math.max(GameConfig.BET_MAX_BASE, Math.floor((GameConfig.BET_MAX_BASE + bonusMax) / GameConfig.MONEY_UNIT) * GameConfig.MONEY_UNIT)
         );
+
+        // Cap by current balance
+        max = Math.min(max, this._balance);
+        min = Math.min(min, max); // Ensure min doesn't exceed max if balance is very low
 
         return { min, max };
     }

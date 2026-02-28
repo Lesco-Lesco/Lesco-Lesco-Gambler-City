@@ -67,7 +67,8 @@ export class TileMap {
         return (
             tile === TILE_TYPES.BUILDING_LOW ||
             tile === TILE_TYPES.BUILDING_TALL ||
-            tile === TILE_TYPES.SHOPPING
+            tile === TILE_TYPES.SHOPPING ||
+            tile === TILE_TYPES.INFORMATION_BOOTH
         );
     }
 

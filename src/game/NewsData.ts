@@ -10,19 +10,19 @@ export interface NewsItem {
  * Focuses on high-level updates from the "Prefeitura de Lesco Lesco".
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v1.5.0",
-    title: "REFORMA URBANA EM SANTA CRUZ!",
-    date: "Fevereiro, 2026",
+    id: "v1.6.0",
+    title: "SANTA CRUZ: SEGURANÇA E DIVERSÃO!",
+    date: "Março, 2026",
     description: [
-        "A Prefeitura de Lesco Lesco City celebra a conclusão do plano de modernização no bairro de Santa Cruz:",
+        "A Prefeitura e a Guarda Municipal de Lesco Lesco City apresentam as novas atualizações em Santa Cruz:",
         "",
-        "--- NOTAS DO DIA ---",
-        "• LESCO LESCO MAIS VERDE: Plantio estratégico de árvores e revitalização das fontes na praça central.",
-        "• FLUXO PEATONAL: O trânsito de veículos foi removido para garantir a segurança dos pedestres locais.",
-        "• A ESTAÇÃO VIVE: Novas passarelas e conexões foram abertas no complexo ferroviário santa-cruzense.",
-        "• CLUBE EXCLUSIVO? Fontes não oficiais sugerem que o subsolo da estação agora abriga um novo ponto de 'entretenimento de elite'. A Guarda Municipal não comenta sobre barulhos de fichas após a meia-noite.",
+        "--- DESTAQUES ---",
+        "• ORDEM NA ESTAÇÃO: Uma nova unidade de atendimento policial foi instalada na entrada da estação ferroviária. 'Segurança em primeiro lugar', afirma o guarda de plantão, embora moradores relatem conversas amigáveis sobre o movimento local.",
+        "• CASSINO APERFEIÇOADO: Relatos sugerem que as mesas de Poker e Blackjack no subsolo estão agora mais modernas, com regras aprimoradas e visual de alta fidelidade para os entusiastas da sorte.",
+        "• AMBIENTE CONTROLADO: A iluminação rústica foi ajustada para garantir o clima perfeito em todos os pontos de encontro da cidade.",
+        "• ECONOMIA DE RUA: Rumores indicam que novos limites de aposta foram estabelecidos para garantir que ninguém perca mais do que tem no bolso.",
         "",
-        "Explore as melhorias do bairro. O progresso de Lesco Lesco City não para!",
+        "Aproveite as melhorias e viva o espírito de Lesco Lesco City!",
     ]
 };
 

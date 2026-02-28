@@ -10,7 +10,7 @@ export class GameOverScene implements Scene {
     private time: number = 0;
 
     private sarcasticPhrases: string[] = [
-        "Acabou a mamata, playboy. Faz o L agora!",
+        "Acabou a mamata, playboy. O banco mandou lembranças!",
         "Perdeu tudo? O GPS não ensina a sair do buraco não.",
         "Tá liso, hein? Vai pedir esmola na praça agora.",
         "O banco sempre ganha, e você... bom, você é você.",

@@ -80,6 +80,7 @@ const GameCanvas = () => {
 
                     gameOverScene.onRestart = () => {
                         EconomyManager.getInstance().reset();
+                        scene.resetPlayer();
                         triggerSplash();
                         loop.setScene('exploration');
                     };

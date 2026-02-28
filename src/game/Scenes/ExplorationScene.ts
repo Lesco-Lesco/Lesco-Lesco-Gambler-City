@@ -17,6 +17,7 @@ import { TILE_TYPES } from '../World/MapData';
 import { Player } from '../Entities/Player';
 import { NPCManager } from '../Entities/NPCManager';
 import { HouseDialogueManager } from '../Entities/HouseDialogueManager';
+import { BoothDialogueManager } from '../Entities/BoothDialogueManager';
 import { BichoManager } from '../BichoManager';
 import { HUD } from '../UI/HUD';
 import { NewspaperUI } from '../UI/NewspaperUI';
@@ -54,6 +55,7 @@ export class ExplorationScene implements Scene {
     public player: Player;
     private npcManager: NPCManager;
     private houseDialogue: HouseDialogueManager;
+    private boothDialogue: BoothDialogueManager;
     private newspaper: NewspaperUI;
 
     // Minigames
@@ -115,6 +117,7 @@ export class ExplorationScene implements Scene {
         this.player = new Player(); // Spawns at safe spot
         this.npcManager = new NPCManager();
         this.houseDialogue = new HouseDialogueManager(this.tileMap);
+        this.boothDialogue = new BoothDialogueManager(242, 155); // Station Booth coordinates
 
         // Graphics / Atmosphere
         this.lighting = new Lighting();
@@ -156,6 +159,11 @@ export class ExplorationScene implements Scene {
 
     public enter() {
         // Reset context if needed
+    }
+
+    public resetPlayer() {
+        this.player.respawn();
+        this.camera.snapTo(this.player.x, this.player.y);
     }
 
     public exit() {
@@ -265,6 +273,9 @@ export class ExplorationScene implements Scene {
         // House Dialogue
         this.houseDialogue.update(dt, this.player.x, this.player.y);
 
+        // Booth Dialogue
+        this.boothDialogue.update(dt, this.player.x, this.player.y);
+
         // Lights
         this.playerLight.worldX = this.player.x;
         this.playerLight.worldY = this.player.y;
@@ -345,9 +356,15 @@ export class ExplorationScene implements Scene {
                 }
             } else if (payContrib) { // Pagar contribuição (10)
                 const cost = 10;
-                bmanager.playerMoney -= cost;
-                pm.currentJoke = pm.getRandomSarcasticComment();
-                pm.phase = 'consequence';
+                if (bmanager.playerMoney >= cost) {
+                    bmanager.playerMoney -= cost;
+                    pm.currentJoke = pm.getRandomSarcasticComment();
+                    pm.phase = 'consequence';
+                } else {
+                    bmanager.addNotification("Você está quebrado demais até para propina!", 3);
+                    pm.phase = 'interruption'; // Go back or just stay there? Let's just stay or maybe police gets angry?
+                    // For now, just let it stay in check phase but with a message.
+                }
             }
         } else if (pm.phase === 'dice_battle') {
             this.policeBattleTimer -= dt;
@@ -597,6 +614,7 @@ export class ExplorationScene implements Scene {
         if (isNavigating) {
             this.tileRenderer.renderOverlays(ctx, this.camera);
             this.houseDialogue.draw(ctx, this.camera);
+            this.boothDialogue.draw(ctx, this.camera);
             this.npcManager.drawUI(ctx, this.camera);
         }
 

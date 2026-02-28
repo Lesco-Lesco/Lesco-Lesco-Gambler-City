@@ -8,6 +8,7 @@ export class PokerUI implements IMinigameUI {
     private game: PokerGame;
     private input: InputManager;
     private onExit: () => void;
+    private pendingRaise: number = 0;
 
     constructor(game: PokerGame, onExit: () => void) {
         this.game = game;
@@ -21,19 +22,16 @@ export class PokerUI implements IMinigameUI {
         const humanCurrentBet = () => this.game.players[0].currentBet;
 
         if (this.game.phase === 'betting') {
-            const step = 10;
-            if (this.input.wasPressed('ArrowUp')) {
-                this.game.betAmount = Math.min(this.game.betAmount + step, bmanager.playerMoney, this.game.maxBet);
-            }
-            if (this.input.wasPressed('ArrowDown')) {
-                this.game.betAmount = Math.max(this.game.betAmount - step, this.game.minBet);
-            }
+            // Force minimum bet of 10 for initial confirmation
+            this.game.betAmount = 10;
+
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startMatch();
+                    this.pendingRaise = 0;
                 } else {
-                    bmanager.addNotification("Saldo insuficiente!", 2);
+                    bmanager.addNotification("Saldo insuficiente para aposta mínima!", 2);
                 }
             }
         } else if (this.game.phase === 'result') {
@@ -44,8 +42,32 @@ export class PokerUI implements IMinigameUI {
             }
         } else {
             // Mid-game phases
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
-                this.game.nextPhase();
+            if (this.game.phase === 'pre_flop') {
+                const step = 10;
+                if (this.input.wasPressed('ArrowUp')) {
+                    this.pendingRaise = Math.min(this.pendingRaise + step, bmanager.playerMoney);
+                }
+                if (this.input.wasPressed('ArrowDown')) {
+                    this.pendingRaise = Math.max(0, this.pendingRaise - step);
+                }
+
+                if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+                    if (this.pendingRaise > 0) {
+                        if (bmanager.playerMoney >= this.pendingRaise) {
+                            bmanager.playerMoney -= this.pendingRaise;
+                            this.game.raiseHand(this.pendingRaise);
+                            this.pendingRaise = 0;
+                        } else {
+                            bmanager.addNotification("Saldo insuficiente para aumentar!", 2);
+                            return;
+                        }
+                    }
+                    this.game.nextPhase();
+                }
+            } else {
+                if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+                    this.game.nextPhase();
+                }
             }
         }
 
@@ -80,10 +102,13 @@ export class PokerUI implements IMinigameUI {
         this.drawCommunityCards(ctx, cx, cy, this.game.communityCards);
 
         // Pot
-        ctx.fillStyle = '#ff0';
-        ctx.font = `${UIScale.r(12)}px "Press Start 2P"`;
+        ctx.fillStyle = '#ffcc00'; // Slightly more premium gold
+        ctx.font = `${UIScale.r(18)}px "Press Start 2P"`;
         ctx.textAlign = 'center';
-        ctx.fillText(`POT: R$${this.game.pot}`, cx, cy - s(50));
+        ctx.shadowBlur = s(8);
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.fillText(`POT: R$${this.game.pot}`, cx, cy - s(60));
+        ctx.shadowBlur = 0;
 
         // Players
         this.drawPlayer(ctx, cx, cy + s(180), this.game.players[0], true);   // Bottom: Human
@@ -92,26 +117,40 @@ export class PokerUI implements IMinigameUI {
 
         // Instructions
         ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(8)}px "Press Start 2P"`;
+        ctx.font = `${UIScale.r(12)}px "Press Start 2P"`;
         if (this.game.phase === 'betting') {
+            ctx.fillStyle = '#ffcc00';
             ctx.fillText(`Aposta (BB): R$${this.game.betAmount}`, cx, cy + s(50));
-            ctx.fillText('[↑/↓] Ajustar  [Enter] Jogar', cx, cy + s(80));
+            ctx.fillStyle = '#fff';
+            ctx.font = `${UIScale.r(11)}px "Press Start 2P"`;
+            ctx.fillText('[↑/↓] Ajustar  [Enter] Confirmar', cx, cy + s(85));
         } else if (this.game.phase === 'result') {
             ctx.fillStyle = '#4f4';
-            ctx.fillText(this.game.resultMessage, cx, cy + s(50));
+            ctx.font = `${UIScale.r(16)}px "Press Start 2P"`;
+            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(50));
             ctx.fillStyle = '#fff';
-            ctx.fillText('[Enter] Continuar', cx, cy + s(80));
+            ctx.font = `${UIScale.r(11)}px "Press Start 2P"`;
+            ctx.fillText('[Enter] Continuar', cx, cy + s(85));
+        } else if (this.game.phase === 'pre_flop') {
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillText(`Aumentar? R$${this.pendingRaise}`, cx, cy + s(50));
+            ctx.fillStyle = '#fff';
+            ctx.font = `${UIScale.r(11)}px "Press Start 2P"`;
+            ctx.fillText('[↑/↓] Ajustar  [Enter] Confirmar', cx, cy + s(85));
         } else {
-            ctx.fillText('[Enter] Próxima fase', cx, cy + s(50));
+            ctx.fillText('[Enter] Próxima fase', cx, cy + s(60));
         }
     }
 
     private drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, player: any, isMain: boolean) {
         const s = UIScale.s.bind(UIScale);
         ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(10)}px "Press Start 2P"`;
+        ctx.font = `bold ${UIScale.r(14)}px "Press Start 2P"`;
         ctx.textAlign = 'center';
-        ctx.fillText(player.name, x, y);
+        ctx.shadowBlur = s(4);
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.fillText(player.name.toUpperCase(), x, y);
+        ctx.shadowBlur = 0;
 
         // Cards
         const cardW = s(40);
@@ -160,13 +199,14 @@ export class PokerUI implements IMinigameUI {
         ctx.strokeRect(x, y, w, h);
 
         const isRed = card.suit === 'H' || card.suit === 'D';
-        ctx.fillStyle = isRed ? '#f00' : '#000';
-        ctx.font = `bold ${UIScale.r(12)}px Arial`;
+        ctx.fillStyle = isRed ? '#cc0000' : '#111';
+        ctx.font = `bold ${UIScale.r(16)}px Arial`; // Increased from 12
         ctx.textAlign = 'left';
-        ctx.fillText(card.value, x + s(2), y + s(15));
+        ctx.fillText(card.value, x + s(2), y + s(18));
 
         ctx.textAlign = 'center';
         const suitIcon = { 'H': '♥', 'D': '♦', 'C': '♣', 'S': '♠' }[card.suit as 'H' | 'D' | 'C' | 'S'];
-        ctx.fillText(suitIcon, x + w / 2, y + h / 2 + s(5));
+        ctx.font = `${UIScale.r(24)}px Arial`; // Increased icon size
+        ctx.fillText(suitIcon, x + w / 2, y + h / 2 + s(8));
     }
 }

@@ -206,6 +206,10 @@ export class CasinoScene implements Scene {
         this.input.pushContext('casino');
         this.slotResult = null;
         this.bichoMessage = '';
+
+        // Reset minigames on re-entry to avoid stale state (like mid-game bets from previous lives)
+        if (this.blackjack) this.blackjack.game.reset();
+        if (this.poker) this.poker.game.reset();
     }
 
     public onExit() {
@@ -222,7 +226,12 @@ export class CasinoScene implements Scene {
         const bmanager = BichoManager.getInstance();
         bmanager.update(dt);
 
-        if (bmanager.playerMoney <= 0 && !bmanager.hasPendingBets() && !this.slotSpinning) {
+        // Check if there are active bets or games in progress
+        const isPlayingBlackjack = this.state === 'blackjack' && this.blackjack && this.blackjack.game.phase !== 'betting';
+        const isPlayingPoker = this.state === 'poker' && this.poker && this.poker.game.phase !== 'betting';
+        const hasActiveBicho = bmanager.hasPendingBets();
+
+        if (bmanager.playerMoney <= 0 && !hasActiveBicho && !this.slotSpinning && !isPlayingBlackjack && !isPlayingPoker) {
             if (this.onGameOver) this.onGameOver();
             return;
         }

@@ -664,6 +664,18 @@ export class TileRenderer {
         }
 
 
+        // 4. Special Booths (Information)
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                if (tileMap.getTile(x, y) === TILE_TYPES.INFORMATION_BOOTH) {
+                    drawables.push({
+                        y: x + y,
+                        draw: () => this.drawInformationBooth(ctx, camera, x, y)
+                    });
+                }
+            }
+        }
+
         return drawables;
     }
 
@@ -1253,6 +1265,89 @@ export class TileRenderer {
         ctx.restore();
     }
 
+    /** Draw information booth with a policeman inside */
+    private drawInformationBooth(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const scale = 3.6; // Maintaining the tripled size as requested in the previous successful step
+        const hFull = 15 * z * scale;
+        const hw = 8 * z * scale;
+        const hh = 4 * z * scale;
+
+        // Base (Octagon-ish)
+        ctx.fillStyle = '#7a7a85'; // Aluminum/Concrete
+        ctx.beginPath();
+        ctx.moveTo(sx - hw, sy);
+        ctx.lineTo(sx - hw * 0.5, sy + hh);
+        ctx.lineTo(sx + hw * 0.5, sy + hh);
+        ctx.lineTo(sx + hw, sy);
+        ctx.lineTo(sx + hw, sy - hFull);
+        ctx.lineTo(sx + hw * 0.5, sy + hh - hFull);
+        ctx.lineTo(sx - hw * 0.5, sy + hh - hFull);
+        ctx.lineTo(sx - hw, sy - hFull);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 1 * z;
+        ctx.stroke();
+
+        // Glass Windows (Front-Left Middle)
+        ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
+        ctx.beginPath();
+        ctx.moveTo(sx - hw * 0.8, sy - hFull * 0.3);
+        ctx.lineTo(sx - hw * 0.4, sy + hh * 0.8 - hFull * 0.3);
+        ctx.lineTo(sx - hw * 0.4, sy + hh * 0.8 - hFull * 0.7);
+        ctx.lineTo(sx - hw * 0.8, sy - hFull * 0.7);
+        ctx.closePath();
+        ctx.fill();
+
+        // Glass Windows (Front-Right Middle)
+        ctx.beginPath();
+        ctx.moveTo(sx + hw * 0.4, sy + hh * 0.8 - hFull * 0.3);
+        ctx.lineTo(sx + hw * 0.8, sy - hFull * 0.3);
+        ctx.lineTo(sx + hw * 0.8, sy - hFull * 0.7);
+        ctx.lineTo(sx + hw * 0.4, sy + hh * 0.8 - hFull * 0.7);
+        ctx.closePath();
+        ctx.fill();
+
+        // POLICEMAN INSIDE (Pixel Art)
+        const polyX = sx;
+        const polyY = sy - hFull * 0.5;
+
+        // Head
+        ctx.fillStyle = '#ffdbac';
+        ctx.fillRect(polyX - 1.5 * z, polyY - 4 * z, 3 * z, 3 * z);
+        // Police Hat (Blue with Gold)
+        ctx.fillStyle = '#1a237e';
+        ctx.fillRect(polyX - 2 * z, polyY - 5 * z, 4 * z, 1.5 * z);
+        ctx.fillStyle = '#ffd700';
+        ctx.fillRect(polyX - 0.5 * z, polyY - 4.5 * z, 1 * z, 0.5 * z);
+        // Uniform (Blue)
+        ctx.fillStyle = '#1a237e';
+        ctx.fillRect(polyX - 2 * z, polyY - 1 * z, 4 * z, 4 * z);
+        // Badge
+        ctx.fillStyle = '#ffd700';
+        ctx.fillRect(polyX + 0.5 * z, polyY, 0.5 * z, 0.5 * z);
+
+        // Roof (Dark Metal)
+        ctx.fillStyle = '#2c3e50';
+        ctx.beginPath();
+        ctx.moveTo(sx - hw * 1.1, sy - hFull);
+        ctx.lineTo(sx, sy + hh * 1.1 - hFull);
+        ctx.lineTo(sx + hw * 1.1, sy - hFull);
+        ctx.lineTo(sx, sy - hh * 1.1 - hFull);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        // "i" for Info Symbol on roof
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${6 * z}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('i', sx, sy - hFull - 2 * z);
+    }
+
     /** Draw fence posts */
     private drawFence(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
@@ -1394,6 +1489,7 @@ const TILE_COLORS: Record<number, { base: string[]; stroke?: string }> = {
     [TILE_TYPES.FENCE]: { base: ['#4a4a3a'] },
     [TILE_TYPES.TREE]: { base: ['#2a4a28'] },
     [TILE_TYPES.MONUMENT]: { base: ['#eeeeee'], stroke: '#cccccc' },
+    [TILE_TYPES.INFORMATION_BOOTH]: { base: ['#7a7a85'], stroke: '#444' },
 };
 
 /** Building color palettes */

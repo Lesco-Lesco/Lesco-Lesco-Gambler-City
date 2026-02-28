@@ -91,7 +91,17 @@ export class BlackjackGame implements IMinigame {
 
     private dealerPlay() {
         while (this.calculatePoints(this.dealerHand) < 17) {
-            this.dealerHand.push(this.deck.pop()!);
+            const nextCard = this.deck.pop()!;
+
+            // House Edge: Softened to 5% chance to redraw if dealer is about to bust
+            if (this.calculatePoints([...this.dealerHand, nextCard]) > 21 && Math.random() < 0.05) {
+                // Return card to deck (shuffled) and draw another
+                this.deck.push(nextCard);
+                this.shuffle();
+                this.dealerHand.push(this.deck.pop()!);
+            } else {
+                this.dealerHand.push(nextCard);
+            }
         }
         this.calculateResult();
     }
@@ -133,7 +143,7 @@ export class BlackjackGame implements IMinigame {
         if (this.winner === 'player') {
             // Check for Blackjack (2 cards totaling 21)
             if (this.playerHand.length === 2 && this.calculatePoints(this.playerHand) === 21) {
-                return Math.floor(this.betAmount * 1.5); // Bonus for Natural Blackjack
+                return Math.floor(this.betAmount * 1.5); // Restored bonus to 1.5x
             }
             return this.betAmount;
         } else if (this.winner === 'push') {
