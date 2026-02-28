@@ -185,6 +185,20 @@ export class ExplorationScene implements Scene {
             return;
         }
 
+        // Minimap Maximized Blocking
+        if (this.input.wasPressed('KeyM')) {
+            this.minimap.toggleMaximized();
+            if (this.minimap.getMaximized()) {
+                this.input.pushContext('menu');
+            } else {
+                this.input.popContext();
+            }
+        }
+
+        if (this.minimap.getMaximized()) {
+            return; // Block movement and other world updates
+        }
+
         pm.update(dt, this.player.x, this.player.y, bmanager.playerMoney, isIllegal);
 
         // High Risk Warning logic
