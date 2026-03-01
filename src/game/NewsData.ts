@@ -7,31 +7,35 @@ export interface NewsItem {
 
 /**
  * Centralized news data for the NewspaperUI.
- * Focuses on high-level updates from the "Prefeitura de Lesco Lesco".
+ * 
+ * --- REGRA DE OURO DO JORNAL ---
+ * O conteúdo deve ser estritamente sucinto para caber em uma única página (sem scroll).
+ * - Máximo de 4-5 tópicos por edição.
+ * - Tópicos com no máximo 2-3 linhas cada.
+ * - Evitar descrições longas; focar no que mudou ou em pistas rápidas.
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v1.6.0",
-    title: "SANTA CRUZ: SEGURANÇA E DIVERSÃO!",
+    id: "v1.7.0",
+    title: "SANTA CRUZ EM FOCO",
     date: "Março, 2026",
     description: [
-        "A Prefeitura e a Guarda Municipal de Lesco Lesco City apresentam as novas atualizações em Santa Cruz:",
+        "A Prefeitura apresenta as melhorias da semana em Santa Cruz:",
         "",
         "--- DESTAQUES ---",
-        "• ORDEM NA ESTAÇÃO: Uma nova unidade de atendimento policial foi instalada na entrada da estação ferroviária. 'Segurança em primeiro lugar', afirma o guarda de plantão, embora moradores relatem conversas amigáveis sobre o movimento local.",
-        "• CASSINO APERFEIÇOADO: Relatos sugerem que as mesas de Poker e Blackjack no subsolo estão agora mais modernas, com regras aprimoradas e visual de alta fidelidade para os entusiastas da sorte.",
-        "• AMBIENTE CONTROLADO: A iluminação rústica foi ajustada para garantir o clima perfeito em todos os pontos de encontro da cidade.",
-        "• ECONOMIA DE RUA: Rumores indicam que novos limites de aposta foram estabelecidos para garantir que ninguém perca mais do que tem no bolso.",
+        "• NOVO MAPA: Pressione 'M' para o guia oficial com nomes de ruas e zoom ('Z') para navegar pelos becos.",
+        "• RUMORES: Moradores citam acessos ocultos no subsolo da estação ferroviária. Dizem que a sorte recompensa quem sabe procurar.",
+        "• SEGURANÇA: Novo posto de informações no embarque da estação operando para auxílio geral.",
+        "• AMBIENTE: Iluminação e atmosfera reajustadas para maior imersão nas caminhadas noturnas.",
         "",
-        "Aproveite as melhorias e viva o espírito de Lesco Lesco City!",
     ]
 };
 
 const RECOMMENDATIONS = [
-    "DICA DE TURISMO: A Praça Marques de Herval é famosa por suas partidas de dominó. Dizem que alguns 'veteranos' aceitam apostas para quem tem coragem.",
-    "VISITE O MARCO IMPERIAL: Um local histórico e tranquilo... a menos que você esbarre em uma roda de Purrinha improvisada.",
-    "OPÇÃO DE LAZER: Boatos de que nos fundos do Shopping Santa Cruz, a sorte pode mudar em um instante. Mas lembre-se: a prefeitura nega a existência de cassinos.",
-    "PASSEIO NOTURNO: Os becos da Severiano de Heredia são pitorescos. Se vir um grupo jogando dados, apenas observe... ou tente a sorte.",
-    "RELATO DE MORADOR: 'A estação nunca esteve tão movimentada, especialmente os acessos que não estão no mapa oficial', diz um passageiro anônimo.",
+    "DICA: A Praça Marques de Herval é famosa pelo Dominó. Veteranos dizem que a sorte aceita desafios por lá.",
+    "VISITA: No Marco Imperial ruge a Purrinha sob os olhos da história. Cuidado com quem desafia.",
+    "LAZER: Boatos no Shopping Santa Cruz dizem que o subsolo guarda segredos que a Prefeitura nega existir.",
+    "NOTURNO: Becos da Severiano de Heredia guardam rodas de Dados. Entre por sua conta e risco.",
+    "RELATO: 'A estação tem acessos que não estão nos mapas oficiais', sussurra um passageiro.",
 ];
 
 export function getFullNews(): NewsItem {
@@ -40,8 +44,7 @@ export function getFullNews(): NewsItem {
         ...LATEST_NEWS_BASE,
         description: [
             ...LATEST_NEWS_BASE.description,
-            "",
-            "--- RECOMENDAÇÕES DA PREFEITURA ---",
+            "--- DICAS DA PREFEITURA ---",
             randomTip,
         ]
     };

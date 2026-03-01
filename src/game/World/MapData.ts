@@ -605,7 +605,8 @@ export const STREET_SIGNS: StreetSign[] = [
     { x: 130, y: 155, name: 'R. Felipe Cardoso', direction: 'h' },
     { x: 100, y: 130, name: 'R. Barão de Laguna', direction: 'v' },
     { x: 130, y: 205, name: 'R. Lucindo Passos', direction: 'h' },
-    { x: 112, y: 120, name: '???', direction: 'h' }, // Casino Hint
+    { x: 112, y: 120, name: '???', direction: 'h' }, // Shopping Casino Hint
+    { x: 226, y: 180, name: '???', direction: 'v' }, // Station Casino Hint
 
     // New Streets
     { x: 200, y: 62, name: 'R. do Império', direction: 'h' },
