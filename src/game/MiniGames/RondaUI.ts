@@ -258,9 +258,13 @@ export class RondaUI {
             if (input.wasPressed('Space') || input.wasPressed('Enter')) {
                 this.onPlayAgain(this.game.winAmount);
                 this.game.reset();
-            } else if (input.wasPressed('Escape') || input.wasPressed('KeyE')) {
-                this.onClose(this.game.winAmount);
             }
         }
+
+        if (input.wasPressed('Escape')) {
+            const finalPayout = (this.game.phase === 'result') ? this.game.winAmount : 0;
+            this.onClose(finalPayout);
+        }
     }
+
 }

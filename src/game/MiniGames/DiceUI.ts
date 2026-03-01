@@ -252,10 +252,13 @@ export class DiceUI {
                 this.onPlayAgain(winAmount);
                 this.betAmount = 10;
                 this.game.reset();
-            } else if (input.wasPressed('Escape') || input.wasPressed('KeyE')) {
-                const winAmount = this.game.winner?.isHuman ? this.game.betAmount * 5 : 0;
-                this.onClose(winAmount);
             }
+        }
+
+        if (input.wasPressed('Escape')) {
+            const winAmount = (this.game.phase === 'result' && this.game.winner?.isHuman) ? this.game.betAmount * 5 : 0;
+            this.onClose(winAmount);
         }
     }
 }
+

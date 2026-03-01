@@ -73,12 +73,15 @@ export class DominoUI {
                 const win = this.game.winner?.isHuman ? this.game.betAmount * 3 : 0;
                 this.onPlayAgain(win);
                 this.game.reset();
-            } else if (input.wasPressed('Escape') || input.wasPressed('KeyE')) {
-                const win = this.game.winner?.isHuman ? this.game.betAmount * 3 : 0;
-                this.onClose(win);
             }
         }
+
+        if (input.wasPressed('Escape')) {
+            const finalWin = (this.game.phase === 'result' && this.game.winner?.isHuman) ? this.game.betAmount * 3 : 0;
+            this.onClose(finalWin);
+        }
     }
+
 
     public draw(ctx: CanvasRenderingContext2D, width: number, height: number) {
         const s = UIScale.s.bind(UIScale);

@@ -34,9 +34,6 @@ export class PurrinhaUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
             }
-            if (this.input.wasPressed('Escape')) {
-                this.onClose(0);
-            }
         } else if (phase === 'choosing') {
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
                 this.game.selectedStones = Math.min(3, this.game.selectedStones + 1);
@@ -46,9 +43,6 @@ export class PurrinhaUI {
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.chooseStones(this.game.selectedStones);
-            }
-            if (this.input.wasPressed('Escape')) {
-                this.onClose(-this.game.betAmount);
             }
         } else if (phase === 'guessing') {
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
@@ -60,21 +54,21 @@ export class PurrinhaUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.makeGuess(this.game.selectedGuess);
             }
-            if (this.input.wasPressed('Escape')) {
-                this.onClose(-this.game.betAmount);
-            }
         } else if (phase === 'reveal') {
             this.game.update(dt);
         } else if (phase === 'result') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
                 const moneyChange = this.game.settle();
                 this.onPlayAgain(moneyChange);
-            } else if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE') || this.input.wasPressed('Escape')) {
-                const moneyChange = this.game.settle();
-                this.onClose(moneyChange);
             }
         }
+
+        if (this.input.wasPressed('Escape')) {
+            const moneyChange = (this.game.phase === 'result') ? this.game.settle() : 0;
+            this.onClose(moneyChange);
+        }
     }
+
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);

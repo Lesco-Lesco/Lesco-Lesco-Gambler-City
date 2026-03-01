@@ -15,17 +15,17 @@ export interface NewsItem {
  * - Evitar descrições longas; focar no que mudou ou em pistas rápidas.
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v1.7.0",
+    id: "v1.8.0",
     title: "SANTA CRUZ EM FOCO",
     date: "Março, 2026",
     description: [
         "A Prefeitura apresenta as melhorias da semana em Santa Cruz:",
         "",
         "--- DESTAQUES ---",
-        "• NOVO MAPA: Pressione 'M' para o guia oficial com nomes de ruas e zoom ('Z') para navegar pelos becos.",
-        "• RUMORES: Moradores citam acessos ocultos no subsolo da estação ferroviária. Dizem que a sorte recompensa quem sabe procurar.",
-        "• SEGURANÇA: Novo posto de informações no embarque da estação operando para auxílio geral.",
-        "• AMBIENTE: Iluminação e atmosfera reajustadas para maior imersão nas caminhadas noturnas.",
+        "• BARES ABERTOS: Operando agora com Video Bingo e Corridas (Cavalos e Galgos). A diversão voltou ao balcão!",
+        "• NOVO MAPA: Pressione 'M' para o guia oficial com nomes de ruas e zoom ('Z') para facilitar a navegação.",
+        "• RUMORES: O subsolo do Shopping Santa Cruz guarda muito mais que depósitos. Dizem que a fortuna está lá embaixo.",
+        "• AMBIENTE: Melhorias na iluminação das ruas para caminhadas noturnas mais seguras e imersivas.",
         "",
     ]
 };
@@ -33,9 +33,8 @@ export const LATEST_NEWS_BASE: NewsItem = {
 const RECOMMENDATIONS = [
     "DICA: A Praça Marques de Herval é famosa pelo Dominó. Veteranos dizem que a sorte aceita desafios por lá.",
     "VISITA: No Marco Imperial ruge a Purrinha sob os olhos da história. Cuidado com quem desafia.",
+    "BOEMIA: Os bares locais agora têm Video Bingo e apostas em Corridas. A sorte ruge no balcão!",
     "LAZER: Boatos no Shopping Santa Cruz dizem que o subsolo guarda segredos que a Prefeitura nega existir.",
-    "NOTURNO: Becos da Severiano de Heredia guardam rodas de Dados. Entre por sua conta e risco.",
-    "RELATO: 'A estação tem acessos que não estão nos mapas oficiais', sussurra um passageiro.",
 ];
 
 export function getFullNews(): NewsItem {

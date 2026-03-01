@@ -24,6 +24,7 @@ const MINIMAP_COLORS: Record<number, string> = {
     [TILE_TYPES.ENTRANCE]: '#3a5a7a',
     [TILE_TYPES.FENCE]: '#4a4a3a',
     [TILE_TYPES.TREE]: '#2a5a22',
+    [TILE_TYPES.BAR]: '#ffaa00', // Bright Orange
 };
 
 // Colors for the maximized paper map (ink-washed look)
@@ -42,6 +43,7 @@ const MAXIMIZED_COLORS: Record<number, string> = {
     [TILE_TYPES.ENTRANCE]: '#5a5a5a',
     [TILE_TYPES.FENCE]: '#6a5a4a',
     [TILE_TYPES.TREE]: '#4a654a',
+    [TILE_TYPES.BAR]: '#d48806', // Gold/Orange for paper
 };
 
 export class Minimap {
@@ -305,29 +307,75 @@ export class Minimap {
             ctx.shadowBlur = 0;
         });
 
-        // Street Signs (Only visible at zoom levels higher than 1.0x)
-        if (zoom > 1.2) {
-            STREET_SIGNS.forEach(sign => {
+        // Priority rendering: Streets first, then Bars (with overlap check)
+        const drawnRects: { x1: number, y1: number, x2: number, y2: number }[] = [];
+        const sortedSigns = [...STREET_SIGNS].sort((a, b) => {
+            if (a.type === 'street' && b.type !== 'street') return -1;
+            if (a.type !== 'street' && b.type === 'street') return 1;
+            return 0;
+        });
+
+        if (zoom > 1.1) {
+            sortedSigns.forEach(sign => {
                 const sx = offsetX + sign.x * tileSize;
                 const sy = offsetY + sign.y * tileSize;
 
                 if (sx < px - s(50) || sx > px + paperSize + s(50) || sy < py - s(50) || sy > py + paperSize + s(50)) return;
 
-                ctx.shadowColor = 'rgba(228, 220, 196, 0.8)';
-                ctx.shadowBlur = s(4);
-                ctx.fillStyle = '#332b1e';
-                ctx.font = `bold italic ${r(15)}px serif`;
+                const isBar = sign.type === 'bar';
+                const fontSize = isBar ? r(12) : r(15);
+                ctx.font = `bold ${isBar ? '' : 'italic'} ${fontSize}px serif`;
 
-                if (sign.direction === 'h') {
+                // Estimate dimensions for overlap check
+                const metrics = ctx.measureText(sign.name);
+                const textW = metrics.width;
+                const textH = fontSize;
+                const pad = s(5);
+                const rect = {
+                    x1: sx - textW / 2 - pad,
+                    y1: sy - textH / 2 - pad,
+                    x2: sx + textW / 2 + pad,
+                    y2: sy + textH / 2 + pad
+                };
+
+                // Overlap Check (Only bars check against streets)
+                if (isBar) {
+                    const overlaps = drawnRects.some(r =>
+                        rect.x1 < r.x2 && rect.x2 > r.x1 &&
+                        rect.y1 < r.y2 && rect.y2 > r.y1
+                    );
+                    if (overlaps) return; // Skip drawing this bar label
+                }
+
+                ctx.save();
+                if (isBar) {
+                    // Bar Style: White with Black Outline
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = s(3);
+                    ctx.lineJoin = 'round';
+                    ctx.strokeText(sign.name, sx, sy);
+                    ctx.fillStyle = '#ffffff';
                     ctx.fillText(sign.name, sx, sy);
                 } else {
-                    ctx.save();
-                    ctx.translate(sx, sy);
-                    ctx.rotate(-Math.PI / 2);
-                    ctx.fillText(sign.name, 0, 0);
-                    ctx.restore();
+                    // Street Style: Aged Ink
+                    ctx.shadowColor = 'rgba(228, 220, 196, 0.8)';
+                    ctx.shadowBlur = s(4);
+                    ctx.fillStyle = '#332b1e';
+
+                    if (sign.direction === 'h') {
+                        ctx.fillText(sign.name, sx, sy);
+                    } else {
+                        ctx.save();
+                        ctx.translate(sx, sy);
+                        ctx.rotate(-Math.PI / 2);
+                        ctx.fillText(sign.name, 0, 0);
+                        ctx.restore();
+                    }
                 }
-                ctx.shadowBlur = 0;
+                ctx.restore();
+
+                // Only register rects for Streets to prevent bars from covering them
+                if (!isBar) drawnRects.push(rect);
             });
         }
 

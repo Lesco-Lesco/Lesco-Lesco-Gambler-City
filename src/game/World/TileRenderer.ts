@@ -7,7 +7,7 @@
 import { Camera, TILE_WIDTH, TILE_HEIGHT } from '../Core/Camera';
 import { Renderer } from '../Core/Renderer';
 import { TileMap } from './TileMap';
-import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, CROSSWALKS, LAMPPOST_POSITIONS } from './MapData';
+import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, CROSSWALKS, LAMPPOST_POSITIONS, BARS } from './MapData';
 
 // Simple seeded random for consistent visuals per tile
 function seededRandom(x: number, y: number): number {
@@ -19,8 +19,8 @@ function seededRandom(x: number, y: number): number {
 const isRoadType = (t: number) => t === TILE_TYPES.STREET || t === TILE_TYPES.ALLEY;
 const isSolidType = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL ||
     t === TILE_TYPES.SHOPPING || t === TILE_TYPES.WALL ||
-    t === TILE_TYPES.CHURCH || t === TILE_TYPES.GRASS;
-const isRes = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL;
+    t === TILE_TYPES.CHURCH || t === TILE_TYPES.GRASS || t === TILE_TYPES.BAR;
+const isRes = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL || t === TILE_TYPES.BAR;
 
 export class TileRenderer {
     /**
@@ -65,7 +65,7 @@ export class TileRenderer {
                 // 1. Buildings/Walls — Simple sidewalk base (no heavy border strips)
                 if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL ||
                     tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.WALL ||
-                    tile === TILE_TYPES.DECORATIVE_ENTRANCE) {
+                    tile === TILE_TYPES.DECORATIVE_ENTRANCE || tile === TILE_TYPES.BAR) {
                     // Use same color for stroke as base to remove the 'grid' look
                     renderer.drawIsoTile(camera, x, y, '#888890', '#888890');
                     continue;
@@ -396,6 +396,13 @@ export class TileRenderer {
                                 const ci = Math.floor(rand * BUILDING_COLORS.tall.length);
                                 const c = BUILDING_COLORS.tall[ci];
                                 top = c.top; left = c.left; right = c.right;
+                            } else if (tile === (TILE_TYPES.BAR as number)) {
+                                h = 25 + rand * 10; // Much taller (was 6-14)
+                                // Use variation from MapData if available
+                                const barInfoActive = BARS.find(b => b.x === tileX && b.y === tileY);
+                                const ci = barInfoActive?.variation !== undefined ? barInfoActive.variation : Math.floor(rand * BUILDING_COLORS.bar.length);
+                                const c = BUILDING_COLORS.bar[ci % BUILDING_COLORS.bar.length];
+                                top = c.top; left = c.left; right = c.right;
                             } else { // Shopping
                                 h = 10;
                                 const c = BUILDING_COLORS.shopping;
@@ -415,7 +422,10 @@ export class TileRenderer {
                                     if (seededRandom(tileX * 11, tileY * 13) > 0.7 && !s) {
                                         this.drawDoor(ctx, camera, tileX, tileY);
                                     }
-                                    this.drawMortarLines(ctx, camera, tileX, tileY, h, rand);
+                                } else if (tile === (TILE_TYPES.BAR as number)) {
+                                    this.drawBarStripes(ctx, camera, tileX, tileY, h, rand);
+                                    if (!s) this.drawBarEntrance(ctx, camera, tileX, tileY, rand);
+                                    this.drawBarRoofDecorations(ctx, camera, tileX, tileY, h, rand);
                                 } else if (tile === TILE_TYPES.BUILDING_TALL) {
                                     this.drawFloorDivision(ctx, camera, tileX, tileY, h);
                                     if (seededRandom(tileX * 7, tileY * 11) > 0.5 && width < 0.9) {
@@ -813,6 +823,186 @@ export class TileRenderer {
 
         ctx.fillStyle = '#4a4a5a';
         ctx.fillRect(stairX - 1 * z, stairTop - 1 * z, 6 * z, 2 * z);
+    }
+    private drawBarStripes(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, blockHeight: number, seed: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const ci = Math.floor(seed * BUILDING_COLORS.bar.length);
+        const colorSet = BUILDING_COLORS.bar[ci];
+        const stripeColor = colorSet.stripe;
+
+        ctx.fillStyle = stripeColor;
+        ctx.globalAlpha = 0.3;
+
+        const hw = (TILE_WIDTH / 2) * z * 0.6; // Bar is same scale as house (0.6)
+        const hh = (TILE_HEIGHT / 2) * z * 0.6;
+        const h = blockHeight * z;
+
+        if (seed > 0.5) {
+            // Horizontal stripes on left face
+            for (let i = 2; i < blockHeight - 2; i += 4) {
+                const ly = sy - i * z;
+                ctx.beginPath();
+                ctx.moveTo(sx - hw, ly);
+                ctx.lineTo(sx, ly + hh);
+                ctx.lineTo(sx, ly + hh - 2 * z);
+                ctx.lineTo(sx - hw, ly - 2 * z);
+                ctx.closePath();
+                ctx.fill();
+            }
+        } else {
+            // Vertical stripes on right face
+            for (let i = 0.2; i < 0.8; i += 0.2) {
+                const ox = (i - 0.5) * hw * 2;
+                const oy = (i - 0.5) * hh * 2;
+                ctx.beginPath();
+                ctx.moveTo(sx + ox, sy + oy);
+                ctx.lineTo(sx + ox, sy + oy - h);
+                ctx.lineTo(sx + ox + 2 * z, sy + oy - h + 1 * z);
+                ctx.lineTo(sx + ox + 2 * z, sy + oy + 1 * z);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1.0;
+    }
+
+    private drawBarEntrance(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, seed: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const scale = 0.6; // Bar scale
+        const hh = (TILE_HEIGHT / 2) * z * scale;
+
+        const ci = Math.floor(seed * BUILDING_COLORS.bar.length);
+        const colorSet = BUILDING_COLORS.bar[ci];
+        const stripeColor = colorSet.stripe;
+
+        // 1. Double Door (Brown)
+        ctx.fillStyle = '#2a1a0a'; // Dark wood
+        const doorW = 5 * z;
+        const doorH = 8 * z;
+        ctx.fillRect(sx - doorW / 2, sy + hh - doorH, doorW, doorH);
+
+        // Door frame
+        ctx.strokeStyle = '#3d2b1f';
+        ctx.lineWidth = 0.5 * z;
+        ctx.strokeRect(sx - doorW / 2, sy + hh - doorH, doorW, doorH);
+
+        // 2. Awning (Toldo)
+        const awningH = 3 * z;
+        const awningW = 10 * z;
+        const awningProt = 4 * z;
+
+        ctx.fillStyle = stripeColor;
+        ctx.beginPath();
+        ctx.moveTo(sx - awningW / 2, sy + hh - doorH - 1 * z);
+        ctx.lineTo(sx + awningW / 2, sy + hh - doorH - 1 * z);
+        ctx.lineTo(sx + awningW / 2 + awningProt / 2, sy + hh - doorH + awningH);
+        ctx.lineTo(sx - awningW / 2 - awningProt / 2, sy + hh - doorH + awningH);
+        ctx.closePath();
+        ctx.fill();
+
+        // Highlights on awning
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        for (let i = -awningW / 2; i < awningW / 2; i += 2 * z) {
+            ctx.fillRect(sx + i, sy + hh - doorH - 1 * z, 1 * z, awningH + 1 * z);
+        }
+
+        // 3. Neon "BAR" Sign (Visible at all zoom levels now, with more punch)
+        {
+            const time = Date.now();
+            const flicker = Math.sin(time / 80 + seed * 100) > 0.8 ? 0.3 : 1.0;
+
+            ctx.save();
+            ctx.shadowBlur = 12 * z * flicker;
+            ctx.shadowColor = stripeColor;
+            ctx.fillStyle = stripeColor;
+            ctx.font = `bold ${Math.round(6 * z)}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.fillText("BAR", sx, sy + hh - doorH - 4 * z);
+
+            // Subtle glow on the wall behind
+            ctx.globalAlpha = 0.3 * flicker;
+            ctx.fillStyle = stripeColor;
+            ctx.beginPath();
+            ctx.arc(sx, sy + hh - doorH - 6 * z, 10 * z, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    /** Draw card and die decoration on bar roof */
+    private drawBarRoofDecorations(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, h: number, seed: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const topY = sy - h * z;
+
+        // Position decorations relative to roof center
+        // 1. A giant playing card
+        ctx.save();
+        const cardW = 6 * z;
+        const cardH = 9 * z;
+        const cardX = sx - 4 * z;
+        const cardY = topY - 2 * z;
+
+        // Card Border/Body
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(cardX, cardY - cardH, cardW, cardH);
+        ctx.strokeStyle = '#ccc';
+        ctx.lineWidth = 0.5 * z;
+        ctx.strokeRect(cardX, cardY - cardH, cardW, cardH);
+
+        // Card Suit (Red Heart or Black Spade)
+        const isRed = (seed * 100) % 2 < 1;
+        ctx.fillStyle = isRed ? '#d33' : '#222';
+        ctx.font = `bold ${5 * z}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(isRed ? "♥" : "♠", cardX + cardW / 2, cardY - cardH / 2 + 2 * z);
+        ctx.restore();
+
+        // 2. A 3D-ish Die
+        const dieSize = 5 * z;
+        const dieX = sx + 4 * z;
+        const dieY = topY - 1 * z;
+
+        // Die Top
+        ctx.fillStyle = '#eee';
+        ctx.beginPath();
+        ctx.moveTo(dieX, dieY - dieSize);
+        ctx.lineTo(dieX + dieSize / 2, dieY - dieSize * 0.7);
+        ctx.lineTo(dieX, dieY - dieSize * 0.4);
+        ctx.lineTo(dieX - dieSize / 2, dieY - dieSize * 0.7);
+        ctx.closePath();
+        ctx.fill();
+
+        // Die Front-Left
+        ctx.fillStyle = '#ccc';
+        ctx.beginPath();
+        ctx.moveTo(dieX - dieSize / 2, dieY - dieSize * 0.7);
+        ctx.lineTo(dieX, dieY - dieSize * 0.4);
+        ctx.lineTo(dieX, dieY + dieSize * 0.3);
+        ctx.lineTo(dieX - dieSize / 2, dieY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Die Front-Right
+        ctx.fillStyle = '#ddd';
+        ctx.beginPath();
+        ctx.moveTo(dieX, dieY - dieSize * 0.4);
+        ctx.lineTo(dieX + dieSize / 2, dieY - dieSize * 0.7);
+        ctx.lineTo(dieX + dieSize / 2, dieY);
+        ctx.lineTo(dieX, dieY + dieSize * 0.3);
+        ctx.closePath();
+        ctx.fill();
+
+        // Die Pips (Dots)
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(dieX, dieY - dieSize * 0.7, 0.8 * z, 0, Math.PI * 2); // Top pip
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(dieX + dieSize * 0.25, dieY - dieSize * 0.2, 0.6 * z, 0, Math.PI * 2); // Front pip
+        ctx.fill();
     }
 
     /**
@@ -1490,6 +1680,7 @@ const TILE_COLORS: Record<number, { base: string[]; stroke?: string }> = {
     [TILE_TYPES.TREE]: { base: ['#2a4a28'] },
     [TILE_TYPES.MONUMENT]: { base: ['#eeeeee'], stroke: '#cccccc' },
     [TILE_TYPES.INFORMATION_BOOTH]: { base: ['#7a7a85'], stroke: '#444' },
+    [TILE_TYPES.BAR]: { base: ['#5a4a3a'] },
 };
 
 /** Building color palettes */
@@ -1515,6 +1706,14 @@ const BUILDING_COLORS = {
     shopping: {
         top: '#6a608a', left: '#4a4068', right: '#5a5078',
     },
+    bar: [
+        { top: '#8a4a4a', left: '#6a2a2a', right: '#7a3a3a', stripe: '#ff6666' }, // Red Bar
+        { top: '#4a8a4a', left: '#2a6a2a', right: '#3a7a3a', stripe: '#66ff66' }, // Green Bar
+        { top: '#4a4a8a', left: '#2a2a6a', right: '#3a3a7a', stripe: '#6666ff' }, // Blue Bar
+        { top: '#8a8a4a', left: '#6a6a2a', right: '#7a7a3a', stripe: '#ffff66' }, // Yellow Bar
+        { top: '#8a4a8a', left: '#6a2a6a', right: '#7a3a7a', stripe: '#ff66ff' }, // Purple Bar
+        { top: '#4a8a8a', left: '#2a6a6a', right: '#3a7a7a', stripe: '#66ffff' }, // Cyan Bar
+    ],
     wall: [
         { top: '#7a7068', left: '#5a5048', right: '#6a6058' },
         { top: '#786e66', left: '#584e46', right: '#685e56' },

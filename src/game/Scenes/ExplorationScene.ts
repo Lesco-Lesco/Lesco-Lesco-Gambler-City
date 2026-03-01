@@ -13,11 +13,12 @@ import { Lighting } from '../Core/Lighting';
 import { TileMap } from '../World/TileMap';
 import { TileRenderer } from '../World/TileRenderer';
 import { Minimap } from '../World/Minimap';
-import { TILE_TYPES } from '../World/MapData';
+import { TILE_TYPES, BARS } from '../World/MapData';
 import { Player } from '../Entities/Player';
 import { NPCManager } from '../Entities/NPCManager';
 import { HouseDialogueManager } from '../Entities/HouseDialogueManager';
 import { BoothDialogueManager } from '../Entities/BoothDialogueManager';
+import { BarDialogueManager } from '../Entities/BarDialogueManager';
 import { BichoManager } from '../BichoManager';
 import { HUD } from '../UI/HUD';
 import { NewspaperUI } from '../UI/NewspaperUI';
@@ -35,6 +36,12 @@ import { PalitinhoGame } from '../MiniGames/PalitinhoGame';
 import { PalitinhoUI } from '../MiniGames/PalitinhoUI';
 import { FanTanGame } from '../MiniGames/FanTanGame';
 import { FanTanUI } from '../MiniGames/FanTanUI';
+import { HorseRacingGame } from '../MiniGames/HorseRacingGame';
+import { HorseRacingUI } from '../MiniGames/HorseRacingUI';
+import { DogRacingGame } from '../MiniGames/DogRacingGame';
+import { DogRacingUI } from '../MiniGames/DogRacingUI';
+import { VideoBingoGame } from '../MiniGames/VideoBingoGame';
+import { VideoBingoUI } from '../MiniGames/VideoBingoUI';
 import { PoliceManager } from '../PoliceManager';
 import { UIScale } from '../Core/UIScale';
 
@@ -55,6 +62,7 @@ export class ExplorationScene implements Scene {
     public player: Player;
     private npcManager: NPCManager;
     private houseDialogue: HouseDialogueManager;
+    private barDialogue: BarDialogueManager;
     private boothDialogue: BoothDialogueManager;
     private newspaper: NewspaperUI;
 
@@ -69,8 +77,16 @@ export class ExplorationScene implements Scene {
     private headsTailsUI: HeadsTailsUI | null = null;
     private palitinhoUI: PalitinhoUI | null = null;
     private fanTanUI: FanTanUI | null = null;
+    private horseRacingGame: HorseRacingGame;
+    private horseRacingUI: HorseRacingUI | null = null;
+    private dogRacingGame: DogRacingGame;
+    private dogRacingUI: DogRacingUI | null = null;
+    private videoBingoGame: VideoBingoGame;
+    private videoBingoUI: VideoBingoUI | null = null;
 
-    private activeMinigame: 'none' | 'purrinha' | 'dice' | 'ronda' | 'domino' | 'generic' | 'heads_tails' | 'palitinho' | 'fan_tan' = 'none';
+    private activeMinigame: 'none' | 'purrinha' | 'dice' | 'ronda' | 'domino' | 'generic' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' = 'none';
+    private selectedBarMenuIndex: number = 0;
+    private currentBar: any | null = null;
 
     // State
     private screenW: number;
@@ -117,6 +133,7 @@ export class ExplorationScene implements Scene {
         this.player = new Player(); // Spawns at safe spot
         this.npcManager = new NPCManager();
         this.houseDialogue = new HouseDialogueManager(this.tileMap);
+        this.barDialogue = new BarDialogueManager();
         this.boothDialogue = new BoothDialogueManager(242, 155); // Station Booth coordinates
 
         // Graphics / Atmosphere
@@ -130,6 +147,9 @@ export class ExplorationScene implements Scene {
         this.diceGame = new DiceGame();
         this.rondaGame = new RondaGame();
         this.dominoGame = new DominoGame();
+        this.horseRacingGame = new HorseRacingGame();
+        this.dogRacingGame = new DogRacingGame();
+        this.videoBingoGame = new VideoBingoGame();
 
         // Zoom inicial — mobile usa zoom levemente maior para legibilidade
         if (isMobile()) {
@@ -144,6 +164,10 @@ export class ExplorationScene implements Scene {
 
         // Snap camera to player initially to avoid "running camera" effect
         this.camera.snapTo(this.player.x, this.player.y);
+
+        // Expose to window for minigame access
+        (window as any).gameInput = this.input;
+        (window as any).bmanager = BichoManager.getInstance();
     }
 
     public resize(w: number, h: number) {
@@ -260,6 +284,23 @@ export class ExplorationScene implements Scene {
             return;
         }
 
+        if (this.activeMinigame === 'horse_racing' && this.horseRacingUI) {
+            this.horseRacingUI.update(dt);
+            return;
+        }
+        if (this.activeMinigame === 'dog_racing' && this.dogRacingUI) {
+            this.dogRacingUI.update(dt);
+            return;
+        }
+        if (this.activeMinigame === 'video_bingo' && this.videoBingoUI) {
+            this.videoBingoUI.update(dt);
+            return;
+        }
+        if (this.activeMinigame === 'bar_menu') {
+            this.updateBarMenu(dt);
+            return;
+        }
+
         // World Logic
         // Night Interminável (No Cycle)
         this.globalTimer += dt; // Keep a timer running for Bicho betting results
@@ -286,6 +327,9 @@ export class ExplorationScene implements Scene {
 
         // House Dialogue
         this.houseDialogue.update(dt, this.player.x, this.player.y);
+
+        // Bar Dialogue
+        this.barDialogue.update(dt, this.player.x, this.player.y);
 
         // Booth Dialogue
         this.boothDialogue.update(dt, this.player.x, this.player.y);
@@ -406,6 +450,29 @@ export class ExplorationScene implements Scene {
         }
     }
 
+    private handleMinigameExit(game?: any, payout: number = 0) {
+        const bmanager = BichoManager.getInstance();
+        if (game) {
+            // Se saiu no meio da partida (já tinha apostado e não terminou)
+            // No Bingo, 'picking' também conta como partida iniciada após pagar
+            const inProgress = game.phase !== 'betting' && game.phase !== 'result';
+
+            if (inProgress) {
+                // Jogos que não descontam no ato da aposta, descontamos no abandono
+                const needsDeduction = [
+                    'purrinha', 'heads_tails', 'palitinho', 'fantan'
+                ].includes(this.activeMinigame);
+
+                if (needsDeduction) {
+                    bmanager.playerMoney -= game.betAmount;
+                }
+                bmanager.addNotification(`Partida abandonada! Perdeu R$${game.betAmount}.`, 4);
+            }
+            if (payout > 0) bmanager.playerMoney += payout;
+        }
+        this.exitMinigame();
+    }
+
     private exitMinigame() {
         this.activeMinigame = 'none';
         this.purrinhaUI = null;
@@ -415,9 +482,23 @@ export class ExplorationScene implements Scene {
         this.headsTailsUI = null;
         this.palitinhoUI = null;
         this.fanTanUI = null;
+        this.horseRacingUI = null;
+        this.dogRacingUI = null;
+        this.videoBingoUI = null;
+
+        // Force reset on all persistent game objects to ensure return starts from zero
+        this.diceGame.reset();
+        this.rondaGame.reset();
+        this.dominoGame.reset();
+        this.horseRacingGame.reset();
+        this.dogRacingGame.reset();
+        this.videoBingoGame.reset();
+
         this.input.popContext();
         this.player.nearbyInteraction = null;
     }
+
+
 
     private checkInteractions() {
         // 1. Map Transitions (Casino/Subsolo)
@@ -439,6 +520,25 @@ export class ExplorationScene implements Scene {
             if (this.input.wasPressed('KeyE')) {
                 const isStation = this.player.x > 200; // Station is roughly at x=242
                 if (this.onEnterCasino) this.onEnterCasino(isStation ? 'station' : 'shopping');
+                return;
+            }
+        }
+
+        // 1.5 Bar Interactions
+        let nearBar = null;
+        for (const bar of BARS) {
+            const dx = Math.abs(this.player.x - bar.x);
+            const dy = Math.abs(this.player.y - bar.y);
+            if (dx < 1.5 && dy < 1.5) {
+                nearBar = bar;
+                break;
+            }
+        }
+
+        if (nearBar) {
+            this.player.nearbyInteraction = `▶ E - Entrar no ${nearBar.name}`;
+            if (this.input.wasPressed('KeyE')) {
+                this.startBarActivities(nearBar);
                 return;
             }
         }
@@ -479,15 +579,8 @@ export class ExplorationScene implements Scene {
         const bmanager = BichoManager.getInstance();
         const game = new PurrinhaGame(bmanager.playerMoney);
         // Note: purrinhaUI constructor logic might need checking, but we assume it matches
-        this.purrinhaUI = new PurrinhaUI(game, (moneyChange: number) => {
-            if (moneyChange < 0) {
-                bmanager.addNotification(`Partida abandonada! Perdeu R$${Math.abs(moneyChange)}.`, 4);
-            }
-            bmanager.playerMoney += moneyChange;
-            if (bmanager.playerMoney < 0) bmanager.playerMoney = 0;
-            this.activeMinigame = 'none';
-            this.purrinhaUI = null;
-            this.input.popContext();
+        this.purrinhaUI = new PurrinhaUI(game, (payout: number) => {
+            this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             // Play Again logic
             bmanager.playerMoney += moneyChange;
@@ -503,11 +596,8 @@ export class ExplorationScene implements Scene {
         this.activeMinigame = 'heads_tails';
         this.input.pushContext('minigame');
 
-        this.headsTailsUI = new HeadsTailsUI(game, (moneyChange: number) => {
-            bmanager.playerMoney += moneyChange;
-            this.activeMinigame = 'none';
-            this.headsTailsUI = null;
-            this.input.popContext();
+        this.headsTailsUI = new HeadsTailsUI(game, (payout: number) => {
+            this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
             game.reset(bmanager.playerMoney);
@@ -520,11 +610,8 @@ export class ExplorationScene implements Scene {
         this.activeMinigame = 'palitinho';
         this.input.pushContext('minigame');
 
-        this.palitinhoUI = new PalitinhoUI(game, (moneyChange: number) => {
-            bmanager.playerMoney += moneyChange;
-            this.activeMinigame = 'none';
-            this.palitinhoUI = null;
-            this.input.popContext();
+        this.palitinhoUI = new PalitinhoUI(game, (payout: number) => {
+            this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
             game.reset();
@@ -537,11 +624,8 @@ export class ExplorationScene implements Scene {
         this.activeMinigame = 'fan_tan';
         this.input.pushContext('minigame');
 
-        this.fanTanUI = new FanTanUI(game, (moneyChange: number) => {
-            bmanager.playerMoney += moneyChange;
-            this.activeMinigame = 'none';
-            this.fanTanUI = null;
-            this.input.popContext();
+        this.fanTanUI = new FanTanUI(game, (payout: number) => {
+            this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
             game.reset();
@@ -554,11 +638,8 @@ export class ExplorationScene implements Scene {
         this.input.pushContext('minigame');
         this.diceGame.reset();
 
-        this.diceUI = new DiceUI(this.diceGame, (moneyChange: number) => {
-            bmanager.playerMoney += moneyChange;
-            this.activeMinigame = 'none';
-            this.diceUI = null;
-            this.input.popContext();
+        this.diceUI = new DiceUI(this.diceGame, (payout: number) => {
+            this.handleMinigameExit(this.diceGame, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
             this.diceGame.reset();
@@ -571,11 +652,8 @@ export class ExplorationScene implements Scene {
         this.input.pushContext('minigame');
         this.rondaGame.reset();
 
-        this.rondaUI = new RondaUI(this.rondaGame, (moneyChange: number) => {
-            bmanager.playerMoney += moneyChange;
-            this.activeMinigame = 'none';
-            this.rondaUI = null;
-            this.input.popContext();
+        this.rondaUI = new RondaUI(this.rondaGame, (payout: number) => {
+            this.handleMinigameExit(this.rondaGame, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
             this.rondaGame.reset();
@@ -588,18 +666,119 @@ export class ExplorationScene implements Scene {
         this.input.pushContext('minigame');
         this.dominoGame.reset();
 
-        this.dominoUI = new DominoUI(this.dominoGame, (moneyChange: number) => {
-            bmanager.playerMoney += moneyChange;
-            this.activeMinigame = 'none';
-            this.dominoUI = null;
-            this.input.popContext();
+        this.dominoUI = new DominoUI(this.dominoGame, (payout: number) => {
+            this.handleMinigameExit(this.dominoGame, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
             this.dominoGame.reset();
         });
     }
 
+    private startBarActivities(bar: any) {
+        this.activeMinigame = 'bar_menu';
+        this.currentBar = bar;
+        this.selectedBarMenuIndex = 0;
+        this.input.pushContext('menu');
+    }
+
+    private updateBarMenu(_dt: number) {
+        if (this.input.wasPressed('ArrowUp')) {
+            this.selectedBarMenuIndex = (this.selectedBarMenuIndex - 1 + 3) % 3;
+        }
+        if (this.input.wasPressed('ArrowDown')) {
+            this.selectedBarMenuIndex = (this.selectedBarMenuIndex + 1) % 3;
+        }
+        if (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            this.input.popContext();
+            if (this.selectedBarMenuIndex === 0) this.startVideoBingo();
+            else if (this.selectedBarMenuIndex === 1) this.startHorseRacing();
+            else if (this.selectedBarMenuIndex === 2) this.startDogRacing();
+        }
+        if (this.input.wasPressed('Escape')) {
+            this.activeMinigame = 'none';
+            this.input.popContext();
+        }
+    }
+
+    private startHorseRacing() {
+        this.activeMinigame = 'horse_racing';
+        this.input.pushContext('minigame');
+        this.horseRacingUI = new HorseRacingUI(
+            this.horseRacingGame,
+            (p) => this.handleMinigameExit(this.horseRacingGame, p),
+            (p) => {
+                if (p > 0) BichoManager.getInstance().playerMoney += p;
+                this.horseRacingGame.reset();
+            }
+        );
+    }
+
+    private startDogRacing() {
+        this.activeMinigame = 'dog_racing';
+        this.input.pushContext('minigame');
+        this.dogRacingUI = new DogRacingUI(
+            this.dogRacingGame,
+            (p) => this.handleMinigameExit(this.dogRacingGame, p),
+            (p) => {
+                if (p > 0) BichoManager.getInstance().playerMoney += p;
+                this.dogRacingGame.reset();
+            }
+        );
+    }
+
+    private startVideoBingo() {
+        this.activeMinigame = 'video_bingo';
+        this.input.pushContext('minigame');
+        this.videoBingoUI = new VideoBingoUI(
+            this.videoBingoGame,
+            (p) => this.handleMinigameExit(this.videoBingoGame, p),
+            (p) => {
+                if (p > 0) BichoManager.getInstance().playerMoney += p;
+                this.videoBingoGame.reset();
+            }
+        );
+    }
+
+
     // --- Rendering ---
+
+    private renderBarMenu(ctx: CanvasRenderingContext2D) {
+        const s = UIScale.s.bind(UIScale);
+        const w = this.screenW;
+        const h = this.screenH;
+
+        // Overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffcc00';
+        ctx.font = `bold ${UIScale.r(32)}px "Segoe UI"`;
+        ctx.fillText(this.currentBar?.name.toUpperCase() || "BAR", w / 2, h / 2 - s(100));
+
+        const options = [
+            "VIDEO BINGO ELETRÔNICO",
+            "APOSTAS EM CAVALOS",
+            "CORRIDA DE CÃES"
+        ];
+
+        options.forEach((opt, i) => {
+            const isSelected = i === this.selectedBarMenuIndex;
+            ctx.fillStyle = isSelected ? '#fff' : '#666';
+            ctx.font = `${isSelected ? 'bold ' : ''}${UIScale.r(20)}px monospace`;
+
+            if (isSelected) {
+                ctx.fillText(`> ${opt} <`, w / 2, h / 2 - s(20) + i * s(40));
+            } else {
+                ctx.fillText(opt, w / 2, h / 2 - s(20) + i * s(40));
+            }
+        });
+
+        ctx.fillStyle = '#888';
+        ctx.font = `${UIScale.r(14)}px monospace`;
+        ctx.fillText("Use [SETAS] para selecionar e [ESPAÇO/E] para entrar", w / 2, h / 2 + s(100));
+        ctx.fillText("[ESC] para sair", w / 2, h / 2 + s(125));
+    }
 
     public render(ctx: CanvasRenderingContext2D) {
         // Clear
@@ -628,6 +807,7 @@ export class ExplorationScene implements Scene {
         if (isNavigating) {
             this.tileRenderer.renderOverlays(ctx, this.camera);
             this.houseDialogue.draw(ctx, this.camera);
+            this.barDialogue.draw(ctx, this.camera);
             this.boothDialogue.draw(ctx, this.camera);
             this.npcManager.drawUI(ctx, this.camera);
         }
@@ -645,6 +825,14 @@ export class ExplorationScene implements Scene {
             if (this.headsTailsUI) this.headsTailsUI.draw(ctx, this.screenW, this.screenH);
             if (this.palitinhoUI) this.palitinhoUI.draw(ctx, this.screenW, this.screenH);
             if (this.fanTanUI) this.fanTanUI.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'horse_racing' && this.horseRacingUI) {
+            this.horseRacingUI.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'dog_racing' && this.dogRacingUI) {
+            this.dogRacingUI.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'video_bingo' && this.videoBingoUI) {
+            this.videoBingoUI.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'bar_menu') {
+            this.renderBarMenu(ctx);
         }
 
         // 6. UI / HUD (Rendered AFTER minigames to be always visible)

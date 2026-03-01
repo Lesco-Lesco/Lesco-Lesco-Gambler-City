@@ -7,10 +7,10 @@ import { BichoManager } from '../BichoManager';
 export class PokerUI implements IMinigameUI {
     private game: PokerGame;
     private input: InputManager;
-    private onExit: () => void;
+    private onExit: (payout: number) => void;
     private pendingRaise: number = 0;
 
-    constructor(game: PokerGame, onExit: () => void) {
+    constructor(game: PokerGame, onExit: (payout: number) => void) {
         this.game = game;
         this.input = InputManager.getInstance();
         this.onExit = onExit;
@@ -37,7 +37,8 @@ export class PokerUI implements IMinigameUI {
         } else if (this.game.phase === 'result') {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
-                bmanager.playerMoney += (humanCurrentBet() + profit); // Simplify refund
+                const payout = humanCurrentBet() + profit;
+                this.onExit(payout);
                 this.game.reset();
             }
         } else {
@@ -72,13 +73,11 @@ export class PokerUI implements IMinigameUI {
         }
 
         if (this.input.wasPressed('Escape')) {
-            if (this.game.phase !== 'betting') {
-                bmanager.addNotification("Termine a partida primeiro!", 2);
-            } else {
-                this.onExit();
-            }
+            const payout = (this.game.phase === 'result') ? (humanCurrentBet() + this.game.settle()) : 0;
+            this.onExit(payout);
         }
     }
+
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);

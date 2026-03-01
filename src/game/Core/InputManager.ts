@@ -75,16 +75,42 @@ export class InputManager {
         return this.justPressed.size > 0 || this.mouseDown;
     }
 
+    private getAliases(code: string): string[] {
+        const aliases: Record<string, string[]> = {
+            'ArrowUp': ['KeyW'],
+            'ArrowDown': ['KeyS'],
+            'ArrowLeft': ['KeyA'],
+            'ArrowRight': ['KeyD'],
+            'KeyW': ['ArrowUp'],
+            'KeyS': ['ArrowDown'],
+            'KeyA': ['ArrowLeft'],
+            'KeyD': ['ArrowRight']
+        };
+        return aliases[code] || [];
+    }
+
     public isDown(code: string): boolean {
-        return this.keys.get(code) === true;
+        if (this.keys.get(code)) return true;
+        for (const alias of this.getAliases(code)) {
+            if (this.keys.get(alias)) return true;
+        }
+        return false;
     }
 
     public wasPressed(code: string): boolean {
-        return this.justPressed.get(code) === true;
+        if (this.justPressed.get(code)) return true;
+        for (const alias of this.getAliases(code)) {
+            if (this.justPressed.get(alias)) return true;
+        }
+        return false;
     }
 
     public wasReleased(code: string): boolean {
-        return this.justReleased.get(code) === true;
+        if (this.justReleased.get(code)) return true;
+        for (const alias of this.getAliases(code)) {
+            if (this.justReleased.get(alias)) return true;
+        }
+        return false;
     }
 
     public getMousePos(): { x: number; y: number } {

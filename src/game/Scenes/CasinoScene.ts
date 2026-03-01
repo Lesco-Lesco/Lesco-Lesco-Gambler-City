@@ -87,10 +87,11 @@ export class CasinoScene implements Scene {
 
         if (this.type === 'station') {
             const bjGame = new BlackjackGame();
-            this.blackjack = { game: bjGame, ui: new BlackjackUI(bjGame, () => this.state = 'floor') };
+            this.blackjack = { game: bjGame, ui: new BlackjackUI(bjGame, (p) => this.handleMinigameExit(p)) };
             const pkGame = new PokerGame();
-            this.poker = { game: pkGame, ui: new PokerUI(pkGame, () => this.state = 'floor') };
+            this.poker = { game: pkGame, ui: new PokerUI(pkGame, (p) => this.handleMinigameExit(p)) };
         }
+
 
         this.rebuildLayout();
     }
@@ -248,14 +249,50 @@ export class CasinoScene implements Scene {
             this.poker.ui.update(dt);
         }
 
-        if (this.input.wasPressed('Escape') && this.state === 'floor') {
-            if (this.onSceneExitRequest) this.onSceneExitRequest();
-        }
-        if (this.input.wasPressed('Escape') && this.state !== 'floor') {
-            this.state = 'floor';
-            this.slotResult = null;
+        if (this.input.wasPressed('Escape')) {
+            if (this.state === 'floor') {
+                if (this.onSceneExitRequest) this.onSceneExitRequest();
+            } else if (this.state === 'blackjack' && this.blackjack) {
+                // Escape handled in UI, but just in case
+            } else if (this.state === 'poker' && this.poker) {
+                // Escape handled in UI
+            } else {
+                // Slot or Bicho
+                this.handleMinigameExit(0);
+            }
         }
     }
+
+    private handleMinigameExit(payout: number = 0) {
+        const bmanager = BichoManager.getInstance();
+
+        // Specific checks for abandoned games in progress
+        if (this.state === 'blackjack' && this.blackjack) {
+            if (this.blackjack.game.phase === 'playing' || this.blackjack.game.phase === 'dealer_turn') {
+                bmanager.addNotification(`Partida abandonada! Perdeu R$${this.blackjack.game.betAmount}.`, 4);
+            }
+            this.blackjack.game.reset();
+        } else if (this.state === 'poker' && this.poker) {
+            if (this.poker.game.phase !== 'betting' && this.poker.game.phase !== 'result') {
+                const totalBet = this.poker.game.players[0].currentBet;
+                bmanager.addNotification(`Partida abandonada! Perdeu R$${totalBet}.`, 4);
+            }
+            this.poker.game.reset();
+        } else if (this.state === 'slot') {
+            if (this.slotSpinning) {
+                bmanager.addNotification(`Partida abandonada! Perdeu R$${this.slotBet}.`, 4);
+            }
+            this.slotSpinning = false;
+            this.slotResult = null;
+        }
+
+        if (payout > 0) {
+            bmanager.playerMoney += payout;
+        }
+
+        this.state = 'floor';
+    }
+
 
     private updateParticles(dt: number) {
         for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -331,7 +368,7 @@ export class CasinoScene implements Scene {
                 const bmanager = BichoManager.getInstance();
                 this.slotResult = this.slotMachine.spin(this.slotBet, theme);
                 this.slotReels = this.slotResult.reels;
-                bmanager.playerMoney += this.slotResult.payout - this.slotBet;
+                bmanager.playerMoney += this.slotResult.payout;
                 if (this.slotResult.payout > 0) {
                     this.spawnWinParticles(this.screenW / 2, this.screenH / 2);
                 }
@@ -349,11 +386,13 @@ export class CasinoScene implements Scene {
             }
             const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
             if (okPressed && bmanager.playerMoney >= this.slotBet) {
+                bmanager.playerMoney -= this.slotBet;
                 this.slotSpinning = true;
                 this.slotSpinTimer = 1.5;
                 this.slotResult = null;
             }
         }
+
     }
 
     private updateBicho() {

@@ -30,7 +30,6 @@ export class PalitinhoUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
             }
-            if (this.input.wasPressed('Escape')) this.onClose(0);
         } else if (phase === 'dice_roll') {
             this.game.update(dt);
         } else if (phase === 'choosing') {
@@ -49,11 +48,16 @@ export class PalitinhoUI {
         } else if (phase === 'result') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
                 this.onPlayAgain(this.game.settle());
-            } else if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE') || this.input.wasPressed('Escape')) {
-                this.onClose(this.game.settle());
             }
         }
+
+        if (this.input.wasPressed('Escape')) {
+            const moneyChange = (this.game.phase === 'result') ? this.game.settle() : 0;
+            this.onClose(moneyChange);
+        }
     }
+
+
 
     public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);

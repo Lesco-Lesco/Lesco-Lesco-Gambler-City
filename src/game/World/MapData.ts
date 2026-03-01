@@ -33,6 +33,7 @@ export const TILE_TYPES = {
     MONUMENT: 20,
     DECORATIVE_ENTRANCE: 21,
     INFORMATION_BOOTH: 22,
+    BAR: 23,
 } as const;
 
 export type TileType = typeof TILE_TYPES[keyof typeof TILE_TYPES];
@@ -54,7 +55,7 @@ export interface POI {
     name: string;
 }
 
-export interface StreetSign { x: number; y: number; name: string; direction: 'h' | 'v'; }
+export interface StreetSign { x: number; y: number; name: string; direction: 'h' | 'v'; type?: 'street' | 'bar'; }
 export interface Crosswalk { x: number; y: number; direction: 'h' | 'v'; }
 export type CityLightType = 'street' | 'streetglow' | 'residential' | 'plaza' | 'shopping' | 'alley';
 export interface CityLight { x: number; y: number; type: CityLightType; }
@@ -80,6 +81,7 @@ const CH = TILE_TYPES.CHURCH;
 const DT = TILE_TYPES.DOMINO_TABLE;
 const MT = TILE_TYPES.MONUMENT;
 const DE = TILE_TYPES.DECORATIVE_ENTRANCE;
+const BR = TILE_TYPES.BAR;
 
 function generateMap(): number[][] {
     const map: number[][] = [];
@@ -595,33 +597,92 @@ function generateMap(): number[][] {
     return map;
 }
 
-export const MAP_DATA = generateMap();
+export interface BarInfo {
+    x: number;
+    y: number;
+    owner: string;
+    name: string;
+    propaganda: string;
+    variation?: number;
+}
+
+export const BARS: BarInfo[] = [
+    // Central Bars (15)
+    { x: 115, y: 100, owner: 'Tiquinho', name: 'Bar do Tiquinho', propaganda: 'Tiquinho: O Amigo da Galera! Vote 10123', variation: 0 },
+    { x: 185, y: 100, owner: 'José', name: 'Bar do Zé', propaganda: 'Zé do Bar: Honestidade no Copo e na Urna! Vote 45678', variation: 1 },
+    { x: 162, y: 110, owner: 'Manoel', name: 'Bar do Manoel', propaganda: 'Manoel do Bar: Tradição e Progresso! Vote 15555', variation: 2 },
+    { x: 172, y: 72, owner: 'Chico', name: 'Bar do Chico', propaganda: 'Chico: Renovação Já! Vote 22222', variation: 3 },
+    { x: 182, y: 72, owner: 'Beto', name: 'Bar do Beto', propaganda: 'Beto: Pela nossa Santa Cruz! Vote 13131', variation: 4 },
+    { x: 192, y: 72, owner: 'Cida', name: 'Bar da Cida', propaganda: 'Cida: A Força da Mulher! Vote 65656', variation: 5 },
+    { x: 172, y: 92, owner: 'Gomes', name: 'Bar do Gomes', propaganda: 'Sargento Gomes: Segurança em Primeiro Lugar! Vote 19190', variation: 0 },
+    { x: 182, y: 92, owner: 'Toninho', name: 'Bar do Toninho', propaganda: 'Toninho do Povo: Pelo Pão e pelo Vinho! Vote 40444', variation: 1 },
+    { x: 192, y: 92, owner: 'Lúcia', name: 'Bar da Lúcia', propaganda: 'Lúcia: Educação é a Base! Vote 25252', variation: 2 },
+    { x: 62, y: 52, owner: 'Raimundo', name: 'Bar do Raimundo', propaganda: 'Raimundo: O Povo no Poder! Vote 50505', variation: 3 },
+    { x: 72, y: 52, owner: 'Dona Flor', name: 'Bar da Flor', propaganda: 'Dona Flor: Saúde para Todos! Vote 11111', variation: 4 },
+    { x: 82, y: 52, owner: 'Tião', name: 'Bar do Tião', propaganda: 'Tião: Traca-traca na Corrupção! Vote 70777', variation: 5 },
+    { x: 62, y: 102, owner: 'Nena', name: 'Bar da Nena', propaganda: 'Nena: Carinho e Dedicação! Vote 23232', variation: 0 },
+    { x: 72, y: 102, owner: 'Jorge', name: 'Bar do Jorge', propaganda: 'Jorge Guerreiro: Luta e Vitória! Vote 12121', variation: 1 },
+    { x: 82, y: 102, owner: 'Marta', name: 'Bar da Marta', propaganda: 'Marta: Por Dias Melhores! Vote 2', variation: 2 },
+
+    // Periphery Bars (18)
+    { x: 22, y: 22, owner: 'Loira', name: 'Bar da Loira', propaganda: 'Loira: A Voz da Periferia! Vote 12345', variation: 3 },
+    { x: 22, y: 62, owner: 'Gordo', name: 'Bar do Gordo', propaganda: 'Gordo do Bar: Peso na Política! Vote 55555', variation: 4 },
+    { x: 22, y: 102, owner: 'Zico', name: 'Bar do Zico', propaganda: 'Zico: Craque na Urna! Vote 10101', variation: 5 },
+    { x: 22, y: 142, owner: 'Mona', name: 'Bar da Mona', propaganda: 'Mona: Atitude e Respeito! Vote 18181', variation: 0 },
+    { x: 22, y: 182, owner: 'Dico', name: 'Bar do Dico', propaganda: 'Dico: Sem Medo de Mudar! Vote 31313', variation: 1 },
+    { x: 22, y: 222, owner: 'Baiano', name: 'Bar do Baiano', propaganda: 'Baiano: Alegria e Trabalho! Vote 44444', variation: 2 },
+    { x: 22, y: 262, owner: 'Preto', name: 'Bar do Preto', propaganda: 'Preto: Igualdade para Todos! Vote 77777', variation: 3 },
+    { x: 252, y: 22, owner: 'Vovô', name: 'Bar do Vovô', propaganda: 'Vovô: Experiência Vale Ouro! Vote 90909', variation: 4 },
+    { x: 252, y: 62, owner: 'Xuxa', name: 'Bar da Xuxa', propaganda: 'Xuxinha: O Futuro é Agora! Vote 80808', variation: 5 },
+    { x: 252, y: 102, owner: 'Paulinho', name: 'Bar do Paulinho', propaganda: 'Paulinho: Jovem e Determinado! Vote 30303', variation: 0 },
+    { x: 252, y: 142, owner: 'Sônia', name: 'Bar da Sônia', propaganda: 'Sônia: Zelando por Você! Vote 27272', variation: 1 },
+    { x: 252, y: 182, owner: 'Geraldo', name: 'Bar do Geraldo', propaganda: 'Geraldo: Trabalho Sério! Vote 15151', variation: 2 },
+    { x: 252, y: 222, owner: 'Luiz', name: 'Bar do Luiz', propaganda: 'Luizão: O Gigante da Santa Cruz! Vote 14141', variation: 3 },
+    { x: 252, y: 262, owner: 'Alemão', name: 'Bar do Alemão', propaganda: 'Alemão: Justiça e Ordem! Vote 20202', variation: 4 },
+    { x: 102, y: 262, owner: 'Nico', name: 'Bar do Nico', propaganda: 'Nico: O Povo é quem Manda! Vote 51555', variation: 5 },
+    { x: 142, y: 262, owner: 'Bia', name: 'Bar da Bia', propaganda: 'Bia: Renovando com Amor! Vote 36363', variation: 0 },
+    { x: 182, y: 262, owner: 'Dudu', name: 'Bar do Dudu', propaganda: 'Dudu: Pelo Bem Comum! Vote 43434', variation: 1 },
+    { x: 202, y: 262, owner: 'Sueli', name: 'Bar da Sueli', propaganda: 'Sueli: Dedicação Total! Vote 54545', variation: 2 },
+];
+
+export const MAP_DATA = (() => {
+    const map = generateMap();
+    // Place BARS
+    for (const bar of BARS) {
+        if (bar.y < map.length && bar.x < map[0].length) {
+            map[bar.y][bar.x] = BR;
+        }
+    }
+    return map;
+})();
 
 export function findSafeSpawn(): { x: number, y: number } {
     return { x: 130, y: 152 }; // On the street/median of Felipe Cardoso
 }
 
 export const STREET_SIGNS: StreetSign[] = [
-    { x: 130, y: 155, name: 'R. Felipe Cardoso', direction: 'h' },
-    { x: 100, y: 130, name: 'R. Barão de Laguna', direction: 'v' },
-    { x: 130, y: 205, name: 'R. Lucindo Passos', direction: 'h' },
-    { x: 112, y: 120, name: '???', direction: 'h' }, // Shopping Casino Hint
-    { x: 226, y: 180, name: '???', direction: 'v' }, // Station Casino Hint
+    { x: 130, y: 155, name: 'R. Felipe Cardoso', direction: 'h', type: 'street' },
+    { x: 100, y: 130, name: 'R. Barão de Laguna', direction: 'v', type: 'street' },
+    { x: 130, y: 205, name: 'R. Lucindo Passos', direction: 'h', type: 'street' },
+    { x: 112, y: 120, name: '???', direction: 'h', type: 'street' }, // Shopping Casino Hint
+    { x: 226, y: 180, name: '???', direction: 'v', type: 'street' }, // Station Casino Hint
 
     // New Streets
-    { x: 200, y: 62, name: 'R. do Império', direction: 'h' },
-    { x: 190, y: 112, name: 'R. Álvaro Alberto', direction: 'h' },
-    { x: 90, y: 224, name: 'Beco do Matadouro', direction: 'h' },
+    { x: 200, y: 62, name: 'R. do Império', direction: 'h', type: 'street' },
+    { x: 190, y: 112, name: 'R. Álvaro Alberto', direction: 'h', type: 'street' },
+    { x: 90, y: 224, name: 'Beco do Matadouro', direction: 'h', type: 'street' },
 
     // Subdivision Streets
-    { x: 74, y: 100, name: 'R. São Benedito', direction: 'v' },
-    { x: 150, y: 236, name: 'Av. Antares', direction: 'h' },
-    { x: 170, y: 48, name: 'Tv. das Flores', direction: 'h' },
+    { x: 74, y: 100, name: 'R. São Benedito', direction: 'v', type: 'street' },
+    { x: 150, y: 236, name: 'Av. Antares', direction: 'h', type: 'street' },
+    { x: 170, y: 48, name: 'Tv. das Flores', direction: 'h', type: 'street' },
 
     // New Residential Connections
-    { x: 112, y: 100, name: 'R. Lopes de Moura', direction: 'v' },
-    { x: 188, y: 100, name: 'R. Gen. Canabarro', direction: 'v' },
-    { x: 165, y: 113, name: 'R. Sen. Camará', direction: 'h' },
+    { x: 112, y: 100, name: 'R. Lopes de Moura', direction: 'v', type: 'street' },
+    { x: 188, y: 100, name: 'R. Gen. Canabarro', direction: 'v', type: 'street' },
+    { x: 165, y: 113, name: 'R. Sen. Camará', direction: 'h', type: 'street' },
+    // Bar Labels
+    ...BARS.map(bar => ({ x: bar.x, y: bar.y - 1, name: bar.name, direction: 'h' as const, type: 'bar' as const })),
 ];
 
 
@@ -629,6 +690,7 @@ export const CROSSWALKS: Crosswalk[] = [
     { x: 130, y: 150, direction: 'v' },
     { x: 100, y: 150, direction: 'v' },
 ];
+
 
 export const POINTS_OF_INTEREST: POI[] = [
     { x: 128, y: 147, type: 'pedinte', name: 'Zumbi do Shopping' },

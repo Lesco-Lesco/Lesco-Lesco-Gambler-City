@@ -7,9 +7,9 @@ import { BichoManager } from '../BichoManager';
 export class BlackjackUI implements IMinigameUI {
     private game: BlackjackGame;
     private input: InputManager;
-    private onExit: () => void;
+    private onExit: (payout: number) => void;
 
-    constructor(game: BlackjackGame, onExit: () => void) {
+    constructor(game: BlackjackGame, onExit: (payout: number) => void) {
         this.game = game;
         this.input = InputManager.getInstance();
         this.onExit = onExit;
@@ -40,21 +40,18 @@ export class BlackjackUI implements IMinigameUI {
         } else if (this.game.phase === 'result') {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
-                bmanager.playerMoney += (this.game.betAmount + profit);
+                const payout = this.game.betAmount + profit;
+                this.onExit(payout);
                 this.game.reset();
             }
         }
 
         if (this.input.wasPressed('Escape')) {
-            if (this.game.phase !== 'betting') {
-                // Settle currently active game as loss if escaping? or just prevent?
-                // Let's prevent escaping mid-game for now to avoid logic loops
-                bmanager.addNotification("Termine a partida primeiro!", 2);
-            } else {
-                this.onExit();
-            }
+            const payout = (this.game.phase === 'result') ? (this.game.betAmount + this.game.settle()) : 0;
+            this.onExit(payout);
         }
     }
+
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);
