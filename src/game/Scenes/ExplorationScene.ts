@@ -42,6 +42,8 @@ import { DogRacingGame } from '../MiniGames/DogRacingGame';
 import { DogRacingUI } from '../MiniGames/DogRacingUI';
 import { VideoBingoGame } from '../MiniGames/VideoBingoGame';
 import { VideoBingoUI } from '../MiniGames/VideoBingoUI';
+import { JokenpoGame } from '../MiniGames/JokenpoGame';
+import { JokenpoUI } from '../MiniGames/JokenpoUI';
 import { PoliceManager } from '../PoliceManager';
 import { UIScale } from '../Core/UIScale';
 
@@ -83,8 +85,9 @@ export class ExplorationScene implements Scene {
     private dogRacingUI: DogRacingUI | null = null;
     private videoBingoGame: VideoBingoGame;
     private videoBingoUI: VideoBingoUI | null = null;
+    private jokenpoUI: JokenpoUI | null = null;
 
-    private activeMinigame: 'none' | 'purrinha' | 'dice' | 'ronda' | 'domino' | 'generic' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' = 'none';
+    private activeMinigame: 'none' | 'purrinha' | 'dice' | 'ronda' | 'domino' | 'generic' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' = 'none';
     private selectedBarMenuIndex: number = 0;
     private currentBar: any | null = null;
 
@@ -223,7 +226,9 @@ export class ExplorationScene implements Scene {
             return; // Block movement and other world updates
         }
 
-        pm.update(dt, this.player.x, this.player.y, bmanager.playerMoney, isIllegal);
+        const isBarGame = ['horse_racing', 'dog_racing', 'video_bingo', 'bar_menu'].includes(this.activeMinigame as string);
+        const isInBribedBar = isBarGame && this.currentBar?.paysBribe === true;
+        pm.update(dt, this.player.x, this.player.y, bmanager.playerMoney, isIllegal, isInBribedBar, isBarGame);
 
         // High Risk Warning logic
         const inHighRisk = pm.isPeriphery(this.player.x, this.player.y);
@@ -274,12 +279,13 @@ export class ExplorationScene implements Scene {
             return;
         }
 
-        if (this.activeMinigame === 'generic' || this.activeMinigame === 'heads_tails' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan') {
+        if (this.activeMinigame === 'generic' || this.activeMinigame === 'heads_tails' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
             const pm = PoliceManager.getInstance();
             if (pm.phase === 'none') {
                 if (this.headsTailsUI) this.headsTailsUI.update(dt);
                 if (this.palitinhoUI) this.palitinhoUI.update(dt);
                 if (this.fanTanUI) this.fanTanUI.update(dt);
+                if (this.jokenpoUI) this.jokenpoUI.update(dt);
             }
             return;
         }
@@ -392,9 +398,14 @@ export class ExplorationScene implements Scene {
         if (pm.phase === 'none') return;
         pm.update(dt);
 
-        if (pm.phase === 'interruption') {
+        if (pm.phase === 'interruption' || pm.phase === 'bribed_interruption') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
-                pm.phase = 'gamble_check';
+                if (pm.phase === 'bribed_interruption') {
+                    pm.phase = 'none';
+                    this.exitMinigame();
+                } else {
+                    pm.phase = 'gamble_check';
+                }
             }
         } else if (pm.phase === 'gamble_check') {
             const acceptBank = this.input.wasPressed('KeyY') || (mobile && (this.input.wasPressed('ArrowUp') || this.input.wasPressed('ArrowLeft')));
@@ -460,7 +471,7 @@ export class ExplorationScene implements Scene {
             if (inProgress) {
                 // Jogos que não descontam no ato da aposta, descontamos no abandono
                 const needsDeduction = [
-                    'purrinha', 'heads_tails', 'palitinho', 'fantan'
+                    'purrinha', 'heads_tails', 'palitinho', 'fantan', 'jokenpo'
                 ].includes(this.activeMinigame);
 
                 if (needsDeduction) {
@@ -468,7 +479,7 @@ export class ExplorationScene implements Scene {
                 }
                 bmanager.addNotification(`Partida abandonada! Perdeu R$${game.betAmount}.`, 4);
             }
-            if (payout > 0) bmanager.playerMoney += payout;
+            if (payout !== 0) bmanager.playerMoney += payout;
         }
         this.exitMinigame();
     }
@@ -482,6 +493,7 @@ export class ExplorationScene implements Scene {
         this.headsTailsUI = null;
         this.palitinhoUI = null;
         this.fanTanUI = null;
+        this.jokenpoUI = null;
         this.horseRacingUI = null;
         this.dogRacingUI = null;
         this.videoBingoUI = null;
@@ -562,6 +574,7 @@ export class ExplorationScene implements Scene {
                     else if (type === 'heads_tails') this.startHeadsTails();
                     else if (type === 'palitinho') this.startPalitinho();
                     else if (type === 'fan_tan') this.startFanTan();
+                    else if (type === 'jokenpo') this.startJokenpo();
                 }
             } else {
                 this.player.nearbyInteraction = null;
@@ -629,6 +642,20 @@ export class ExplorationScene implements Scene {
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
             game.reset();
+        });
+    }
+
+    private startJokenpo() {
+        const bmanager = BichoManager.getInstance();
+        const game = new JokenpoGame(bmanager.playerMoney);
+        this.activeMinigame = 'jokenpo';
+        this.input.pushContext('minigame');
+
+        this.jokenpoUI = new JokenpoUI(game, (payout: number) => {
+            this.handleMinigameExit(game, payout);
+        }, (moneyChange: number) => {
+            bmanager.playerMoney += moneyChange;
+            game.reset(bmanager.playerMoney);
         });
     }
 
@@ -821,10 +848,11 @@ export class ExplorationScene implements Scene {
             this.rondaUI.draw(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'domino' && this.dominoUI) {
             this.dominoUI.draw(ctx, this.screenW, this.screenH);
-        } else if (this.activeMinigame === 'generic' || this.activeMinigame === 'heads_tails' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan') {
+        } else if (this.activeMinigame === 'generic' || this.activeMinigame === 'heads_tails' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
             if (this.headsTailsUI) this.headsTailsUI.draw(ctx, this.screenW, this.screenH);
             if (this.palitinhoUI) this.palitinhoUI.draw(ctx, this.screenW, this.screenH);
             if (this.fanTanUI) this.fanTanUI.draw(ctx, this.screenW, this.screenH);
+            if (this.jokenpoUI) this.jokenpoUI.draw(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'horse_racing' && this.horseRacingUI) {
             this.horseRacingUI.draw(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'dog_racing' && this.dogRacingUI) {
@@ -893,12 +921,13 @@ export class ExplorationScene implements Scene {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#fff';
 
-        if (pm.phase === 'interruption') {
+        if (pm.phase === 'interruption' || pm.phase === 'bribed_interruption') {
+            const isBribed = pm.phase === 'bribed_interruption';
             ctx.font = `bold ${UIScale.r(40)}px "Segoe UI"`;
-            ctx.fillStyle = '#ff4444';
+            ctx.fillStyle = isBribed ? '#44aaff' : '#ff4444';
 
-            // Scaled text for "POLÍCIA! PARADO!" if screen is too narrow
-            const title = "POLÍCIA! PARADO!";
+            // Scaled text
+            const title = isBribed ? "FISCALIZAÇÃO DE ROTINA" : "POLÍCIA! PARADO!";
             const titleWidth = ctx.measureText(title).width;
             if (titleWidth > w - s(40)) {
                 ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
@@ -910,12 +939,16 @@ export class ExplorationScene implements Scene {
             this.drawTextWrapped(ctx, `"${pm.currentJoke}"`, cx, cy - s(20), w - s(60), UIScale.r(25));
 
             ctx.font = `bold ${UIScale.r(14)}px monospace`;
-            const expl = `ACONTECEU UMA BATIDA! ELES ESTÃO DE OLHO NO SEU DINHEIRO...`;
+            const expl = isBribed
+                ? "A POLÍCIA APARECEU PARA DAR UMA OLHADA... HÁ UM ACORDO, MAS O JOGO PRECISA PARAR."
+                : "ACONTECEU UMA BATIDA! ELES ESTÃO DE OLHO NO SEU DINHEIRO...";
             this.drawTextWrapped(ctx, expl, cx, cy + s(40), w - s(40), UIScale.r(18));
 
             ctx.fillStyle = 'rgba(255,255,255,0.6)';
             ctx.font = `bold ${UIScale.r(16)}px monospace`;
-            const hint = mobile ? "[ OK ] OUVIR O POLICIAL" : "[ ESPAÇO ] OUVIR O POLICIAL";
+            const hint = mobile
+                ? (isBribed ? "[ OK ] ACATAR E SAIR" : "[ OK ] OUVIR O POLICIAL")
+                : (isBribed ? "[ ESPAÇO ] ACATAR E SAIR" : "[ ESPAÇO ] OUVIR O POLICIAL");
             ctx.fillText(hint, cx, cy + s(100));
         } else if (pm.phase === 'gamble_check') {
             const bmanager = BichoManager.getInstance();

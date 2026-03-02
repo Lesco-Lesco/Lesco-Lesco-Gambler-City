@@ -13,7 +13,7 @@ import { drawCharacter } from './CharacterRenderer';
 import type { CharacterAppearance } from './CharacterRenderer';
 
 export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police' | 'casino_promoter';
-export type MinigameType = 'purrinha' | 'dice' | 'ronda' | 'domino' | 'heads_tails' | 'palitinho' | 'fan_tan' | null;
+export type MinigameType = 'purrinha' | 'dice' | 'ronda' | 'domino' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | null;
 
 interface NPCAppearance extends CharacterAppearance {
     // NPC-specific appearance can be extended here if needed
@@ -113,6 +113,12 @@ const DIALOGUES = {
         ["A Ronda na Estação não para!", "Baralho novo, sorte nova!", "Ganhei do trem, vou ganhar de você."],
         ["Quer uma partida rápida de Ronda?", "Aqui é o jogo dos espertos!", "Vem pra banca, o jogo tá quente."],
     ],
+    jokenpo: [
+        ["Pedra, papel ou tesoura?", "Duvido que você ganhe de mim."],
+        ["Jo ken po! Escolha rápido.", "Minha mão é mais rápida que seu olho."],
+        ["Um jogo clássico pros clássicos.", "Aposta 10 e vê se dá sorte."],
+        ["Tesoura corta papel, mas não corta minha sorte.", "Vem pro duelo de mãos!"],
+    ],
     heads_tails: [
         ["Cara ou coroa? A sorte está no ar!", "Uma moeda, dois destinos."],
         ["Escolha um lado e reze.", "O metal nunca mente."],
@@ -211,12 +217,13 @@ export class NPC {
         // Auto-assign random minigame if gambler and none specified
         if (this.type === 'gambler' && !this.minigameType) {
             const r = Math.random();
-            if (r < 0.15) this.minigameType = 'purrinha';
-            else if (r < 0.3) this.minigameType = 'dice';
-            else if (r < 0.45) this.minigameType = 'ronda';
-            else if (r < 0.6) this.minigameType = 'heads_tails';
-            else if (r < 0.8) this.minigameType = 'palitinho';
-            else this.minigameType = 'fan_tan';
+            if (r < 0.14) this.minigameType = 'purrinha';
+            else if (r < 0.28) this.minigameType = 'dice';
+            else if (r < 0.42) this.minigameType = 'ronda';
+            else if (r < 0.56) this.minigameType = 'heads_tails';
+            else if (r < 0.7) this.minigameType = 'palitinho';
+            else if (r < 0.84) this.minigameType = 'fan_tan';
+            else this.minigameType = 'jokenpo';
         }
 
         const seed = x * 1000 + y;

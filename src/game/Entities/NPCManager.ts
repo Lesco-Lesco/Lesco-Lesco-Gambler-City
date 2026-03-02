@@ -40,6 +40,8 @@ export class NPCManager {
                 this.npcs.push(new NPC(poi.x, poi.y, 'gambler', `Dados ${poi.name}`, 'dice', 'dice'));
             } else if (poi.type === 'ronda') {
                 this.npcs.push(new NPC(poi.x, poi.y, 'gambler', `Ronda ${poi.name}`, 'ronda', 'ronda'));
+            } else if (poi.type === 'jokenpo') {
+                this.npcs.push(new NPC(poi.x, poi.y, 'gambler', `Jo Ken Po ${poi.name}`, 'jokenpo', 'jokenpo'));
             } else if (poi.type === 'pedinte') {
                 this.npcs.push(new NPC(poi.x, poi.y, 'pedinte', poi.name));
             } else {
@@ -156,10 +158,11 @@ export class NPCManager {
             { type: 'ronda', x: 230, y: 150, weight: 1.0 },     // East (Station/Marco)
             { type: 'fan_tan', x: 130, y: 130, weight: 1.5 },   // Shopping/Central (Chinatown approach)
             { type: 'palitinho', x: 40, y: 40, weight: 1.0 },    // North-West Alleys
-            { type: 'heads_tails', x: 250, y: 250, weight: 1.0 } // South-East
+            { type: 'heads_tails', x: 250, y: 250, weight: 1.0 }, // South-East
+            { type: 'jokenpo', x: 130, y: 190, weight: 1.2 }    // Marques de Herval area
         ];
 
-        let weights = { purrinha: 0.1, dice: 0.1, ronda: 0.1, fan_tan: 0.1, palitinho: 0.1, heads_tails: 0.1 };
+        let weights = { purrinha: 0.1, dice: 0.1, ronda: 0.1, fan_tan: 0.1, palitinho: 0.1, heads_tails: 0.1, jokenpo: 0.1 };
 
         for (const hub of hubs) {
             const dist = Math.sqrt((x - hub.x) ** 2 + (y - hub.y) ** 2);
@@ -168,7 +171,7 @@ export class NPCManager {
             (weights as any)[hub.type] += influence * 2.0;
         }
 
-        const totalWeight = weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho + (weights as any).heads_tails;
+        const totalWeight = weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho + (weights as any).heads_tails + (weights as any).jokenpo;
         let r = Math.random() * totalWeight;
 
         if (r < weights.purrinha) return 'purrinha';
@@ -176,7 +179,8 @@ export class NPCManager {
         if (r < weights.purrinha + weights.dice + weights.ronda) return 'ronda';
         if (r < weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan) return 'fan_tan';
         if (r < weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho) return 'palitinho';
-        return 'heads_tails';
+        if (r < weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho + (weights as any).heads_tails) return 'heads_tails';
+        return 'jokenpo';
     }
 
     public update(dt: number, playerX: number, playerY: number, tileMap: TileMap) {

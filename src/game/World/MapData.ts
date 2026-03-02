@@ -51,7 +51,7 @@ export const AREA_LABELS: { x: number; y: number; name: string; type: 'neighborh
 export interface POI {
     x: number;
     y: number;
-    type: 'purrinha' | 'ronda' | 'dice' | 'domino' | 'npc_homeless' | 'npc_info' | 'npc_casino_promoter' | 'bingo' | 'pedinte' | 'domino_table';
+    type: 'purrinha' | 'ronda' | 'dice' | 'domino' | 'npc_homeless' | 'npc_info' | 'npc_casino_promoter' | 'bingo' | 'pedinte' | 'domino_table' | 'jokenpo';
     name: string;
 }
 
@@ -604,45 +604,46 @@ export interface BarInfo {
     name: string;
     propaganda: string;
     variation?: number;
+    paysBribe?: boolean;
 }
 
 export const BARS: BarInfo[] = [
-    // Central Bars (15)
-    { x: 115, y: 100, owner: 'Tiquinho', name: 'Bar do Tiquinho', propaganda: 'Tiquinho: O Amigo da Galera! Vote 10123', variation: 0 },
-    { x: 185, y: 100, owner: 'José', name: 'Bar do Zé', propaganda: 'Zé do Bar: Honestidade no Copo e na Urna! Vote 45678', variation: 1 },
-    { x: 162, y: 110, owner: 'Manoel', name: 'Bar do Manoel', propaganda: 'Manoel do Bar: Tradição e Progresso! Vote 15555', variation: 2 },
-    { x: 172, y: 72, owner: 'Chico', name: 'Bar do Chico', propaganda: 'Chico: Renovação Já! Vote 22222', variation: 3 },
-    { x: 182, y: 72, owner: 'Beto', name: 'Bar do Beto', propaganda: 'Beto: Pela nossa Santa Cruz! Vote 13131', variation: 4 },
-    { x: 192, y: 72, owner: 'Cida', name: 'Bar da Cida', propaganda: 'Cida: A Força da Mulher! Vote 65656', variation: 5 },
-    { x: 172, y: 92, owner: 'Gomes', name: 'Bar do Gomes', propaganda: 'Sargento Gomes: Segurança em Primeiro Lugar! Vote 19190', variation: 0 },
-    { x: 182, y: 92, owner: 'Toninho', name: 'Bar do Toninho', propaganda: 'Toninho do Povo: Pelo Pão e pelo Vinho! Vote 40444', variation: 1 },
-    { x: 192, y: 92, owner: 'Lúcia', name: 'Bar da Lúcia', propaganda: 'Lúcia: Educação é a Base! Vote 25252', variation: 2 },
-    { x: 62, y: 52, owner: 'Raimundo', name: 'Bar do Raimundo', propaganda: 'Raimundo: O Povo no Poder! Vote 50505', variation: 3 },
-    { x: 72, y: 52, owner: 'Dona Flor', name: 'Bar da Flor', propaganda: 'Dona Flor: Saúde para Todos! Vote 11111', variation: 4 },
-    { x: 82, y: 52, owner: 'Tião', name: 'Bar do Tião', propaganda: 'Tião: Traca-traca na Corrupção! Vote 70777', variation: 5 },
-    { x: 62, y: 102, owner: 'Nena', name: 'Bar da Nena', propaganda: 'Nena: Carinho e Dedicação! Vote 23232', variation: 0 },
-    { x: 72, y: 102, owner: 'Jorge', name: 'Bar do Jorge', propaganda: 'Jorge Guerreiro: Luta e Vitória! Vote 12121', variation: 1 },
-    { x: 82, y: 102, owner: 'Marta', name: 'Bar da Marta', propaganda: 'Marta: Por Dias Melhores! Vote 2', variation: 2 },
+    // Central Bars (15) - Mostly don't pay bribes, higher surveillance
+    { x: 115, y: 100, owner: 'Tiquinho', name: 'Bar do Tiquinho', propaganda: 'Tiquinho: O Amigo da Galera! Vote 10123', variation: 0, paysBribe: false },
+    { x: 185, y: 100, owner: 'José', name: 'Bar do Zé', propaganda: 'Zé do Bar: Honestidade no Copo e na Urna! Vote 45678', variation: 1, paysBribe: false },
+    { x: 162, y: 110, owner: 'Manoel', name: 'Bar do Manoel', propaganda: 'Manoel do Bar: Tradição e Progresso! Vote 15555', variation: 2, paysBribe: false },
+    { x: 172, y: 72, owner: 'Chico', name: 'Bar do Chico', propaganda: 'Chico: Renovação Já! Vote 22222', variation: 3, paysBribe: false },
+    { x: 182, y: 72, owner: 'Beto', name: 'Bar do Beto', propaganda: 'Beto: Pela nossa Santa Cruz! Vote 13131', variation: 4, paysBribe: false },
+    { x: 192, y: 72, owner: 'Cida', name: 'Bar da Cida', propaganda: 'Cida: A Força da Mulher! Vote 65656', variation: 5, paysBribe: false },
+    { x: 172, y: 92, owner: 'Gomes', name: 'Bar do Gomes', propaganda: 'Sargento Gomes: Segurança em Primeiro Lugar! Vote 19190', variation: 0, paysBribe: false },
+    { x: 182, y: 92, owner: 'Toninho', name: 'Bar do Toninho', propaganda: 'Toninho do Povo: Pelo Pão e pelo Vinho! Vote 40444', variation: 1, paysBribe: false },
+    { x: 192, y: 92, owner: 'Lúcia', name: 'Bar da Lúcia', propaganda: 'Lúcia: Educação é a Base! Vote 25252', variation: 2, paysBribe: false },
+    { x: 62, y: 52, owner: 'Raimundo', name: 'Bar do Raimundo', propaganda: 'Raimundo: O Povo no Poder! Vote 50505', variation: 3, paysBribe: false },
+    { x: 72, y: 52, owner: 'Dona Flor', name: 'Bar da Flor', propaganda: 'Dona Flor: Saúde para Todos! Vote 11111', variation: 4, paysBribe: false },
+    { x: 82, y: 52, owner: 'Tião', name: 'Bar do Tião', propaganda: 'Tião: Traca-traca na Corrupção! Vote 70777', variation: 5, paysBribe: false },
+    { x: 62, y: 102, owner: 'Nena', name: 'Bar da Nena', propaganda: 'Nena: Carinho e Dedicação! Vote 23232', variation: 0, paysBribe: false },
+    { x: 72, y: 102, owner: 'Jorge', name: 'Bar do Jorge', propaganda: 'Jorge Guerreiro: Luta e Vitória! Vote 12121', variation: 1, paysBribe: false },
+    { x: 82, y: 102, owner: 'Marta', name: 'Bar da Marta', propaganda: 'Marta: Por Dias Melhores! Vote 2', variation: 2, paysBribe: false },
 
-    // Periphery Bars (18)
-    { x: 22, y: 22, owner: 'Loira', name: 'Bar da Loira', propaganda: 'Loira: A Voz da Periferia! Vote 12345', variation: 3 },
-    { x: 22, y: 62, owner: 'Gordo', name: 'Bar do Gordo', propaganda: 'Gordo do Bar: Peso na Política! Vote 55555', variation: 4 },
-    { x: 22, y: 102, owner: 'Zico', name: 'Bar do Zico', propaganda: 'Zico: Craque na Urna! Vote 10101', variation: 5 },
-    { x: 22, y: 142, owner: 'Mona', name: 'Bar da Mona', propaganda: 'Mona: Atitude e Respeito! Vote 18181', variation: 0 },
-    { x: 22, y: 182, owner: 'Dico', name: 'Bar do Dico', propaganda: 'Dico: Sem Medo de Mudar! Vote 31313', variation: 1 },
-    { x: 22, y: 222, owner: 'Baiano', name: 'Bar do Baiano', propaganda: 'Baiano: Alegria e Trabalho! Vote 44444', variation: 2 },
-    { x: 22, y: 262, owner: 'Preto', name: 'Bar do Preto', propaganda: 'Preto: Igualdade para Todos! Vote 77777', variation: 3 },
-    { x: 252, y: 22, owner: 'Vovô', name: 'Bar do Vovô', propaganda: 'Vovô: Experiência Vale Ouro! Vote 90909', variation: 4 },
-    { x: 252, y: 62, owner: 'Xuxa', name: 'Bar da Xuxa', propaganda: 'Xuxinha: O Futuro é Agora! Vote 80808', variation: 5 },
-    { x: 252, y: 102, owner: 'Paulinho', name: 'Bar do Paulinho', propaganda: 'Paulinho: Jovem e Determinado! Vote 30303', variation: 0 },
-    { x: 252, y: 142, owner: 'Sônia', name: 'Bar da Sônia', propaganda: 'Sônia: Zelando por Você! Vote 27272', variation: 1 },
-    { x: 252, y: 182, owner: 'Geraldo', name: 'Bar do Geraldo', propaganda: 'Geraldo: Trabalho Sério! Vote 15151', variation: 2 },
-    { x: 252, y: 222, owner: 'Luiz', name: 'Bar do Luiz', propaganda: 'Luizão: O Gigante da Santa Cruz! Vote 14141', variation: 3 },
-    { x: 252, y: 262, owner: 'Alemão', name: 'Bar do Alemão', propaganda: 'Alemão: Justiça e Ordem! Vote 20202', variation: 4 },
-    { x: 102, y: 262, owner: 'Nico', name: 'Bar do Nico', propaganda: 'Nico: O Povo é quem Manda! Vote 51555', variation: 5 },
-    { x: 142, y: 262, owner: 'Bia', name: 'Bar da Bia', propaganda: 'Bia: Renovando com Amor! Vote 36363', variation: 0 },
-    { x: 182, y: 262, owner: 'Dudu', name: 'Bar do Dudu', propaganda: 'Dudu: Pelo Bem Comum! Vote 43434', variation: 1 },
-    { x: 202, y: 262, owner: 'Sueli', name: 'Bar da Sueli', propaganda: 'Sueli: Dedicação Total! Vote 54545', variation: 2 },
+    // Periphery Bars (18) - High bribe rate ("Cota de Segurança")
+    { x: 22, y: 22, owner: 'Loira', name: 'Bar da Loira', propaganda: 'Loira: A Voz da Periferia! Vote 12345', variation: 3, paysBribe: true },
+    { x: 22, y: 62, owner: 'Gordo', name: 'Bar do Gordo', propaganda: 'Gordo do Bar: Peso na Política! Vote 55555', variation: 4, paysBribe: true },
+    { x: 22, y: 102, owner: 'Zico', name: 'Bar do Zico', propaganda: 'Zico: Craque na Urna! Vote 10101', variation: 5, paysBribe: true },
+    { x: 22, y: 142, owner: 'Mona', name: 'Bar da Mona', propaganda: 'Mona: Atitude e Respeito! Vote 18181', variation: 0, paysBribe: true },
+    { x: 22, y: 182, owner: 'Dico', name: 'Bar do Dico', propaganda: 'Dico: Sem Medo de Mudar! Vote 31313', variation: 1, paysBribe: true },
+    { x: 22, y: 222, owner: 'Baiano', name: 'Bar do Baiano', propaganda: 'Baiano: Alegria e Trabalho! Vote 44444', variation: 2, paysBribe: true },
+    { x: 22, y: 262, owner: 'Preto', name: 'Bar do Preto', propaganda: 'Preto: Igualdade para Todos! Vote 77777', variation: 3, paysBribe: true },
+    { x: 252, y: 22, owner: 'Vovô', name: 'Bar do Vovô', propaganda: 'Vovô: Experiência Vale Ouro! Vote 90909', variation: 4, paysBribe: true },
+    { x: 252, y: 62, owner: 'Xuxa', name: 'Bar da Xuxa', propaganda: 'Xuxinha: O Futuro é Agora! Vote 80808', variation: 5, paysBribe: true },
+    { x: 252, y: 102, owner: 'Paulinho', name: 'Bar do Paulinho', propaganda: 'Paulinho: Jovem e Determinado! Vote 30303', variation: 0, paysBribe: true },
+    { x: 252, y: 142, owner: 'Sônia', name: 'Bar da Sônia', propaganda: 'Sônia: Zelando por Você! Vote 27272', variation: 1, paysBribe: true },
+    { x: 252, y: 182, owner: 'Geraldo', name: 'Bar do Geraldo', propaganda: 'Geraldo: Trabalho Sério! Vote 15151', variation: 2, paysBribe: true },
+    { x: 252, y: 222, owner: 'Luiz', name: 'Bar do Luiz', propaganda: 'Luizão: O Gigante da Santa Cruz! Vote 14141', variation: 3, paysBribe: true },
+    { x: 252, y: 262, owner: 'Alemão', name: 'Bar do Alemão', propaganda: 'Alemão: Justiça e Ordem! Vote 20202', variation: 4, paysBribe: true },
+    { x: 102, y: 262, owner: 'Nico', name: 'Bar do Nico', propaganda: 'Nico: O Povo é quem Manda! Vote 51555', variation: 5, paysBribe: true },
+    { x: 142, y: 262, owner: 'Bia', name: 'Bar da Bia', propaganda: 'Bia: Renovando com Amor! Vote 36363', variation: 0, paysBribe: true },
+    { x: 182, y: 262, owner: 'Dudu', name: 'Bar do Dudu', propaganda: 'Dudu: Pelo Bem Comum! Vote 43434', variation: 1, paysBribe: true },
+    { x: 202, y: 262, owner: 'Sueli', name: 'Bar da Sueli', propaganda: 'Sueli: Dedicação Total! Vote 54545', variation: 2, paysBribe: true },
 ];
 
 export const MAP_DATA = (() => {
@@ -731,6 +732,12 @@ export const POINTS_OF_INTEREST: POI[] = [
     { x: 230, y: 162, type: 'pedinte', name: 'Cego da Estação' },
     { x: 245, y: 158, type: 'pedinte', name: 'Velho do Trem' },
     { x: 255, y: 168, type: 'pedinte', name: '瘸子 (Manco)' },
+
+    // --- JO KEN PO LOCATIONS ---
+    { x: 130, y: 195, type: 'jokenpo', name: 'da Praça' },
+    { x: 145, y: 125, type: 'jokenpo', name: 'do Shopping' },
+    { x: 210, y: 160, type: 'jokenpo', name: 'da Estação' },
+    { x: 50, y: 50, type: 'jokenpo', name: 'da Vila' },
 ];
 
 // ── Zone helpers ─────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-export type PoliceRaidPhase = 'none' | 'interruption' | 'gamble_check' | 'double_or_nothing' | 'dice_battle' | 'dice_battle_result' | 'consequence';
+export type PoliceRaidPhase = 'none' | 'interruption' | 'bribed_interruption' | 'gamble_check' | 'double_or_nothing' | 'dice_battle' | 'dice_battle_result' | 'consequence';
 
 export class PoliceManager {
     private static instance: PoliceManager;
@@ -11,6 +11,7 @@ export class PoliceManager {
     public giroflexTimer: number = 0;
     public currentJoke: string = '';
     public currentProvocation: string = '';
+    public isBribedRaid: boolean = false;
 
     private jokes: string[] = [
         "Apostando na rua? Achei que era um cidadão de bem.",
@@ -19,6 +20,14 @@ export class PoliceManager {
         "O azar não é perder o jogo, é eu aparecer no meio dele.",
         "Isso aqui é contravenção, mas o cafézinho pode resolver... brincadeira, perdeu tudo.",
         "Belo par de ases, pena que o meu é de algemas."
+    ];
+
+    private bribedDialogues: string[] = [
+        "Opa, recebemos uma denúncia de barulho da vizinhança... É melhor encerrar por hoje.",
+        "Tudo em ordem por aqui? Recebemos um chamado... mas acho que foi engano. De qualquer forma, melhor pararem o jogo.",
+        "Noite movimentada, hein? Algum vizinho reclamou do som alto. Vamos desmobilizar essa mesa aí.",
+        "Dando uma conferida na área... Muita gente reunida. Melhor cada um ir pro seu canto agora.",
+        "Só passando pra avisar que a denúncia de perturbação chegou na central. Encerrem a partida pra evitar problemas."
     ];
 
     private provocations: string[] = [
@@ -54,7 +63,7 @@ export class PoliceManager {
         return PoliceManager.instance;
     }
 
-    public update(dt: number, x?: number, y?: number, playerMoney?: number, isIllegalActivity?: boolean) {
+    public update(dt: number, x?: number, y?: number, playerMoney?: number, isIllegalActivity?: boolean, isInBribedBar?: boolean, isInsideBar?: boolean) {
         if (this.raidCooldown > 0) this.raidCooldown -= dt;
 
         if (this.phase !== 'none') {
@@ -68,9 +77,9 @@ export class PoliceManager {
                 if (this.raidCheckTimer >= this.RAID_CHECK_INTERVAL) {
                     this.raidCheckTimer = 0;
                     if (playerMoney > 10) {
-                        const chance = this.getRaidChance(x, y);
+                        const chance = this.getRaidChance(x, y, isInsideBar);
                         if (Math.random() < chance) {
-                            this.triggerRaid(0);
+                            this.triggerRaid(0, isInBribedBar);
                         }
                     }
                 }
@@ -78,11 +87,18 @@ export class PoliceManager {
         }
     }
 
-    public triggerRaid(betAmount: number) {
-        this.phase = 'interruption';
+    public triggerRaid(betAmount: number, isBribed: boolean = false) {
+        this.isBribedRaid = isBribed;
+        this.phase = isBribed ? 'bribed_interruption' : 'interruption';
         this.confiscatedAmount = betAmount;
-        this.currentJoke = this.jokes[Math.floor(Math.random() * this.jokes.length)];
-        this.raidCooldown = 60; // 1 minute between raids
+
+        if (isBribed) {
+            this.currentJoke = this.bribedDialogues[Math.floor(Math.random() * this.bribedDialogues.length)];
+        } else {
+            this.currentJoke = this.jokes[Math.floor(Math.random() * this.jokes.length)];
+        }
+
+        this.raidCooldown = isBribed ? 180 : 60; // 3 minutes for bribed bars (even rarer)
     }
 
     public getRandomAlert(): string {
@@ -105,18 +121,23 @@ export class PoliceManager {
         return isFarLeft || isFarRight || isSouthWestFavela;
     }
 
-    public getRaidChance(x: number, y: number): number {
+    public getRaidChance(x: number, y: number, isInsideBar: boolean = false): number {
         if (this.raidCooldown > 0) return 0;
 
-        // Periodic check chances (lower than end-game chances)
-        let chance = 0.02; // 2% every 5 seconds ~ 24% per minute in normal areas
+        if (isInsideBar) {
+            // Raids in bars are much harder to happen (0.5% every 5s base, 1% in periphery)
+            return this.isPeriphery(x, y) ? 0.01 : 0.005;
+        }
+
+        // --- STREET RAIDS (Restored to "Perfect" state) ---
+        let chance = 0.02; // 2% every 5 seconds ~ 24% per minute
 
         if (this.isPeriphery(x, y)) {
-            chance = 0.08; // 8% every 5 seconds ~ 63% per minute in periphery
+            chance = 0.08; // 8% every 5 seconds (High risk in periphery streets)
         } else {
             // Near shopping (X:130, Y:125)
             const distToShop = Math.sqrt((x - 130) ** 2 + (y - 125) ** 2);
-            if (distToShop < 40) chance = 0.005; // 0.5% every 5 seconds
+            if (distToShop < 40) chance = 0.005;
         }
 
         return chance;
@@ -127,5 +148,6 @@ export class PoliceManager {
         this.confiscatedAmount = 0;
         this.currentJoke = '';
         this.currentProvocation = '';
+        this.isBribedRaid = false;
     }
 }

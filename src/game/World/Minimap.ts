@@ -473,6 +473,7 @@ export class Minimap {
             case 'heads_tails': ctx.fillStyle = '#ff9933'; break;
             case 'palitinho': ctx.fillStyle = '#ff66cc'; break;
             case 'fan_tan': ctx.fillStyle = '#dc143c'; break;
+            case 'jokenpo': ctx.fillStyle = '#00ffff'; break;
             default: ctx.fillStyle = '#ffffff'; break;
         }
         ctx.fillRect(x - size / 2, y - size / 2, size, size);
@@ -488,7 +489,8 @@ export class Minimap {
             { name: 'Purrinha', color: '#ffff33' },
             { name: 'Cara ou Coroa', color: '#ff9933' },
             { name: 'Palitinho', color: '#ff66cc' },
-            { name: 'Fan Tan', color: '#dc143c' }
+            { name: 'Fan Tan', color: '#dc143c' },
+            { name: 'Jo Ken Po', color: '#00ffff' }
         ];
 
         const itemW = width / games.length;
