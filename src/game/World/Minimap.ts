@@ -1,6 +1,6 @@
 import { Camera } from '../Core/Camera';
 import { TileMap } from './TileMap';
-import { TILE_TYPES, MAP_WIDTH, STREET_SIGNS, AREA_LABELS } from './MapData';
+import { TILE_TYPES, MAP_WIDTH, STREET_SIGNS, AREA_LABELS, BARS } from './MapData';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { InputManager } from '../Core/InputManager';
@@ -309,7 +309,14 @@ export class Minimap {
 
         // Priority rendering: Streets first, then Bars (with overlap check)
         const drawnRects: { x1: number, y1: number, x2: number, y2: number }[] = [];
-        const sortedSigns = [...STREET_SIGNS].sort((a, b) => {
+
+        // Prepare signs including virtual bar signs
+        const allSigns = [
+            ...STREET_SIGNS,
+            ...BARS.map(bar => ({ x: bar.x, y: bar.y, name: bar.name, direction: 'h' as const, type: 'bar' as const }))
+        ];
+
+        const sortedSigns = allSigns.sort((a, b) => {
             if (a.type === 'street' && b.type !== 'street') return -1;
             if (a.type !== 'street' && b.type === 'street') return 1;
             return 0;

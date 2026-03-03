@@ -682,8 +682,6 @@ export const STREET_SIGNS: StreetSign[] = [
     { x: 112, y: 100, name: 'R. Lopes de Moura', direction: 'v', type: 'street' },
     { x: 188, y: 100, name: 'R. Gen. Canabarro', direction: 'v', type: 'street' },
     { x: 165, y: 113, name: 'R. Sen. Camará', direction: 'h', type: 'street' },
-    // Bar Labels
-    ...BARS.map(bar => ({ x: bar.x, y: bar.y - 1, name: bar.name, direction: 'h' as const, type: 'bar' as const })),
 ];
 
 

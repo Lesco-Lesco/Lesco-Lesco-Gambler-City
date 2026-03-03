@@ -355,7 +355,7 @@ export class TileRenderer {
                 const tileX = x;
                 const tileY = y;
 
-                if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL || tile === TILE_TYPES.SHOPPING) {
+                if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL || tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.BAR) {
                     drawables.push({
                         y: tileX + tileY + 0.5,
                         draw: () => {
@@ -426,6 +426,7 @@ export class TileRenderer {
                                     this.drawBarStripes(ctx, camera, tileX, tileY, h, rand);
                                     if (!s) this.drawBarEntrance(ctx, camera, tileX, tileY, rand);
                                     this.drawBarRoofDecorations(ctx, camera, tileX, tileY, h, rand);
+                                    this.drawBarOutdoorSeating(ctx, camera, tileX, tileY, rand);
                                 } else if (tile === TILE_TYPES.BUILDING_TALL) {
                                     this.drawFloorDivision(ctx, camera, tileX, tileY, h);
                                     if (seededRandom(tileX * 7, tileY * 11) > 0.5 && width < 0.9) {
@@ -890,8 +891,8 @@ export class TileRenderer {
 
         // 2. Awning (Toldo)
         const awningH = 3 * z;
-        const awningW = 10 * z;
-        const awningProt = 4 * z;
+        const awningW = 12 * z;
+        const awningProt = 5 * z;
 
         ctx.fillStyle = stripeColor;
         ctx.beginPath();
@@ -908,65 +909,169 @@ export class TileRenderer {
             ctx.fillRect(sx + i, sy + hh - doorH - 1 * z, 1 * z, awningH + 1 * z);
         }
 
-        // 3. Neon "BAR" Sign (Visible at all zoom levels now, with more punch)
+        // 3. ENHANCED Neon "BAR" Sign
         {
             const time = Date.now();
             const flicker = Math.sin(time / 80 + seed * 100) > 0.8 ? 0.3 : 1.0;
+            const signY = sy + hh - doorH - 6 * z;
 
             ctx.save();
-            ctx.shadowBlur = 12 * z * flicker;
-            ctx.shadowColor = stripeColor;
-            ctx.fillStyle = stripeColor;
-            ctx.font = `bold ${Math.round(6 * z)}px monospace`;
-            ctx.textAlign = 'center';
-            ctx.fillText("BAR", sx, sy + hh - doorH - 4 * z);
 
-            // Subtle glow on the wall behind
-            ctx.globalAlpha = 0.3 * flicker;
+            // Outer Glow
+            ctx.shadowBlur = 15 * z * flicker;
+            ctx.shadowColor = stripeColor;
+
+            // Draw a background panel for the sign
+            ctx.fillStyle = 'rgba(20, 20, 20, 0.8)';
+            ctx.fillRect(sx - 8 * z, signY - 8 * z, 16 * z, 10 * z);
+            ctx.strokeStyle = stripeColor;
+            ctx.lineWidth = 1 * z * flicker;
+            ctx.strokeRect(sx - 8 * z, signY - 8 * z, 16 * z, 10 * z);
+
+            // "BAR" Text
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.round(7 * z)}px "Press Start 2P"`;
+            ctx.textAlign = 'center';
+            ctx.fillText("BAR", sx, signY);
+
+            // Neon stroke on text
+            ctx.strokeStyle = stripeColor;
+            ctx.lineWidth = 0.5 * z;
+            ctx.strokeText("BAR", sx, signY);
+
+            // Beer Mug Icon (Simple Pixel Art Neon)
+            this.drawNeonBeerMug(ctx, sx + 10 * z, signY - 3 * z, z, stripeColor, flicker);
+
+            // Extra Glow under the awning
             ctx.fillStyle = stripeColor;
+            ctx.globalAlpha = 0.2 * flicker;
             ctx.beginPath();
-            ctx.arc(sx, sy + hh - doorH - 6 * z, 10 * z, 0, Math.PI * 2);
+            ctx.arc(sx, sy + hh - doorH + 2 * z, 8 * z, 0, Math.PI * 2);
             ctx.fill();
+
             ctx.restore();
         }
     }
 
-    /** Draw card and die decoration on bar roof */
+    private drawBarOutdoorSeating(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, seed: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+
+        // Draw a small table on the side if seed permits
+        if (seed > 0.4) {
+            // Table 1 (Left side)
+            const tx1 = sx - 12 * z;
+            const ty1 = sy + 2 * z;
+            this.drawSmallTable(ctx, tx1, ty1, z);
+        }
+        if (seed < 0.6) {
+            // Table 2 (Right side)
+            const tx2 = sx + 12 * z;
+            const ty2 = sy + 2 * z;
+            this.drawSmallTable(ctx, tx2, ty2, z);
+        }
+    }
+
+    private drawSmallTable(ctx: CanvasRenderingContext2D, x: number, y: number, z: number) {
+        // Table top
+        ctx.fillStyle = '#4a3a2a';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 5 * z, 3 * z, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#2a1a0a';
+        ctx.lineWidth = 0.5 * z;
+        ctx.stroke();
+
+        // Table leg
+        ctx.fillStyle = '#2a1a0a';
+        ctx.fillRect(x - 0.5 * z, y, 1 * z, 4 * z);
+
+        // Glass on table
+        ctx.fillStyle = 'rgba(255, 200, 50, 0.8)';
+        ctx.fillRect(x - 1 * z, y - 2 * z, 1.5 * z, 2 * z);
+    }
+
+    private drawNeonBeerMug(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, color: string, flicker: number) {
+        ctx.save();
+        ctx.shadowBlur = 8 * z * flicker;
+        ctx.shadowColor = color;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1 * z * flicker;
+
+        // Mug Body
+        ctx.beginPath();
+        ctx.moveTo(x - 2 * z, y - 3 * z);
+        ctx.lineTo(x + 2 * z, y - 3 * z);
+        ctx.lineTo(x + 1.5 * z, y + 2 * z);
+        ctx.lineTo(x - 1.5 * z, y + 2 * z);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Handle
+        ctx.beginPath();
+        ctx.moveTo(x + 2 * z, y - 2 * z);
+        ctx.bezierCurveTo(x + 4 * z, y - 2 * z, x + 4 * z, y + 1 * z, x + 1.8 * z, y + 1 * z);
+        ctx.stroke();
+
+        // Foam (Top)
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = flicker * 0.8;
+        ctx.beginPath();
+        ctx.arc(x - 1 * z, y - 3.5 * z, 1.5 * z, 0, Math.PI * 2);
+        ctx.arc(x + 1 * z, y - 3.5 * z, 1.5 * z, 0, Math.PI * 2);
+        ctx.arc(x, y - 4 * z, 1.5 * z, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
     private drawBarRoofDecorations(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, h: number, seed: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
         const topY = sy - h * z;
 
+        const ci = Math.floor(seed * BUILDING_COLORS.bar.length);
+        const colorSet = BUILDING_COLORS.bar[ci];
+        const neonColor = colorSet.stripe;
+
         // Position decorations relative to roof center
         // 1. A giant playing card
         ctx.save();
-        const cardW = 6 * z;
-        const cardH = 9 * z;
-        const cardX = sx - 4 * z;
-        const cardY = topY - 2 * z;
+        const cardW = 8 * z;
+        const cardH = 12 * z;
+        const cardX = sx - 6 * z;
+        const cardY = topY - 3 * z;
+
+        // Neon Glow for Card
+        ctx.shadowBlur = 10 * z;
+        ctx.shadowColor = neonColor;
 
         // Card Border/Body
         ctx.fillStyle = '#fff';
         ctx.fillRect(cardX, cardY - cardH, cardW, cardH);
-        ctx.strokeStyle = '#ccc';
-        ctx.lineWidth = 0.5 * z;
+        ctx.strokeStyle = neonColor;
+        ctx.lineWidth = 1 * z;
         ctx.strokeRect(cardX, cardY - cardH, cardW, cardH);
 
         // Card Suit (Red Heart or Black Spade)
         const isRed = (seed * 100) % 2 < 1;
         ctx.fillStyle = isRed ? '#d33' : '#222';
-        ctx.font = `bold ${5 * z}px serif`;
+        ctx.font = `bold ${7 * z}px serif`;
         ctx.textAlign = 'center';
         ctx.fillText(isRed ? "♥" : "♠", cardX + cardW / 2, cardY - cardH / 2 + 2 * z);
         ctx.restore();
 
-        // 2. A 3D-ish Die
-        const dieSize = 5 * z;
-        const dieX = sx + 4 * z;
-        const dieY = topY - 1 * z;
+        // 2. A 3D-ish Die (Larger and glowing)
+        const dieSize = 7 * z;
+        const dieX = sx + 6 * z;
+        const dieY = topY - 2 * z;
+
+        ctx.save();
+        ctx.shadowBlur = 12 * z;
+        ctx.shadowColor = neonColor;
 
         // Die Top
-        ctx.fillStyle = '#eee';
+        ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.moveTo(dieX, dieY - dieSize);
         ctx.lineTo(dieX + dieSize / 2, dieY - dieSize * 0.7);
@@ -976,7 +1081,7 @@ export class TileRenderer {
         ctx.fill();
 
         // Die Front-Left
-        ctx.fillStyle = '#ccc';
+        ctx.fillStyle = '#ddd';
         ctx.beginPath();
         ctx.moveTo(dieX - dieSize / 2, dieY - dieSize * 0.7);
         ctx.lineTo(dieX, dieY - dieSize * 0.4);
@@ -986,7 +1091,7 @@ export class TileRenderer {
         ctx.fill();
 
         // Die Front-Right
-        ctx.fillStyle = '#ddd';
+        ctx.fillStyle = '#eee';
         ctx.beginPath();
         ctx.moveTo(dieX, dieY - dieSize * 0.4);
         ctx.lineTo(dieX + dieSize / 2, dieY - dieSize * 0.7);
@@ -995,14 +1100,28 @@ export class TileRenderer {
         ctx.closePath();
         ctx.fill();
 
+        // Outline Die in Neon
+        ctx.strokeStyle = neonColor;
+        ctx.lineWidth = 0.5 * z;
+        ctx.beginPath();
+        ctx.moveTo(dieX, dieY - dieSize);
+        ctx.lineTo(dieX + dieSize / 2, dieY - dieSize * 0.7);
+        ctx.lineTo(dieX + dieSize / 2, dieY);
+        ctx.lineTo(dieX, dieY + dieSize * 0.3);
+        ctx.lineTo(dieX - dieSize / 2, dieY);
+        ctx.lineTo(dieX - dieSize / 2, dieY - dieSize * 0.7);
+        ctx.closePath();
+        ctx.stroke();
+
         // Die Pips (Dots)
         ctx.fillStyle = '#111';
         ctx.beginPath();
-        ctx.arc(dieX, dieY - dieSize * 0.7, 0.8 * z, 0, Math.PI * 2); // Top pip
+        ctx.arc(dieX, dieY - dieSize * 0.7, 1 * z, 0, Math.PI * 2); // Top pip
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(dieX + dieSize * 0.25, dieY - dieSize * 0.2, 0.6 * z, 0, Math.PI * 2); // Front pip
+        ctx.arc(dieX + dieSize * 0.25, dieY - dieSize * 0.2, 0.8 * z, 0, Math.PI * 2); // Front pip
         ctx.fill();
+        ctx.restore();
     }
 
     /**
