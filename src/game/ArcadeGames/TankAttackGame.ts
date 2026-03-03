@@ -150,14 +150,13 @@ export class TankAttackGame {
         const input = InputManager.getInstance();
 
         // Movement
-        let moved = false;
         let newX = this.tankX;
         let newY = this.tankY;
 
-        if (input.isDown('ArrowUp')) { newY -= this.tankSpeed * dt; this.tankDir = 'up'; moved = true; }
-        if (input.isDown('ArrowDown')) { newY += this.tankSpeed * dt; this.tankDir = 'down'; moved = true; }
-        if (input.isDown('ArrowLeft')) { newX -= this.tankSpeed * dt; this.tankDir = 'left'; moved = true; }
-        if (input.isDown('ArrowRight')) { newX += this.tankSpeed * dt; this.tankDir = 'right'; moved = true; }
+        if (input.isDown('ArrowUp')) { newY -= this.tankSpeed * dt; this.tankDir = 'up'; }
+        if (input.isDown('ArrowDown')) { newY += this.tankSpeed * dt; this.tankDir = 'down'; }
+        if (input.isDown('ArrowLeft')) { newX -= this.tankSpeed * dt; this.tankDir = 'left'; }
+        if (input.isDown('ArrowRight')) { newX += this.tankSpeed * dt; this.tankDir = 'right'; }
 
         // Clamp to field
         newX = Math.max(this.tankSize, Math.min(this.fieldW - this.tankSize, newX));
