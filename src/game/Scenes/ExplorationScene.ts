@@ -13,12 +13,14 @@ import { Lighting } from '../Core/Lighting';
 import { TileMap } from '../World/TileMap';
 import { TileRenderer } from '../World/TileRenderer';
 import { Minimap } from '../World/Minimap';
-import { TILE_TYPES, BARS } from '../World/MapData';
+import { TILE_TYPES, BARS, ARCADES } from '../World/MapData';
+import type { ArcadeGameType } from '../World/MapData';
 import { Player } from '../Entities/Player';
 import { NPCManager } from '../Entities/NPCManager';
 import { HouseDialogueManager } from '../Entities/HouseDialogueManager';
 import { BoothDialogueManager } from '../Entities/BoothDialogueManager';
 import { BarDialogueManager } from '../Entities/BarDialogueManager';
+import { ArcadeDialogueManager } from '../Entities/ArcadeDialogueManager';
 import { BichoManager } from '../BichoManager';
 import { HUD } from '../UI/HUD';
 import { NewspaperUI } from '../UI/NewspaperUI';
@@ -46,6 +48,11 @@ import { JokenpoGame } from '../MiniGames/JokenpoGame';
 import { JokenpoUI } from '../MiniGames/JokenpoUI';
 import { PoliceManager } from '../PoliceManager';
 import { UIScale } from '../Core/UIScale';
+import { AirPongGame } from '../ArcadeGames/AirPongGame';
+import { TankAttackGame } from '../ArcadeGames/TankAttackGame';
+import { FaroesteGame } from '../ArcadeGames/FaroesteGame';
+import { RiscaFacaGame } from '../ArcadeGames/RiscaFacaGame';
+import { SinucaGame } from '../ArcadeGames/SinucaGame';
 
 export class ExplorationScene implements Scene {
     public name = 'exploration';
@@ -65,6 +72,7 @@ export class ExplorationScene implements Scene {
     private npcManager: NPCManager;
     private houseDialogue: HouseDialogueManager;
     private barDialogue: BarDialogueManager;
+    private arcadeDialogue: ArcadeDialogueManager;
     private boothDialogue: BoothDialogueManager;
     private newspaper: NewspaperUI;
 
@@ -87,9 +95,19 @@ export class ExplorationScene implements Scene {
     private videoBingoUI: VideoBingoUI | null = null;
     private jokenpoUI: JokenpoUI | null = null;
 
-    private activeMinigame: 'none' | 'purrinha' | 'dice' | 'ronda' | 'domino' | 'generic' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' = 'none';
+    private activeMinigame: 'none' | 'purrinha' | 'dice' | 'ronda' | 'domino' | 'generic' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' = 'none';
     private selectedBarMenuIndex: number = 0;
     private currentBar: any | null = null;
+
+    // Arcade state
+    private selectedArcadeMenuIndex: number = 0;
+    private currentArcade: any | null = null;
+    private arcadeCredits: number = 0;
+    private airPongGame: AirPongGame | null = null;
+    private tankAttackGame: TankAttackGame | null = null;
+    private faroesteGame: FaroesteGame | null = null;
+    private riscaFacaGame: RiscaFacaGame | null = null;
+    private sinucaGame: SinucaGame | null = null;
 
     // State
     private screenW: number;
@@ -137,6 +155,7 @@ export class ExplorationScene implements Scene {
         this.npcManager = new NPCManager();
         this.houseDialogue = new HouseDialogueManager(this.tileMap);
         this.barDialogue = new BarDialogueManager();
+        this.arcadeDialogue = new ArcadeDialogueManager();
         this.boothDialogue = new BoothDialogueManager(242, 155); // Station Booth coordinates
 
         // Graphics / Atmosphere
@@ -202,9 +221,13 @@ export class ExplorationScene implements Scene {
     }
 
     public update(dt: number) {
+        BichoManager.getInstance().update(dt);
         const bmanager = BichoManager.getInstance();
         const pm = PoliceManager.getInstance();
-        const isIllegal = this.activeMinigame !== 'none' && this.activeMinigame !== 'domino';
+        const isInArcade = (this.activeMinigame as string).startsWith('arcade_');
+        const isIllegal = this.activeMinigame !== 'none' &&
+            this.activeMinigame !== 'domino' &&
+            !isInArcade;
 
         // 0. Newspaper Blocking
         if (this.newspaper.isVisible()) {
@@ -306,12 +329,72 @@ export class ExplorationScene implements Scene {
             this.updateBarMenu(dt);
             return;
         }
+        if (this.activeMinigame === 'arcade_menu') {
+            this.updateArcadeMenu(dt);
+            return;
+        }
+        if (this.activeMinigame === 'arcade_air_pong' && this.airPongGame) {
+            this.airPongGame.update(dt);
+            if (this.airPongGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.airPongGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.airPongGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
+        if (this.activeMinigame === 'arcade_tank_attack' && this.tankAttackGame) {
+            this.tankAttackGame.update(dt);
+            if (this.tankAttackGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.tankAttackGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.tankAttackGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
+        if (this.activeMinigame === 'arcade_faroeste' && this.faroesteGame) {
+            this.faroesteGame.update(dt);
+            if (this.faroesteGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.faroesteGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.faroesteGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
+        if (this.activeMinigame === 'arcade_risca_faca' && this.riscaFacaGame) {
+            this.riscaFacaGame.update(dt);
+            if (this.riscaFacaGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.riscaFacaGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.riscaFacaGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
+        if (this.activeMinigame === 'arcade_sinuca' && this.sinucaGame) {
+            this.sinucaGame.update(dt);
+            if (this.sinucaGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.sinucaGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.sinucaGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
 
-        // World Logic
-        // Night Interminável (No Cycle)
         this.globalTimer += dt; // Keep a timer running for Bicho betting results
-
-        BichoManager.getInstance().update(dt);
 
         // Dynamic Ambient Darkness (Soft Realistic Night)
         const isNavigating = this.activeMinigame === 'none' && pm.phase === 'none';
@@ -336,6 +419,9 @@ export class ExplorationScene implements Scene {
 
         // Bar Dialogue
         this.barDialogue.update(dt, this.player.x, this.player.y);
+
+        // Arcade Dialogue
+        this.arcadeDialogue.update(dt, this.player.x, this.player.y);
 
         // Booth Dialogue
         this.boothDialogue.update(dt, this.player.x, this.player.y);
@@ -555,6 +641,25 @@ export class ExplorationScene implements Scene {
             }
         }
 
+        // 1.6 Arcade Interactions
+        let nearArcade = null;
+        for (const arcade of ARCADES) {
+            const dx = Math.abs(this.player.x - arcade.x);
+            const dy = Math.abs(this.player.y - arcade.y);
+            if (dx < 1.5 && dy < 1.5) {
+                nearArcade = arcade;
+                break;
+            }
+        }
+
+        if (nearArcade) {
+            this.player.nearbyInteraction = `▶ E - Entrar no ${nearArcade.name}`;
+            if (this.input.wasPressed('KeyE')) {
+                this.startArcadeActivities(nearArcade);
+                return;
+            }
+        }
+
         // 2. NPC Interactions
         const nearbyNPC = this.npcManager.getNearbyInteractable(this.player.x, this.player.y);
 
@@ -579,7 +684,7 @@ export class ExplorationScene implements Scene {
             } else {
                 this.player.nearbyInteraction = null;
             }
-        } else if (!isAtEntrance) {
+        } else if (!isAtEntrance && !nearBar && !nearArcade) {
             this.player.nearbyInteraction = null;
         }
     }
@@ -727,6 +832,82 @@ export class ExplorationScene implements Scene {
         }
     }
 
+    private startArcadeActivities(arcade: any) {
+        this.activeMinigame = 'arcade_menu';
+        this.currentArcade = arcade;
+        this.selectedArcadeMenuIndex = 0;
+        this.input.pushContext('menu');
+    }
+
+    private getArcadeMenuItems(): { label: string; cost: string; gameType: ArcadeGameType | 'buy' }[] {
+        const GAME_LABELS: Record<ArcadeGameType, string> = {
+            'air_pong': '🏓 AIR PONG',
+            'tank_attack': '🎯 TANK ATTACK',
+            'faroeste': '🤠 FAROESTE',
+            'risca_faca': '🔪 RISCA FACA',
+            'sinuca': '🎱 SINUCA MATA MATA',
+        };
+
+        const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy' }[] = [
+            { label: '💰 COMPRAR CRÉDITOS (2 por R$10)', cost: '', gameType: 'buy' }
+        ];
+
+        const availableGames: ArcadeGameType[] = this.currentArcade?.games || [];
+        for (const game of availableGames) {
+            items.push({ label: GAME_LABELS[game], cost: '1 crédito', gameType: game });
+        }
+
+        return items;
+    }
+
+    private launchArcadeGame(gameType: ArcadeGameType) {
+        this.arcadeCredits--;
+        this.input.popContext();
+        this.input.pushContext('minigame');
+
+        switch (gameType) {
+            case 'air_pong': this.airPongGame = new AirPongGame(); this.activeMinigame = 'arcade_air_pong'; break;
+            case 'tank_attack': this.tankAttackGame = new TankAttackGame(); this.activeMinigame = 'arcade_tank_attack'; break;
+            case 'faroeste': this.faroesteGame = new FaroesteGame(); this.activeMinigame = 'arcade_faroeste'; break;
+            case 'risca_faca': this.riscaFacaGame = new RiscaFacaGame(); this.activeMinigame = 'arcade_risca_faca'; break;
+            case 'sinuca': this.sinucaGame = new SinucaGame(); this.activeMinigame = 'arcade_sinuca'; break;
+        }
+    }
+
+    private updateArcadeMenu(_dt: number) {
+        const items = this.getArcadeMenuItems();
+        const menuItems = items.length; // 1 (buy) + 3 games = 4
+
+        if (this.input.wasPressed('ArrowUp')) {
+            this.selectedArcadeMenuIndex = (this.selectedArcadeMenuIndex - 1 + menuItems) % menuItems;
+        }
+        if (this.input.wasPressed('ArrowDown')) {
+            this.selectedArcadeMenuIndex = (this.selectedArcadeMenuIndex + 1) % menuItems;
+        }
+        if (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            const selected = items[this.selectedArcadeMenuIndex];
+            if (selected.gameType === 'buy') {
+                const bmanager = BichoManager.getInstance();
+                if (bmanager.playerMoney >= 10) {
+                    bmanager.playerMoney -= 10;
+                    this.arcadeCredits += 2;
+                    bmanager.addNotification('Comprou 2 créditos!', 2);
+                } else {
+                    bmanager.addNotification('Dinheiro insuficiente!', 2);
+                }
+            } else if (this.arcadeCredits >= 1) {
+                this.launchArcadeGame(selected.gameType);
+            } else {
+                BichoManager.getInstance().addNotification('Sem créditos! Compre mais.', 2);
+            }
+        }
+        if (this.input.wasPressed('Escape')) {
+            this.activeMinigame = 'none';
+            this.arcadeCredits = 0;
+            this.input.popContext();
+        }
+    }
+
     private startHorseRacing() {
         this.activeMinigame = 'horse_racing';
         this.input.pushContext('minigame');
@@ -807,6 +988,126 @@ export class ExplorationScene implements Scene {
         ctx.fillText("[ESC] para sair", w / 2, h / 2 + s(125));
     }
 
+    private renderArcadeMenu(ctx: CanvasRenderingContext2D) {
+        const s = UIScale.s.bind(UIScale);
+        const w = this.screenW;
+        const h = this.screenH;
+
+        // Overlay with neon tint
+        ctx.fillStyle = 'rgba(0, 5, 15, 0.92)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Neon border
+        const time = Date.now();
+        const hue = (time / 20) % 360;
+        ctx.strokeStyle = `hsl(${hue}, 100%, 60%)`;
+        ctx.lineWidth = s(3);
+        ctx.strokeRect(w * 0.15, h * 0.08, w * 0.7, h * 0.84);
+
+        // Title with glow
+        ctx.save();
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#00ff88';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#00ff88';
+        ctx.font = `bold ${UIScale.r(32)}px monospace`;
+        ctx.fillText(this.currentArcade?.name?.toUpperCase() || "FLIPERAMA", w / 2, h * 0.16);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // Credits display
+        ctx.fillStyle = '#ffcc00';
+        ctx.font = `bold ${UIScale.r(18)}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`CRÉDITOS: ${this.arcadeCredits}`, w / 2, h * 0.22);
+
+        // Dinheiro
+        const bm = BichoManager.getInstance();
+        ctx.fillStyle = '#88ff88';
+        ctx.font = `${UIScale.r(14)}px monospace`;
+        ctx.fillText(`Dinheiro: R$ ${bm.playerMoney.toFixed(2)}`, w / 2, h * 0.27);
+
+        const options = this.getArcadeMenuItems();
+
+        const startY = h * 0.35;
+        const itemH = s(42);
+
+        options.forEach((opt, i) => {
+            const isSelected = i === this.selectedArcadeMenuIndex;
+            const yPos = startY + i * itemH;
+
+            if (isSelected) {
+                // Selected highlight
+                ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
+                ctx.fillRect(w * 0.2, yPos - itemH * 0.4, w * 0.6, itemH * 0.8);
+                ctx.strokeStyle = '#00ff88';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(w * 0.2, yPos - itemH * 0.4, w * 0.6, itemH * 0.8);
+            }
+
+            ctx.fillStyle = isSelected ? '#ffffff' : '#666666';
+            ctx.font = `${isSelected ? 'bold ' : ''}${UIScale.r(16)}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.fillText(opt.label, w / 2, yPos);
+
+            if (opt.cost) {
+                ctx.fillStyle = isSelected ? '#ffcc00' : '#444';
+                ctx.font = `${UIScale.r(11)}px monospace`;
+                ctx.fillText(opt.cost, w / 2, yPos + s(14));
+            }
+        });
+
+        // Instructions
+        ctx.fillStyle = '#555';
+        ctx.font = `${UIScale.r(12)}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText("[↑↓] Selecionar  |  [ESPAÇO/E] Confirmar  |  [ESC] Sair", w / 2, h * 0.92);
+
+        // Decorative pixel art joystick in corner
+        this.drawMenuJoystickDecoration(ctx, w * 0.82, h * 0.15, s);
+    }
+
+    private drawMenuJoystickDecoration(ctx: CanvasRenderingContext2D, x: number, y: number, s: (v: number) => number) {
+        const time = Date.now();
+        const flicker = Math.sin(time / 100) > 0.8 ? 0.3 : 1.0;
+
+        ctx.save();
+        ctx.globalAlpha = flicker * 0.6;
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = s(2);
+
+        // Base
+        ctx.beginPath();
+        ctx.moveTo(x - s(15), y + s(10));
+        ctx.lineTo(x + s(15), y + s(10));
+        ctx.lineTo(x + s(12), y + s(15));
+        ctx.lineTo(x - s(12), y + s(15));
+        ctx.closePath();
+        ctx.stroke();
+
+        // Stick
+        ctx.beginPath();
+        ctx.moveTo(x, y + s(10));
+        ctx.lineTo(x - s(5), y - s(8));
+        ctx.stroke();
+
+        // Ball
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath();
+        ctx.arc(x - s(5), y - s(10), s(4), 0, Math.PI * 2);
+        ctx.fill();
+
+        // Buttons
+        ctx.beginPath();
+        ctx.arc(x + s(18), y + s(2), s(3), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + s(25), y + s(2), s(3), 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
     public render(ctx: CanvasRenderingContext2D) {
         // Clear
         this.renderer.clear('#06060e');
@@ -835,6 +1136,7 @@ export class ExplorationScene implements Scene {
             this.tileRenderer.renderOverlays(ctx, this.camera);
             this.houseDialogue.draw(ctx, this.camera);
             this.barDialogue.draw(ctx, this.camera);
+            this.arcadeDialogue.draw(ctx, this.camera);
             this.boothDialogue.draw(ctx, this.camera);
             this.npcManager.drawUI(ctx, this.camera);
         }
@@ -861,6 +1163,18 @@ export class ExplorationScene implements Scene {
             this.videoBingoUI.draw(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'bar_menu') {
             this.renderBarMenu(ctx);
+        } else if (this.activeMinigame === 'arcade_menu') {
+            this.renderArcadeMenu(ctx);
+        } else if (this.activeMinigame === 'arcade_air_pong' && this.airPongGame) {
+            this.airPongGame.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'arcade_tank_attack' && this.tankAttackGame) {
+            this.tankAttackGame.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'arcade_faroeste' && this.faroesteGame) {
+            this.faroesteGame.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'arcade_risca_faca' && this.riscaFacaGame) {
+            this.riscaFacaGame.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'arcade_sinuca' && this.sinucaGame) {
+            this.sinucaGame.draw(ctx, this.screenW, this.screenH);
         }
 
         // 6. UI / HUD (Rendered AFTER minigames to be always visible)

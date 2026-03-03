@@ -7,7 +7,7 @@
 import { Camera, TILE_WIDTH, TILE_HEIGHT } from '../Core/Camera';
 import { Renderer } from '../Core/Renderer';
 import { TileMap } from './TileMap';
-import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, CROSSWALKS, LAMPPOST_POSITIONS, BARS } from './MapData';
+import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, CROSSWALKS, LAMPPOST_POSITIONS, BARS, ARCADES } from './MapData';
 
 // Simple seeded random for consistent visuals per tile
 function seededRandom(x: number, y: number): number {
@@ -355,7 +355,7 @@ export class TileRenderer {
                 const tileX = x;
                 const tileY = y;
 
-                if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL || tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.BAR) {
+                if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL || tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.BAR || tile === TILE_TYPES.ARCADE) {
                     drawables.push({
                         y: tileX + tileY + 0.5,
                         draw: () => {
@@ -397,11 +397,16 @@ export class TileRenderer {
                                 const c = BUILDING_COLORS.tall[ci];
                                 top = c.top; left = c.left; right = c.right;
                             } else if (tile === (TILE_TYPES.BAR as number)) {
-                                h = 25 + rand * 10; // Much taller (was 6-14)
-                                // Use variation from MapData if available
+                                h = 25 + rand * 10;
                                 const barInfoActive = BARS.find(b => b.x === tileX && b.y === tileY);
                                 const ci = barInfoActive?.variation !== undefined ? barInfoActive.variation : Math.floor(rand * BUILDING_COLORS.bar.length);
                                 const c = BUILDING_COLORS.bar[ci % BUILDING_COLORS.bar.length];
+                                top = c.top; left = c.left; right = c.right;
+                            } else if (tile === (TILE_TYPES.ARCADE as number)) {
+                                h = 25 + rand * 10;
+                                const arcadeInfoActive = ARCADES.find(a => a.x === tileX && a.y === tileY);
+                                const ci = arcadeInfoActive?.variation !== undefined ? arcadeInfoActive.variation : Math.floor(rand * BUILDING_COLORS.arcade.length);
+                                const c = BUILDING_COLORS.arcade[ci % BUILDING_COLORS.arcade.length];
                                 top = c.top; left = c.left; right = c.right;
                             } else { // Shopping
                                 h = 10;
@@ -427,6 +432,10 @@ export class TileRenderer {
                                     if (!s) this.drawBarEntrance(ctx, camera, tileX, tileY, rand);
                                     this.drawBarRoofDecorations(ctx, camera, tileX, tileY, h, rand);
                                     this.drawBarOutdoorSeating(ctx, camera, tileX, tileY, rand);
+                                } else if (tile === (TILE_TYPES.ARCADE as number)) {
+                                    this.drawBarStripes(ctx, camera, tileX, tileY, h, rand);
+                                    if (!s) this.drawArcadeEntrance(ctx, camera, tileX, tileY, rand);
+                                    this.drawArcadeRoofDecorations(ctx, camera, tileX, tileY, h, rand);
                                 } else if (tile === TILE_TYPES.BUILDING_TALL) {
                                     this.drawFloorDivision(ctx, camera, tileX, tileY, h);
                                     if (seededRandom(tileX * 7, tileY * 11) > 0.5 && width < 0.9) {
@@ -1121,6 +1130,198 @@ export class TileRenderer {
         ctx.beginPath();
         ctx.arc(dieX + dieSize * 0.25, dieY - dieSize * 0.2, 0.8 * z, 0, Math.PI * 2); // Front pip
         ctx.fill();
+        ctx.restore();
+    }
+
+    private drawArcadeEntrance(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, seed: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const scale = 0.6;
+        const hh = (TILE_HEIGHT / 2) * z * scale;
+
+        const ci = Math.floor(seed * BUILDING_COLORS.arcade.length);
+        const colorSet = BUILDING_COLORS.arcade[ci];
+        const stripeColor = colorSet.stripe;
+
+        // 1. Double Door (Dark metal)
+        ctx.fillStyle = '#1a1a2a';
+        const doorW = 5 * z;
+        const doorH = 8 * z;
+        ctx.fillRect(sx - doorW / 2, sy + hh - doorH, doorW, doorH);
+
+        // Door frame (neon tinted)
+        ctx.strokeStyle = stripeColor;
+        ctx.lineWidth = 0.5 * z;
+        ctx.strokeRect(sx - doorW / 2, sy + hh - doorH, doorW, doorH);
+
+        // 2. Awning (dark with neon trim)
+        const awningH = 3 * z;
+        const awningW = 12 * z;
+        const awningProt = 5 * z;
+
+        ctx.fillStyle = '#111122';
+        ctx.beginPath();
+        ctx.moveTo(sx - awningW / 2, sy + hh - doorH - 1 * z);
+        ctx.lineTo(sx + awningW / 2, sy + hh - doorH - 1 * z);
+        ctx.lineTo(sx + awningW / 2 + awningProt / 2, sy + hh - doorH + awningH);
+        ctx.lineTo(sx - awningW / 2 - awningProt / 2, sy + hh - doorH + awningH);
+        ctx.closePath();
+        ctx.fill();
+
+        // Neon trim on awning
+        ctx.strokeStyle = stripeColor;
+        ctx.lineWidth = 1 * z;
+        ctx.beginPath();
+        ctx.moveTo(sx - awningW / 2 - awningProt / 2, sy + hh - doorH + awningH);
+        ctx.lineTo(sx + awningW / 2 + awningProt / 2, sy + hh - doorH + awningH);
+        ctx.stroke();
+
+        // 3. NEON JOYSTICK Sign (above door)
+        {
+            const time = Date.now();
+            const flicker = Math.sin(time / 80 + seed * 100) > 0.8 ? 0.3 : 1.0;
+            const signY = sy + hh - doorH - 6 * z;
+
+            ctx.save();
+
+            // Outer Glow
+            ctx.shadowBlur = 15 * z * flicker;
+            ctx.shadowColor = stripeColor;
+
+            // Sign background panel
+            ctx.fillStyle = 'rgba(10, 10, 20, 0.85)';
+            ctx.fillRect(sx - 10 * z, signY - 10 * z, 20 * z, 12 * z);
+            ctx.strokeStyle = stripeColor;
+            ctx.lineWidth = 1 * z * flicker;
+            ctx.strokeRect(sx - 10 * z, signY - 10 * z, 20 * z, 12 * z);
+
+            // Draw neon joystick
+            this.drawNeonJoystick(ctx, sx - 3 * z, signY - 4 * z, z, stripeColor, flicker);
+
+            // "FLIPERAMA" Text (abbreviated)
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.round(5 * z)}px "Press Start 2P"`;
+            ctx.textAlign = 'center';
+            ctx.fillText("GAMES", sx + 4 * z, signY - 2 * z);
+
+            // Neon stroke on text
+            ctx.strokeStyle = stripeColor;
+            ctx.lineWidth = 0.3 * z;
+            ctx.strokeText("GAMES", sx + 4 * z, signY - 2 * z);
+
+            // Extra Glow under the awning
+            ctx.fillStyle = stripeColor;
+            ctx.globalAlpha = 0.2 * flicker;
+            ctx.beginPath();
+            ctx.arc(sx, sy + hh - doorH + 2 * z, 8 * z, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    private drawNeonJoystick(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, color: string, flicker: number) {
+        ctx.save();
+        ctx.shadowBlur = 8 * z * flicker;
+        ctx.shadowColor = color;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1 * z * flicker;
+
+        // Base (rectangle)
+        ctx.beginPath();
+        ctx.moveTo(x - 3 * z, y + 2 * z);
+        ctx.lineTo(x + 3 * z, y + 2 * z);
+        ctx.lineTo(x + 2.5 * z, y + 3 * z);
+        ctx.lineTo(x - 2.5 * z, y + 3 * z);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Stick
+        ctx.beginPath();
+        ctx.moveTo(x, y + 2 * z);
+        ctx.lineTo(x - 1 * z, y - 1.5 * z);
+        ctx.stroke();
+
+        // Ball on top
+        ctx.fillStyle = color;
+        ctx.globalAlpha = flicker * 0.9;
+        ctx.beginPath();
+        ctx.arc(x - 1 * z, y - 2 * z, 1.2 * z, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Two buttons to the right
+        ctx.beginPath();
+        ctx.arc(x + 3.5 * z, y + 0.5 * z, 0.8 * z, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + 5 * z, y + 0.5 * z, 0.8 * z, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    private drawArcadeRoofDecorations(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, h: number, seed: number) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const topY = sy - h * z;
+
+        const ci = Math.floor(seed * BUILDING_COLORS.arcade.length);
+        const colorSet = BUILDING_COLORS.arcade[ci];
+        const neonColor = colorSet.stripe;
+
+        const time = Date.now();
+        const flicker = Math.sin(time / 100 + seed * 50) > 0.85 ? 0.3 : 1.0;
+
+        ctx.save();
+
+        // 1. Big Neon Smiley Face
+        const smileX = sx - 4 * z;
+        const smileY = topY - 6 * z;
+        const smileR = 6 * z;
+
+        ctx.shadowBlur = 12 * z * flicker;
+        ctx.shadowColor = neonColor;
+        ctx.strokeStyle = neonColor;
+        ctx.lineWidth = 1 * z * flicker;
+
+        // Face circle
+        ctx.beginPath();
+        ctx.arc(smileX, smileY, smileR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Eyes
+        ctx.fillStyle = neonColor;
+        ctx.globalAlpha = flicker;
+        ctx.beginPath();
+        ctx.arc(smileX - 2 * z, smileY - 1.5 * z, 1 * z, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(smileX + 2 * z, smileY - 1.5 * z, 1 * z, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Smile
+        ctx.beginPath();
+        ctx.arc(smileX, smileY, 3 * z, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+
+        // 2. Small arcade cabinet silhouette (right side)
+        const cabX = sx + 6 * z;
+        const cabY = topY - 4 * z;
+        const cabW = 5 * z;
+        const cabH = 8 * z;
+
+        // Cabinet body
+        ctx.fillStyle = '#111';
+        ctx.fillRect(cabX - cabW / 2, cabY - cabH, cabW, cabH);
+        ctx.strokeStyle = neonColor;
+        ctx.lineWidth = 0.5 * z * flicker;
+        ctx.strokeRect(cabX - cabW / 2, cabY - cabH, cabW, cabH);
+
+        // Screen (smaller rect inside)
+        ctx.fillStyle = neonColor;
+        ctx.globalAlpha = 0.4 * flicker;
+        ctx.fillRect(cabX - cabW / 2 + 0.8 * z, cabY - cabH + 1 * z, cabW - 1.6 * z, cabH * 0.4);
+
         ctx.restore();
     }
 
@@ -1832,6 +2033,14 @@ const BUILDING_COLORS = {
         { top: '#8a8a4a', left: '#6a6a2a', right: '#7a7a3a', stripe: '#ffff66' }, // Yellow Bar
         { top: '#8a4a8a', left: '#6a2a6a', right: '#7a3a7a', stripe: '#ff66ff' }, // Purple Bar
         { top: '#4a8a8a', left: '#2a6a6a', right: '#3a7a7a', stripe: '#66ffff' }, // Cyan Bar
+    ],
+    arcade: [
+        { top: '#2a2a5a', left: '#1a1a3a', right: '#22224a', stripe: '#00ff88' }, // Green Arcade
+        { top: '#2a4a5a', left: '#1a3a4a', right: '#224a5a', stripe: '#00ccff' }, // Cyan Arcade
+        { top: '#4a2a5a', left: '#3a1a4a', right: '#42224a', stripe: '#ff00cc' }, // Magenta Arcade
+        { top: '#5a4a2a', left: '#4a3a1a', right: '#524222', stripe: '#ff8800' }, // Orange Arcade
+        { top: '#3a2a5a', left: '#2a1a4a', right: '#32224a', stripe: '#8800ff' }, // Purple Arcade
+        { top: '#2a5a3a', left: '#1a4a2a', right: '#224a32', stripe: '#44ff44' }, // Lime Arcade
     ],
     wall: [
         { top: '#7a7068', left: '#5a5048', right: '#6a6058' },

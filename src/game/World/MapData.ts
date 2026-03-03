@@ -34,6 +34,7 @@ export const TILE_TYPES = {
     DECORATIVE_ENTRANCE: 21,
     INFORMATION_BOOTH: 22,
     BAR: 23,
+    ARCADE: 24,
 } as const;
 
 export type TileType = typeof TILE_TYPES[keyof typeof TILE_TYPES];
@@ -57,7 +58,7 @@ export interface POI {
 
 export interface StreetSign { x: number; y: number; name: string; direction: 'h' | 'v'; type?: 'street' | 'bar'; }
 export interface Crosswalk { x: number; y: number; direction: 'h' | 'v'; }
-export type CityLightType = 'street' | 'streetglow' | 'residential' | 'plaza' | 'shopping' | 'alley';
+export type CityLightType = 'street' | 'streetglow' | 'residential' | 'plaza' | 'shopping' | 'alley' | 'bar' | 'arcade';
 export interface CityLight { x: number; y: number; type: CityLightType; }
 
 export const MAP_WIDTH = 300;
@@ -82,6 +83,7 @@ const DT = TILE_TYPES.DOMINO_TABLE;
 const MT = TILE_TYPES.MONUMENT;
 const DE = TILE_TYPES.DECORATIVE_ENTRANCE;
 const BR = TILE_TYPES.BAR;
+const AR = TILE_TYPES.ARCADE;
 
 function generateMap(): number[][] {
     const map: number[][] = [];
@@ -646,12 +648,182 @@ export const BARS: BarInfo[] = [
     { x: 202, y: 262, owner: 'Sueli', name: 'Bar da Sueli', propaganda: 'Sueli: Dedicação Total! Vote 54545', variation: 2, paysBribe: true },
 ];
 
+export type ArcadeGameType = 'air_pong' | 'tank_attack' | 'faroeste' | 'risca_faca' | 'sinuca';
+
+export interface ArcadeInfo {
+    x: number;
+    y: number;
+    name: string;
+    variation?: number;
+    games: ArcadeGameType[];
+    phrases: string[];
+}
+
+// 10 balanced combinations of 3-out-of-5 games
+// Ensures every pair of missing games appears, so nearby arcades complement each other
+const GAME_SETS: ArcadeGameType[][] = [
+    ['air_pong', 'tank_attack', 'faroeste'],      // set 0: missing risca_faca, sinuca
+    ['air_pong', 'tank_attack', 'sinuca'],         // set 1: missing faroeste, risca_faca
+    ['air_pong', 'faroeste', 'risca_faca'],        // set 2: missing tank_attack, sinuca
+    ['tank_attack', 'risca_faca', 'sinuca'],       // set 3: missing air_pong, faroeste
+    ['air_pong', 'faroeste', 'sinuca'],            // set 4: missing tank_attack, risca_faca
+    ['tank_attack', 'faroeste', 'risca_faca'],     // set 5: missing air_pong, sinuca
+    ['air_pong', 'risca_faca', 'sinuca'],          // set 6: missing tank_attack, faroeste
+    ['tank_attack', 'faroeste', 'sinuca'],         // set 7: missing air_pong, risca_faca
+    ['faroeste', 'risca_faca', 'sinuca'],          // set 8: missing air_pong, tank_attack
+    ['air_pong', 'tank_attack', 'risca_faca'],     // set 9: missing faroeste, sinuca
+];
+
+export const ARCADES: ArcadeInfo[] = [
+    // Central Arcades (15)
+    {
+        x: 118, y: 100, name: 'Fliperama Star', variation: 0, games: GAME_SETS[0],
+        phrases: ['Só craque aqui!', 'A estrela do bairro é aqui!', 'Se não tem skill, volta pro parquinho!']
+    },
+    {
+        x: 188, y: 100, name: 'Fliperama Galáxia', variation: 1, games: GAME_SETS[1],
+        phrases: ['Viajando nas galáxias pixeladas...', 'Aqui o universo é 8-bit!', 'Tá pronto pra sair da órbita?']
+    },
+    {
+        x: 165, y: 110, name: 'Fliperama Turbo', variation: 2, games: GAME_SETS[2],
+        phrases: ['TURBO MODE ATIVADO!', 'Aqui é velocidade máxima!', 'Só não vale chorar quando perder!']
+    },
+    {
+        x: 175, y: 72, name: 'Fliperama Relâmpago', variation: 3, games: GAME_SETS[3],
+        phrases: ['O relâmpago caiu aqui dentro!', 'Rapidão, sem enrolação!', 'Reflexo de gato, mano!']
+    },
+    {
+        x: 185, y: 72, name: 'Fliperama Thunder', variation: 4, games: GAME_SETS[4],
+        phrases: ['THUNDER! Feel the power!', 'Trovão não espera ninguém!', 'Descarga total nos controles!']
+    },
+    {
+        x: 195, y: 72, name: 'Fliperama Nitro', variation: 5, games: GAME_SETS[5],
+        phrases: ['NOS no controle, parceiro!', 'Nitro puro, sem diluir!', 'Aceita o desafio ou tá com medo?']
+    },
+    {
+        x: 175, y: 92, name: 'Fliperama Tornado', variation: 0, games: GAME_SETS[6],
+        phrases: ['O tornado varreu a concorrência!', 'Gira, gira, gira... GAME OVER!', 'Cuidado que aqui roda!']
+    },
+    {
+        x: 185, y: 92, name: 'Fliperama Blitz', variation: 1, games: GAME_SETS[7],
+        phrases: ['Blitz nos botões! Sem parar!', 'Ataque relâmpago garantido!', 'Quem piscar, perde!']
+    },
+    {
+        x: 195, y: 92, name: 'Fliperama Magma', variation: 2, games: GAME_SETS[8],
+        phrases: ['Aqui é quente demais!', 'O magma tá subindo... corre!', 'Lava pura nos joysticks!']
+    },
+    {
+        x: 65, y: 52, name: 'Fliperama Raio', variation: 3, games: GAME_SETS[9],
+        phrases: ['Raio X nos reflexos!', 'Eletrizante do começo ao fim!', 'Quem toca no controle leva choque!']
+    },
+    {
+        x: 75, y: 52, name: 'Fliperama Cometa', variation: 4, games: GAME_SETS[0],
+        phrases: ['Passando como cometa... imbatível!', 'Brilha como estrela cadente!', 'Faz teu pedido e joga!']
+    },
+    {
+        x: 85, y: 52, name: 'Fliperama Foguete', variation: 5, games: GAME_SETS[1],
+        phrases: ['3... 2... 1... LANÇOU!', 'Decolando pro high score!', 'Houston, temos um jogador!']
+    },
+    {
+        x: 65, y: 102, name: 'Fliperama Laser', variation: 0, games: GAME_SETS[2],
+        phrases: ['Precisão cirúrgica!', 'Mira laser ativada!', 'Pew pew pew! Sem piedade!']
+    },
+    {
+        x: 75, y: 102, name: 'Fliperama Pixel', variation: 1, games: GAME_SETS[3],
+        phrases: ['Cada pixel conta!', 'A arte dos 8 bits!', 'Nostalgia em alta resolução!']
+    },
+    {
+        x: 85, y: 102, name: 'Fliperama Arcade', variation: 2, games: GAME_SETS[4],
+        phrases: ['O clássico nunca morre!', 'Old school é outro nível!', 'Moeda na máquina e bora!']
+    },
+
+    // Peripheral Arcades (18)
+    {
+        x: 25, y: 25, name: 'Fliperama Periferia', variation: 3, games: GAME_SETS[5],
+        phrases: ['Da quebrada pro mundo!', 'Aqui na periferia o jogo é sério!', 'Cria da comunidade, craque do fliperama!']
+    },
+    {
+        x: 25, y: 65, name: 'Fliperama Esquina', variation: 4, games: GAME_SETS[6],
+        phrases: ['Na esquina mais animada!', 'Ponto de encontro dos jogadores!', 'Cola aqui na esquina, mano!']
+    },
+    {
+        x: 25, y: 105, name: 'Fliperama Beco', variation: 5, games: GAME_SETS[7],
+        phrases: ['No beco tem tesouro escondido!', 'Quem acha, acha... high score!', 'O beco mais divertido da cidade!']
+    },
+    {
+        x: 25, y: 145, name: 'Fliperama Rua', variation: 0, games: GAME_SETS[8],
+        phrases: ['Direto da rua pro jogo!', 'Cultura de rua, jogo de rua!', 'A rua é nossa, o jogo também!']
+    },
+    {
+        x: 25, y: 185, name: 'Fliperama Viela', variation: 1, games: GAME_SETS[9],
+        phrases: ['Perdido na viela? Jogue aqui!', 'O segredo da viela revelado!', 'Vielinha games, prazer!']
+    },
+    {
+        x: 25, y: 225, name: 'Fliperama Ladeira', variation: 2, games: GAME_SETS[0],
+        phrases: ['Subiu a ladeira? Descansa jogando!', 'Na ladeira, só sobe o score!', 'Íngreme mas vale a pena!']
+    },
+    {
+        x: 25, y: 265, name: 'Fliperama Morro', variation: 3, games: GAME_SETS[1],
+        phrases: ['No topo do morro, no topo do ranking!', 'Vista pro morro, jogo de qualidade!', 'Subiu até aqui? Merece jogar!']
+    },
+    {
+        x: 255, y: 25, name: 'Fliperama Pico', variation: 4, games: GAME_SETS[2],
+        phrases: ['Pico de adrenalina garantido!', 'No pico da diversão!', 'Performance de pico nos botões!']
+    },
+    {
+        x: 255, y: 65, name: 'Fliperama Cruzeiro', variation: 5, games: GAME_SETS[3],
+        phrases: ['Cruzeiro estelar arcade!', 'Navegando em pixels!', 'Destino: high score!']
+    },
+    {
+        x: 255, y: 105, name: 'Fliperama Farol', variation: 0, games: GAME_SETS[4],
+        phrases: ['O farol dos gamers!', 'Iluminando o caminho pro recorde!', 'Brilha forte como farol!']
+    },
+    {
+        x: 255, y: 145, name: 'Fliperama Mirante', variation: 1, games: GAME_SETS[5],
+        phrases: ['Do mirante se vê o game over!', 'Vista panorâmica da derrota alheia!', 'Mirante dos campeões!']
+    },
+    {
+        x: 255, y: 185, name: 'Fliperama Ponte', variation: 2, games: GAME_SETS[6],
+        phrases: ['A ponte entre você e a vitória!', 'Conectando jogadores!', 'Ponte firme, jogo forte!']
+    },
+    {
+        x: 255, y: 225, name: 'Fliperama Estrada', variation: 3, games: GAME_SETS[7],
+        phrases: ['Na estrada do sucesso arcade!', 'Quilômetros de diversão!', 'Bota o pé na estrada e joga!']
+    },
+    {
+        x: 255, y: 265, name: 'Fliperama Trilha', variation: 4, games: GAME_SETS[8],
+        phrases: ['Trilhando o caminho dos pros!', 'Aventura na trilha dos pixels!', 'Desbravando fases novas!']
+    },
+    {
+        x: 105, y: 265, name: 'Fliperama Sul', variation: 5, games: GAME_SETS[9],
+        phrases: ['Zona sul representa!', 'O melhor do sul tá aqui!', 'Gauchismo arcade, tchê!']
+    },
+    {
+        x: 145, y: 265, name: 'Fliperama Oeste', variation: 0, games: GAME_SETS[0],
+        phrases: ['Velho oeste, novos recordes!', 'Selvagem nos botões!', 'Bangue-bangue digital!']
+    },
+    {
+        x: 185, y: 265, name: 'Fliperama Leste', variation: 1, games: GAME_SETS[1],
+        phrases: ['Sol nascente, jogo nascente!', 'O leste é dos campeões!', 'Aurora dos gamers!']
+    },
+    {
+        x: 205, y: 265, name: 'Fliperama Norte', variation: 2, games: GAME_SETS[2],
+        phrases: ['Norte magnético dos arcades!', 'Bússola aponta pra cá!', 'O norte da diversão!']
+    },
+];
+
 export const MAP_DATA = (() => {
     const map = generateMap();
     // Place BARS
     for (const bar of BARS) {
         if (bar.y < map.length && bar.x < map[0].length) {
             map[bar.y][bar.x] = BR;
+        }
+    }
+    // Place ARCADES
+    for (const arcade of ARCADES) {
+        if (arcade.y < map.length && arcade.x < map[0].length) {
+            map[arcade.y][arcade.x] = AR;
         }
     }
     return map;
@@ -857,6 +1029,16 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
         // ── Shopping lights
         if (tile === TILE_TYPES.SHOPPING && x % 5 === 0 && y % 5 === 0) {
             CITY_LIGHTS.push({ x, y, type: 'shopping' });
+        }
+
+        // ── Bar lights
+        if (tile === TILE_TYPES.BAR) {
+            CITY_LIGHTS.push({ x, y, type: 'bar' });
+        }
+
+        // ── Arcade lights
+        if (tile === TILE_TYPES.ARCADE) {
+            CITY_LIGHTS.push({ x, y, type: 'arcade' });
         }
 
         // ── Entrance glow

@@ -1,6 +1,6 @@
 import { Camera } from '../Core/Camera';
 import { TileMap } from './TileMap';
-import { TILE_TYPES, MAP_WIDTH, STREET_SIGNS, AREA_LABELS, BARS } from './MapData';
+import { TILE_TYPES, MAP_WIDTH, STREET_SIGNS, AREA_LABELS, BARS, ARCADES } from './MapData';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { InputManager } from '../Core/InputManager';
@@ -25,6 +25,7 @@ const MINIMAP_COLORS: Record<number, string> = {
     [TILE_TYPES.FENCE]: '#4a4a3a',
     [TILE_TYPES.TREE]: '#2a5a22',
     [TILE_TYPES.BAR]: '#ffaa00', // Bright Orange
+    [TILE_TYPES.ARCADE]: '#00ff88', // Bright Green
 };
 
 // Colors for the maximized paper map (ink-washed look)
@@ -44,6 +45,7 @@ const MAXIMIZED_COLORS: Record<number, string> = {
     [TILE_TYPES.FENCE]: '#6a5a4a',
     [TILE_TYPES.TREE]: '#4a654a',
     [TILE_TYPES.BAR]: '#d48806', // Gold/Orange for paper
+    [TILE_TYPES.ARCADE]: '#2a8a5a', // Dark Green for paper
 };
 
 export class Minimap {
@@ -313,7 +315,8 @@ export class Minimap {
         // Prepare signs including virtual bar signs
         const allSigns = [
             ...STREET_SIGNS,
-            ...BARS.map(bar => ({ x: bar.x, y: bar.y, name: bar.name, direction: 'h' as const, type: 'bar' as const }))
+            ...BARS.map(bar => ({ x: bar.x, y: bar.y, name: bar.name, direction: 'h' as const, type: 'bar' as const })),
+            ...ARCADES.map(a => ({ x: a.x, y: a.y, name: a.name, direction: 'h' as const, type: 'bar' as const }))
         ];
 
         const sortedSigns = allSigns.sort((a, b) => {

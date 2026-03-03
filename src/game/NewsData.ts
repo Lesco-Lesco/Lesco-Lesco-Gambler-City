@@ -15,17 +15,17 @@ export interface NewsItem {
  * - Evitar descrições longas; focar no que mudou ou em pistas rápidas.
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v1.8.0",
+    id: "v1.9.0",
     title: "SANTA CRUZ EM FOCO",
     date: "Março, 2026",
     description: [
-        "A Prefeitura apresenta as melhorias da semana em Santa Cruz:",
+        "Informativo oficial sobre o desenvolvimento urbano de Santa Cruz:",
         "",
         "--- DESTAQUES ---",
-        "• BARES ABERTOS: Operando agora com Video Bingo e Corridas (Cavalos e Galgos). A diversão voltou ao balcão!",
-        "• NOVO MAPA: Pressione 'M' para o guia oficial com nomes de ruas e zoom ('Z') para facilitar a navegação.",
-        "• RUMORES: O subsolo do Shopping Santa Cruz guarda muito mais que depósitos. Dizem que a fortuna está lá embaixo.",
-        "• AMBIENTE: Melhorias na iluminação das ruas para caminhadas noturnas mais seguras e imersivas.",
+        "• FLIPERAMAS: Novos módulos eletrônicos instalados. Alguns operam em fase experimental — teste sua habilidade nos controles.",
+        "• MATA-MATA: A mesa de bilhar agora exige precisão total. Regras clássicas para quem não tem medo de perder a vez.",
+        "• ZONAS DE PAZ: Refúgios para diversão eletrônica parecem fora do radar da fiscalização. Aproveite sem pressão.",
+        "• NOVO MAPA: Pressione 'M' para o guia oficial. Nomes de ruas e zoom ('Z') agora operam em resolução máxima.",
         "",
     ]
 };
@@ -33,8 +33,8 @@ export const LATEST_NEWS_BASE: NewsItem = {
 const RECOMMENDATIONS = [
     "DICA: A Praça Marques de Herval é famosa pelo Dominó. Veteranos dizem que a sorte aceita desafios por lá.",
     "VISITA: No Marco Imperial ruge a Purrinha sob os olhos da história. Cuidado com quem desafia.",
-    "BOEMIA: Os bares locais agora têm Video Bingo e apostas em Corridas. A sorte ruge no balcão!",
-    "LAZER: Boatos no Shopping Santa Cruz dizem que o subsolo guarda segredos que a Prefeitura nega existir.",
+    "LAZER: Novos fliperamas estão espalhados pelo mapa. Dizem que os vizinhos nunca têm os mesmos jogos.",
+    "ESTRATÉGIA: Na Sinuca Mata-Mata, uma tacada na branca concede liberdade dupla ao adversário. Mire bem.",
 ];
 
 export function getFullNews(): NewsItem {

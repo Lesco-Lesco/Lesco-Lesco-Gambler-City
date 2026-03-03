@@ -32,6 +32,8 @@ const LIGHT_PROFILES: Record<CityLightType, { radius: number; color: string; int
     plaza: { radius: 360, color: '#fff0d0', intensity: 0.98, flicker: false, radiusVariance: 0 },
     shopping: { radius: 380, color: '#ddeeff', intensity: 0.99, flicker: false, radiusVariance: 0 },
     alley: { radius: 140, color: '#ff9933', intensity: 0.70, flicker: true, radiusVariance: 20 },
+    bar: { radius: 68, color: '#ff5500', intensity: 0.98, flicker: true, radiusVariance: 10 },
+    arcade: { radius: 68, color: '#00ff88', intensity: 0.98, flicker: true, radiusVariance: 10 },
 };
 
 
@@ -64,11 +66,22 @@ export class Lighting {
             const seed = cl.x * 1000 + cl.y;
             const variance = profile.radiusVariance > 0 ? (seededRand(seed) - 0.5) * 2 * profile.radiusVariance : 0;
 
+            let color = profile.color;
+            if (cl.type === 'bar') {
+                // Neon-ish colors for bars: warm yellow, deep red, electric blue, pink, green
+                const barColors = ['#ffaa00', '#ff2222', '#2244ff', '#ff22aa', '#22ff44'];
+                color = barColors[Math.floor(seededRand(seed) * barColors.length)];
+            } else if (cl.type === 'arcade') {
+                // Neon arcade colors: electric green, cyan, magenta, orange, purple
+                const arcadeColors = ['#00ff88', '#00ccff', '#ff00cc', '#ff8800', '#8800ff'];
+                color = arcadeColors[Math.floor(seededRand(seed) * arcadeColors.length)];
+            }
+
             this.addLight({
                 worldX: cl.x,
                 worldY: cl.y,
                 radius: profile.radius + variance,
-                color: profile.color,
+                color: color,
                 intensity: profile.intensity,
                 flicker: profile.flicker,
                 type: cl.type
@@ -152,7 +165,23 @@ export class Lighting {
             // Per-light unique intensity flicker (adds life without annoying movement)
             let flicker = 1.0;
             if (light.flicker) {
-                flicker = 0.95 + Math.sin(Date.now() / 150 * (light.flickerSpeed || 1) + (light.flickerOffset || 0)) * 0.05;
+                if (light.type === 'bar' || light.type === 'arcade') {
+                    // Sharper, neon-like noise flicker
+                    const t = Date.now() / 1000;
+                    const seed = (light.worldX * 1337 + light.worldY * 7331);
+                    const noise = Math.sin(t * 12 + seed) * Math.sin(t * 25 + seed * 0.5) * Math.sin(t * 43 + seed * 0.2);
+
+                    // High frequency jitter + occasional "brownout"
+                    flicker = 0.94 + (noise > 0.6 ? 0.06 : (noise < -0.6 ? -0.12 : 0));
+
+                    // Random deep blink (10% chance to blink every second)
+                    const slowPulse = Math.sin(t * 0.5 + seed);
+                    if (slowPulse > 0.98) {
+                        flicker *= 0.4; // Brief dimming
+                    }
+                } else {
+                    flicker = 0.95 + Math.sin(Date.now() / 150 * (light.flickerSpeed || 1) + (light.flickerOffset || 0)) * 0.05;
+                }
             }
 
             const effectiveIntensity = intensity * flicker;
@@ -168,9 +197,9 @@ export class Lighting {
             ctx.fillStyle = grad;
             ctx.fillRect(sx - radius, sy - radius, radius * 2, radius * 2);
 
-            // Volumetric cone for street/plaza and alley lamps
-            if (light.type === 'street' || light.type === 'plaza' || light.type === 'alley') {
-                this.renderLightCone(ctx, sx, sy, radius, light.color, effectiveIntensity * (light.type === 'plaza' ? 0.35 : 0.2));
+            // Volumetric cone for street/plaza, alley, bar and arcade lamps
+            if (light.type === 'street' || light.type === 'plaza' || light.type === 'alley' || light.type === 'bar' || light.type === 'arcade') {
+                this.renderLightCone(ctx, sx, sy, radius, light.color, effectiveIntensity * (light.type === 'plaza' || light.type === 'bar' || light.type === 'arcade' ? 0.35 : 0.2));
             }
         }
 
@@ -219,14 +248,21 @@ export class Lighting {
                 flicker = 0.98 + Math.sin(Date.now() / 150 * (light.flickerSpeed || 1) + (light.flickerOffset || 0)) * 0.02;
             }
 
-            let radius = (light.radius * 0.6) * z * flicker;
+            const isBar = light.type === 'bar';
+            const isArcade = light.type === 'arcade';
+            const isNeon = isBar || isArcade;
+            let radius = (light.radius * (isNeon ? 0.8 : 0.6)) * z * flicker;
 
             // Warm ground glow with layered intensity
             const gradient = mainCtx.createRadialGradient(sx, sy, 0, sx, sy, radius);
             const color = light.color || '#ffaa46';
-            gradient.addColorStop(0, `${color}55`);
-            gradient.addColorStop(0.3, `${color}22`);
-            gradient.addColorStop(0.7, `${color}08`);
+            const baseAlpha = isNeon ? '88' : '55';
+            const midAlpha = isNeon ? '44' : '22';
+            const edgeAlpha = isNeon ? '11' : '08';
+
+            gradient.addColorStop(0, `${color}${baseAlpha}`);
+            gradient.addColorStop(0.3, `${color}${midAlpha}`);
+            gradient.addColorStop(0.7, `${color}${edgeAlpha}`);
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
             mainCtx.fillStyle = gradient;
