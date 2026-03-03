@@ -75,7 +75,8 @@ export class HUD {
             const padding = s(40);
             const boxW = Math.min(screenW - s(20), textWidth + padding);
             const hintX = screenW / 2 - boxW / 2;
-            const hintY = _screenH - s(80);
+            const mobile = isMobile();
+            const hintY = mobile ? _screenH - s(140) : _screenH - s(80);
 
             const pulse = Math.sin(Date.now() / 300) * 0.15 + 0.85;
             ctx.globalAlpha = pulse;

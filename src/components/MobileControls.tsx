@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { InputManager } from '../game/Core/InputManager';
+import Joystick from './Joystick';
 
 const MobileControls: React.FC = () => {
-    const [isMobile, setIsMobile] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
     const [isPortrait, setIsPortrait] = useState(false);
 
     useEffect(() => {
         const check = () => {
             const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
             const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 1024;
-            setIsMobile(hasTouch && smallScreen);
+            setIsVisible(hasTouch && smallScreen);
             setIsPortrait(window.innerHeight > window.innerWidth);
         };
 
@@ -22,10 +23,8 @@ const MobileControls: React.FC = () => {
         };
     }, []);
 
-    // Not mobile at all — hide everything
-    if (!isMobile) return null;
+    if (!isVisible) return null;
 
-    // Mobile + Portrait → block with rotate message
     if (isPortrait) {
         return (
             <div className="rotate-overlay">
@@ -36,7 +35,6 @@ const MobileControls: React.FC = () => {
         );
     }
 
-    // Mobile + Landscape → show controls
     const input = InputManager.getInstance();
 
     const handleTouch = (code: string, isPressed: boolean) => (e: React.TouchEvent | React.MouseEvent) => {
@@ -46,39 +44,10 @@ const MobileControls: React.FC = () => {
 
     return (
         <div className="mobile-controls">
-            {/* LEFT SIDE — D-Pad */}
-            <div className="d-pad">
-                <button
-                    className="mobile-btn d-btn-up"
-                    onTouchStart={handleTouch('ArrowUp', true)}
-                    onTouchEnd={handleTouch('ArrowUp', false)}
-                    onMouseDown={handleTouch('ArrowUp', true)}
-                    onMouseUp={handleTouch('ArrowUp', false)}
-                >↑</button>
-                <button
-                    className="mobile-btn d-btn-left"
-                    onTouchStart={handleTouch('ArrowLeft', true)}
-                    onTouchEnd={handleTouch('ArrowLeft', false)}
-                    onMouseDown={handleTouch('ArrowLeft', true)}
-                    onMouseUp={handleTouch('ArrowLeft', false)}
-                >←</button>
-                <button
-                    className="mobile-btn d-btn-right"
-                    onTouchStart={handleTouch('ArrowRight', true)}
-                    onTouchEnd={handleTouch('ArrowRight', false)}
-                    onMouseDown={handleTouch('ArrowRight', true)}
-                    onMouseUp={handleTouch('ArrowRight', false)}
-                >→</button>
-                <button
-                    className="mobile-btn d-btn-down"
-                    onTouchStart={handleTouch('ArrowDown', true)}
-                    onTouchEnd={handleTouch('ArrowDown', false)}
-                    onMouseDown={handleTouch('ArrowDown', true)}
-                    onMouseUp={handleTouch('ArrowDown', false)}
-                >↓</button>
-            </div>
+            {/* LEFT SIDE — Joystick */}
+            <Joystick size={Math.min(window.innerWidth * 0.22, window.innerHeight * 0.35)} />
 
-            {/* RIGHT SIDE — Action Buttons */}
+            {/* RIGHT SIDE — Action Buttons (Ergonomic Curve) */}
             <div className="action-buttons">
                 <button
                     className="mobile-btn action-run"
@@ -86,28 +55,39 @@ const MobileControls: React.FC = () => {
                     onTouchEnd={handleTouch('ShiftLeft', false)}
                     onMouseDown={handleTouch('ShiftLeft', true)}
                     onMouseUp={handleTouch('ShiftLeft', false)}
-                >🏃</button>
+                >
+                    RUN
+                </button>
+
                 <button
                     className="mobile-btn action-confirm"
                     onTouchStart={handleTouch('Space', true)}
                     onTouchEnd={handleTouch('Space', false)}
                     onMouseDown={handleTouch('Space', true)}
                     onMouseUp={handleTouch('Space', false)}
-                >OK</button>
+                >
+                    OK
+                </button>
+
                 <button
                     className="mobile-btn action-interact"
                     onTouchStart={handleTouch('KeyE', true)}
                     onTouchEnd={handleTouch('KeyE', false)}
                     onMouseDown={handleTouch('KeyE', true)}
                     onMouseUp={handleTouch('KeyE', false)}
-                >E</button>
+                >
+                    E
+                </button>
+
                 <button
                     className="mobile-btn action-back"
                     onTouchStart={handleTouch('Escape', true)}
                     onTouchEnd={handleTouch('Escape', false)}
                     onMouseDown={handleTouch('Escape', true)}
                     onMouseUp={handleTouch('Escape', false)}
-                >✕</button>
+                >
+                    ✕
+                </button>
             </div>
         </div>
     );

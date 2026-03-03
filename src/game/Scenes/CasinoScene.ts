@@ -766,9 +766,9 @@ export class CasinoScene implements Scene {
         ctx.shadowBlur = 0;
 
         // ── Área dos rolos ──
-        const reelAreaW = Math.min(this.screenW * 0.85, s(600));
-        const reelAreaH = this.screenH * (mobile ? 0.38 : 0.36);
-        const reelTop = s(mobile ? 80 : 90);
+        const reelAreaW = Math.min(this.screenW * 0.92, s(mobile ? 620 : 600));
+        const reelAreaH = this.screenH * (mobile ? 0.45 : 0.36);
+        const reelTop = s(mobile ? 55 : 90);
         const reelBottom = reelTop + reelAreaH;
         const reelCenterY = reelTop + reelAreaH / 2;
 
@@ -858,9 +858,9 @@ export class CasinoScene implements Scene {
 
         // ── Botão GIRAR ──
         const btnW = Math.min(this.screenW * 0.55, s(320));
-        const btnH = s(mobile ? 52 : 58);
+        const btnH = s(mobile ? 48 : 58);
         const btnX = cx - btnW / 2;
-        const btnY = betAreaY + s(mobile ? 52 : 62);
+        const btnY = betAreaY + s(mobile ? 42 : 62);
 
         if (!this.slotSpinning) {
             const btnGrad = ctx.createLinearGradient(0, btnY, 0, btnY + btnH);
@@ -987,9 +987,9 @@ export class CasinoScene implements Scene {
         ctx.shadowBlur = 0;
 
         // ── Grid de animais ──
-        const footerH = s(mobile ? 90 : 110);
-        const titleH = s(mobile ? 60 : 72);
-        const padding = s(mobile ? 12 : 20);
+        const footerH = s(mobile ? 78 : 110);
+        const titleH = s(mobile ? 48 : 72);
+        const padding = s(mobile ? 8 : 20);
 
         const gridW = this.screenW - padding * 2;
         const gridH = this.screenH - titleH - footerH - padding;

@@ -64,12 +64,24 @@ export class Player {
         let dx = 0;
         let dy = 0;
 
-        if (this.input.isDown('KeyW') || this.input.isDown('ArrowUp')) { dy -= 1; this.direction = 'up'; }
-        if (this.input.isDown('KeyS') || this.input.isDown('ArrowDown')) { dy += 1; this.direction = 'down'; }
-        if (this.input.isDown('KeyA') || this.input.isDown('ArrowLeft')) { dx -= 1; this.direction = 'left'; }
-        if (this.input.isDown('KeyD') || this.input.isDown('ArrowRight')) { dx += 1; this.direction = 'right'; }
-
-        this.isMoving = dx !== 0 || dy !== 0;
+        const jv = this.input.getJoystickVector();
+        if (jv.x !== 0 || jv.y !== 0) {
+            dx = jv.x;
+            dy = jv.y;
+            this.isMoving = true;
+            // Update direction based on dominant axis
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.direction = dx > 0 ? 'right' : 'left';
+            } else {
+                this.direction = dy > 0 ? 'down' : 'up';
+            }
+        } else {
+            if (this.input.isDown('KeyW') || this.input.isDown('ArrowUp')) { dy -= 1; this.direction = 'up'; }
+            if (this.input.isDown('KeyS') || this.input.isDown('ArrowDown')) { dy += 1; this.direction = 'down'; }
+            if (this.input.isDown('KeyA') || this.input.isDown('ArrowLeft')) { dx -= 1; this.direction = 'left'; }
+            if (this.input.isDown('KeyD') || this.input.isDown('ArrowRight')) { dx += 1; this.direction = 'right'; }
+            this.isMoving = dx !== 0 || dy !== 0;
+        }
 
         if (dx !== 0 && dy !== 0) {
             const len = Math.sqrt(dx * dx + dy * dy);

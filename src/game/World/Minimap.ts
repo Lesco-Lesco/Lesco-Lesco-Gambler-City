@@ -139,16 +139,32 @@ export class Minimap {
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number, playerX: number, playerY: number, camera: Camera, npcs: any[]) {
         if (this.isMaximized) {
-            this.handleInteraction(screenW, screenH);
             this.renderMaximized(ctx, screenW, screenH, playerX, playerY, npcs);
         } else {
             this.renderMinimap(ctx, screenW, screenH, playerX, playerY, camera, npcs);
         }
     }
 
+    public update(screenW: number, screenH: number) {
+        if (this.isMaximized) {
+            this.handleInteraction(screenW, screenH);
+        }
+    }
+
+    public isPointInMinimap(x: number, y: number, screenW: number, screenH: number): boolean {
+        const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const mmSize = mobile ? s(200) : s(MINIMAP_BASE_SIZE);
+        const mmPad = mobile ? s(10) : s(MINIMAP_BASE_PADDING);
+        const mmX = screenW - mmSize - mmPad;
+        const mmY = mobile ? mmPad : screenH - mmSize - mmPad;
+        return x >= mmX && x <= mmX + mmSize && y >= mmY && y <= mmY + mmSize;
+    }
+
     private handleInteraction(screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);
-        // The button is placed at the top right of the paper map
+        const mobile = isMobile();
+        // The paper map area
         const paperSize = Math.min(screenW - s(40), screenH - s(120), s(950));
         const px = (screenW - paperSize) / 2;
         const py = (screenH - paperSize) / 2;
@@ -164,9 +180,24 @@ export class Minimap {
 
         if (input.wasPressed('MouseLeft')) {
             const pos = input.getMousePos();
-            if (pos.x >= this.zoomButtonRect.x && pos.x <= this.zoomButtonRect.x + this.zoomButtonRect.w &&
-                pos.y >= this.zoomButtonRect.y && pos.y <= this.zoomButtonRect.y + this.zoomButtonRect.h) {
-                this.zoomIndex = (this.zoomIndex + 1) % this.zoomLevels.length;
+            const inPaper = pos.x >= px && pos.x <= px + paperSize &&
+                pos.y >= py && pos.y <= py + paperSize;
+
+            if (mobile) {
+                if (inPaper) {
+                    // Zoom anywhere on paper if mobile
+                    this.zoomIndex = (this.zoomIndex + 1) % this.zoomLevels.length;
+                } else {
+                    // Tap outside paper to close
+                    this.toggleMaximized();
+                    input.popContext();
+                }
+            } else {
+                // PC interaction: only zoom icon
+                if (pos.x >= this.zoomButtonRect.x && pos.x <= this.zoomButtonRect.x + this.zoomButtonRect.w &&
+                    pos.y >= this.zoomButtonRect.y && pos.y <= this.zoomButtonRect.y + this.zoomButtonRect.h) {
+                    this.zoomIndex = (this.zoomIndex + 1) % this.zoomLevels.length;
+                }
             }
         }
 
@@ -428,7 +459,8 @@ export class Minimap {
         ctx.fillStyle = '#e4dcc4';
         ctx.font = `bold ${r(14)}px monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText("[ 'M' - VOLTAR  |  'Z' - ZOOM ]", screenW / 2, py - s(20));
+        const mapHint = isMobile() ? "[ TOQUE NO MAPA PARA ZOOM  |  TOQUE FORA PARA SAIR ]" : "[ 'M' - VOLTAR  |  'Z' - ZOOM ]";
+        ctx.fillText(mapHint, screenW / 2, py - s(20));
     }
 
     private drawZoomButton(ctx: CanvasRenderingContext2D, s: (v: number) => number) {

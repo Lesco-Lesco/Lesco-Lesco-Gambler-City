@@ -25,7 +25,9 @@ export const LATEST_NEWS_BASE: NewsItem = {
         "• FLIPERAMAS: Novos módulos eletrônicos instalados. Alguns operam em fase experimental — teste sua habilidade nos controles.",
         "• MATA-MATA: A mesa de bilhar agora exige precisão total. Regras clássicas para quem não tem medo de perder a vez.",
         "• ZONAS DE PAZ: Refúgios para diversão eletrônica parecem fora do radar da fiscalização. Aproveite sem pressão.",
-        "• NOVO MAPA: Pressione 'M' para o guia oficial. Nomes de ruas e zoom ('Z') agora operam em resolução máxima.",
+        "• NOVO MAPA: Toque no mini-mapa para abrir o guia. Nomes de ruas e zoom interativo agora em resolução máxima.",
+        "• ESTAÇÃO: Certos passageiros descobriram um destino que não depende de trilhos. A guarda jura que a sala atrás do guichê é apenas um arquivo morto e vazio.",
+        "• SHOPPING: A ala técnica da expansão leste só abre com o sinal correto. A prefeitura garante: no papel é depósito, mas na prática impera o acordo de cavalheiros.",
         "",
     ]
 };

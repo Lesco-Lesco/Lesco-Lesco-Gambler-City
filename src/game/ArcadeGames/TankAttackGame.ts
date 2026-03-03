@@ -5,6 +5,7 @@
  */
 import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 
 interface Enemy {
@@ -153,10 +154,22 @@ export class TankAttackGame {
         let newX = this.tankX;
         let newY = this.tankY;
 
-        if (input.isDown('ArrowUp')) { newY -= this.tankSpeed * dt; this.tankDir = 'up'; }
-        if (input.isDown('ArrowDown')) { newY += this.tankSpeed * dt; this.tankDir = 'down'; }
-        if (input.isDown('ArrowLeft')) { newX -= this.tankSpeed * dt; this.tankDir = 'left'; }
-        if (input.isDown('ArrowRight')) { newX += this.tankSpeed * dt; this.tankDir = 'right'; }
+        const jv = input.getJoystickVector();
+        if (jv.x !== 0 || jv.y !== 0) {
+            newX += jv.x * this.tankSpeed * dt;
+            newY += jv.y * this.tankSpeed * dt;
+            // Update direction for shooting
+            if (Math.abs(jv.x) > Math.abs(jv.y)) {
+                this.tankDir = jv.x > 0 ? 'right' : 'left';
+            } else {
+                this.tankDir = jv.y > 0 ? 'down' : 'up';
+            }
+        } else {
+            if (input.isDown('ArrowUp')) { newY -= this.tankSpeed * dt; this.tankDir = 'up'; }
+            if (input.isDown('ArrowDown')) { newY += this.tankSpeed * dt; this.tankDir = 'down'; }
+            if (input.isDown('ArrowLeft')) { newX -= this.tankSpeed * dt; this.tankDir = 'left'; }
+            if (input.isDown('ArrowRight')) { newX += this.tankSpeed * dt; this.tankDir = 'right'; }
+        }
 
         // Clamp to field
         newX = Math.max(this.tankSize, Math.min(this.fieldW - this.tankSize, newX));
@@ -287,11 +300,12 @@ export class TankAttackGame {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
         ctx.fillRect(0, 0, screenW, screenH);
 
-        const scaleX = (screenW * 0.85) / this.fieldW;
-        const scaleY = (screenH * 0.72) / this.fieldH;
+        const mobile = isMobile();
+        const scaleX = (screenW * (mobile ? 0.95 : 0.85)) / this.fieldW;
+        const scaleY = (screenH * (mobile ? 0.82 : 0.72)) / this.fieldH;
         const scale = Math.min(scaleX, scaleY);
         const ox = (screenW - this.fieldW * scale) / 2;
-        const oy = (screenH - this.fieldH * scale) / 2 + s(20);
+        const oy = (screenH - this.fieldH * scale) / 2 + (mobile ? s(10) : s(20));
 
         ctx.save();
         ctx.translate(ox, oy);
@@ -396,21 +410,24 @@ export class TankAttackGame {
         ctx.restore();
 
         // HUD
+        const hudY = mobile ? Math.max(s(15), oy - s(12)) : oy - s(10);
+        const titleY = mobile ? hudY - s(18) : oy - s(30);
+
         ctx.textAlign = 'center';
         ctx.fillStyle = '#44ff44';
-        ctx.font = `bold ${r(24)}px monospace`;
-        ctx.fillText('TANK ATTACK', screenW / 2, oy - s(30));
+        ctx.font = `bold ${r(mobile ? 18 : 24)}px monospace`;
+        ctx.fillText('TANK ATTACK', screenW / 2, titleY);
 
         // Lives
+        ctx.font = `${mobile ? r(13) : r(16)}px monospace`;
         ctx.fillStyle = '#ff4444';
-        ctx.font = `${r(16)}px monospace`;
         ctx.textAlign = 'left';
-        ctx.fillText(`VIDAS: ${'♥'.repeat(this.lives)}`, ox + s(10), oy - s(10));
+        ctx.fillText(`VIDAS: ${'♥'.repeat(this.lives)}`, ox + s(5), hudY);
 
         // Score
         ctx.fillStyle = '#ffcc00';
         ctx.textAlign = 'right';
-        ctx.fillText(`PONTOS: ${this.score}`, ox + this.fieldW * scale - s(10), oy - s(10));
+        ctx.fillText(`PONTOS: ${this.score}`, ox + this.fieldW * scale - s(5), hudY);
 
         // Game Over
         if (this.phase === 'game_over') {
@@ -418,7 +435,7 @@ export class TankAttackGame {
         }
 
         // Controls
-        if (this.phase === 'playing') {
+        if (this.phase === 'playing' && !isMobile()) {
             ctx.textAlign = 'center';
             ctx.fillStyle = '#555';
             ctx.font = `${r(11)}px monospace`;

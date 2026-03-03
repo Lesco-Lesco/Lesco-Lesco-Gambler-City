@@ -236,7 +236,12 @@ export class ExplorationScene implements Scene {
         }
 
         // Minimap Maximized Blocking
-        if (this.input.wasPressed('KeyM')) {
+        const wasMaximized = this.minimap.getMaximized();
+        const toggleMap = this.input.wasPressed('KeyM') ||
+            (isMobile() && !wasMaximized && this.input.wasPressed('MouseLeft') &&
+                this.minimap.isPointInMinimap(this.input.getMousePos().x, this.input.getMousePos().y, this.screenW, this.screenH));
+
+        if (toggleMap) {
             this.minimap.toggleMaximized();
             if (this.minimap.getMaximized()) {
                 this.input.pushContext('menu');
@@ -246,6 +251,11 @@ export class ExplorationScene implements Scene {
         }
 
         if (this.minimap.getMaximized()) {
+            // Only update interaction if it was already open at start of frame
+            // This prevents the same click from opening AND closing/zooming it
+            if (wasMaximized) {
+                this.minimap.update(this.screenW, this.screenH);
+            }
             return; // Block movement and other world updates
         }
 
@@ -494,8 +504,8 @@ export class ExplorationScene implements Scene {
                 }
             }
         } else if (pm.phase === 'gamble_check') {
-            const acceptBank = this.input.wasPressed('KeyY') || (mobile && (this.input.wasPressed('ArrowUp') || this.input.wasPressed('ArrowLeft')));
-            const payContrib = this.input.wasPressed('KeyN') || (mobile && (this.input.wasPressed('ArrowDown') || this.input.wasPressed('ArrowRight')));
+            const acceptBank = this.input.wasPressed('KeyY') || (mobile && this.input.wasPressed('Space'));
+            const payContrib = this.input.wasPressed('KeyN') || (mobile && this.input.wasPressed('Escape'));
 
             if (acceptBank) { // Aceitar jogar como banca (150)
                 if (bmanager.playerMoney >= 150) {

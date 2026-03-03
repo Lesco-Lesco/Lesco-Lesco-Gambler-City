@@ -3,6 +3,7 @@ import type { IMinigameUI } from './BaseMinigame';
 import { UIScale } from '../Core/UIScale';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class BlackjackUI implements IMinigameUI {
     private game: BlackjackGame;
@@ -17,6 +18,7 @@ export class BlackjackUI implements IMinigameUI {
 
     public update(_dt: number) {
         const bmanager = BichoManager.getInstance();
+        const mobile = isMobile();
 
         if (this.game.phase === 'betting') {
             const step = 10;
@@ -26,7 +28,8 @@ export class BlackjackUI implements IMinigameUI {
             if (this.input.wasPressed('ArrowDown')) {
                 this.game.betAmount = Math.max(this.game.betAmount - step, this.game.minBet);
             }
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+            const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
+            if (okPressed) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.deal();
@@ -35,8 +38,10 @@ export class BlackjackUI implements IMinigameUI {
                 }
             }
         } else if (this.game.phase === 'playing') {
-            if (this.input.wasPressed('KeyH')) this.game.hit();
-            if (this.input.wasPressed('KeyS')) this.game.stand();
+            const hit = this.input.wasPressed('KeyH') || (mobile && this.input.wasPressed('Space'));
+            const stand = this.input.wasPressed('KeyS') || (mobile && this.input.wasPressed('ArrowUp')); // Using D-pad Up for Stand
+            if (hit) this.game.hit();
+            if (stand) this.game.stand();
         } else if (this.game.phase === 'result') {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
@@ -55,8 +60,10 @@ export class BlackjackUI implements IMinigameUI {
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const cx = screenW / 2;
         const cy = screenH / 2;
+        const mobile = isMobile();
 
         // Background Overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
@@ -65,55 +72,65 @@ export class BlackjackUI implements IMinigameUI {
         // Table
         ctx.fillStyle = '#1a4a1a';
         ctx.beginPath();
-        ctx.ellipse(cx, cy + s(50), s(350), s(250), 0, 0, Math.PI * 2);
+        const tableW = mobile ? s(300) : s(350);
+        const tableH = mobile ? s(180) : s(250);
+        const tableY = mobile ? cy + s(30) : cy + s(50);
+        ctx.ellipse(cx, tableY, tableW, tableH, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#daa520'; // Gold border
-        ctx.lineWidth = s(5);
+        ctx.strokeStyle = '#daa520';
+        ctx.lineWidth = s(mobile ? 3 : 5);
         ctx.stroke();
 
         // Dealer Hand
-        this.drawHand(ctx, cx, cy - s(100), this.game.dealerHand, this.game.phase === 'playing');
+        const dealerY = mobile ? cy - s(110) : cy - s(100);
+        this.drawHand(ctx, cx, dealerY, this.game.dealerHand, this.game.phase === 'playing');
 
         // Player Hand
-        this.drawHand(ctx, cx, cy + s(150), this.game.playerHand, false);
+        const playerY = mobile ? cy + s(75) : cy + s(150);
+        this.drawHand(ctx, cx, playerY, this.game.playerHand, false);
 
         // Points
         ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(14)}px "Press Start 2P"`;
+        ctx.font = `${r(mobile ? 11 : 14)}px "Press Start 2P"`;
         ctx.textAlign = 'center';
 
         if (this.game.phase !== 'betting') {
-            ctx.fillText(`Player: ${this.game.calculatePoints(this.game.playerHand)}`, cx, cy + s(280));
+            const playerPointsY = playerY + (mobile ? s(65) : s(130));
+            ctx.fillText(`VOCÊ: ${this.game.calculatePoints(this.game.playerHand)}`, cx, playerPointsY);
             if (this.game.phase !== 'playing') {
-                ctx.fillText(`Dealer: ${this.game.calculatePoints(this.game.dealerHand)}`, cx, cy - s(230));
+                const dealerPointsY = dealerY - (mobile ? s(65) : s(130));
+                ctx.fillText(`DEALER: ${this.game.calculatePoints(this.game.dealerHand)}`, cx, dealerPointsY);
             }
         }
 
         // UI Text based on phase
         ctx.shadowBlur = 0;
         if (this.game.phase === 'betting') {
-            ctx.font = `bold ${UIScale.r(32)}px "Press Start 2P"`;
+            const titleY = mobile ? cy - s(35) : cy - s(30);
+            ctx.font = `bold ${r(mobile ? 20 : 32)}px "Press Start 2P"`;
             ctx.fillStyle = '#daa520';
-            ctx.fillText('BLACKJACK', cx, cy - s(30));
+            ctx.fillText('BLACKJACK', cx, titleY);
 
-            ctx.font = `bold ${UIScale.r(20)}px "Press Start 2P"`;
+            ctx.font = `bold ${r(mobile ? 14 : 20)}px "Press Start 2P"`;
             ctx.fillStyle = '#fff';
-            ctx.fillText(`Aposta: R$${this.game.betAmount}`, cx, cy + s(30));
+            ctx.fillText(`Aposta: R$${this.game.betAmount}`, cx, cy + s(mobile ? 20 : 30));
 
-            ctx.font = `${UIScale.r(14)}px "Press Start 2P"`;
+            ctx.font = `${r(mobile ? 10 : 14)}px "Press Start 2P"`;
             ctx.fillStyle = 'rgba(255,255,255,0.7)';
-            ctx.fillText('[↑/↓] Ajustar  [Enter] Apostar', cx, cy + s(70));
+            const hint = mobile ? '[+/-] Ajustar  [OK] Apostar' : '[↑/↓] Ajustar  [Enter] Apostar';
+            ctx.fillText(hint, cx, cy + s(mobile ? 50 : 70));
         } else if (this.game.phase === 'playing') {
-            ctx.font = `bold ${UIScale.r(18)}px "Press Start 2P"`;
+            ctx.font = `bold ${r(mobile ? 13 : 18)}px "Press Start 2P"`;
             ctx.fillStyle = '#daa520';
-            ctx.fillText('[H] HIT  [S] STAND', cx, cy + s(30));
+            const hint = mobile ? '[OK] PEDIR (HIT)  [↑] PARAR (STAND)' : '[H] HIT  [S] STAND';
+            ctx.fillText(hint, cx, cy + s(mobile ? 15 : 30));
         } else if (this.game.phase === 'result') {
-            ctx.font = `bold ${UIScale.r(24)}px "Press Start 2P"`;
+            ctx.font = `bold ${r(mobile ? 16 : 24)}px "Press Start 2P"`;
             ctx.fillStyle = this.game.winner === 'player' ? '#4f4' : (this.game.winner === 'push' ? '#ff4' : '#f44');
-            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(30));
+            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(mobile ? 15 : 30));
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
-            ctx.font = `${UIScale.r(14)}px "Press Start 2P"`;
-            ctx.fillText('[Enter] Nova Partida', cx, cy + s(70));
+            ctx.font = `${r(mobile ? 11 : 14)}px "Press Start 2P"`;
+            ctx.fillText(mobile ? '[OK] NOVAMENTE' : '[Enter] Nova Partida', cx, cy + s(mobile ? 50 : 70));
         }
     }
 

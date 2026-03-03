@@ -1,8 +1,5 @@
-/**
- * Shared Game Over screen utilities for all arcade games.
- * Motivational phrases and consistent game over rendering.
- */
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 
 const MOTIVATIONAL_PHRASES: string[] = [
     'Quase lá! Na próxima você consegue!',
@@ -55,14 +52,15 @@ export function renderArcadeGameOver(
     const r = UIScale.r.bind(UIScale);
     const cx = screenW / 2;
     const cy = screenH / 2;
+    const mobile = isMobile();
 
     // Dark overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
     ctx.fillRect(0, 0, screenW, screenH);
 
-    // Neon border box
-    const boxW = s(420);
-    const boxH = s(320);
+    // Neon border box (Slightly larger on mobile for readability)
+    const boxW = s(mobile ? 500 : 420);
+    const boxH = s(mobile ? 380 : 320);
     const boxX = cx - boxW / 2;
     const boxY = cy - boxH / 2 - s(10);
 
@@ -94,7 +92,7 @@ export function renderArcadeGameOver(
     ctx.shadowColor = '#ff3344';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff3344';
-    ctx.font = `bold ${r(38)}px monospace`;
+    ctx.font = `bold ${r(mobile ? 44 : 38)}px monospace`;
     ctx.fillText('GAME OVER', cx, boxY + s(55));
     ctx.shadowBlur = 0;
     ctx.restore();
@@ -103,41 +101,41 @@ export function renderArcadeGameOver(
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(boxX + s(30), boxY + s(75));
-    ctx.lineTo(boxX + boxW - s(30), boxY + s(75));
+    ctx.moveTo(boxX + s(30), boxY + s(85));
+    ctx.lineTo(boxX + boxW - s(30), boxY + s(85));
     ctx.stroke();
 
     // Score label
     ctx.fillStyle = '#888';
-    ctx.font = `${r(14)}px monospace`;
+    ctx.font = `${r(mobile ? 16 : 14)}px monospace`;
     ctx.textAlign = 'center';
-    ctx.fillText('PONTUAÇÃO FINAL', cx, boxY + s(100));
+    ctx.fillText('PONTUAÇÃO FINAL', cx, boxY + s(110));
 
     // Score value (big, golden, glowing)
     ctx.save();
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#ffcc00';
     ctx.fillStyle = '#ffcc00';
-    ctx.font = `bold ${r(48)}px monospace`;
-    ctx.fillText(`${score}`, cx, boxY + s(145));
+    ctx.font = `bold ${r(mobile ? 56 : 48)}px monospace`;
+    ctx.fillText(`${score}`, cx, boxY + s(165));
     ctx.shadowBlur = 0;
     ctx.restore();
 
     // Star decoration around score
     ctx.fillStyle = '#ffcc00';
-    ctx.font = `${r(18)}px monospace`;
+    ctx.font = `${r(20)}px monospace`;
     const scoreText = `${score}`;
     const scoreWidth = ctx.measureText(scoreText).width;
-    ctx.fillText('★', cx - scoreWidth / 2 - s(25), boxY + s(140));
-    ctx.fillText('★', cx + scoreWidth / 2 + s(15), boxY + s(140));
+    ctx.fillText('★', cx - scoreWidth / 2 - s(30), boxY + s(160));
+    ctx.fillText('★', cx + scoreWidth / 2 + s(20), boxY + s(160));
 
     // Motivational phrase
     ctx.fillStyle = '#aaddff';
-    ctx.font = `italic ${r(13)}px monospace`;
+    ctx.font = `italic ${r(mobile ? 15 : 13)}px monospace`;
     ctx.textAlign = 'center';
 
     // Word wrap the phrase
-    const maxLineW = boxW - s(50);
+    const maxLineW = boxW - s(60);
     const words = phrase.split(' ');
     const lines: string[] = [];
     let currentLine = '';
@@ -152,16 +150,16 @@ export function renderArcadeGameOver(
     }
     if (currentLine) lines.push(currentLine);
 
-    const phraseY = boxY + s(185);
+    const phraseY = boxY + s(210);
     lines.forEach((line, i) => {
-        ctx.fillText(line, cx, phraseY + i * s(18));
+        ctx.fillText(line, cx, phraseY + i * s(20));
     });
 
     // Action button — pulsing
-    const btnW = s(280);
-    const btnH = s(44);
+    const btnW = s(mobile ? 320 : 280);
+    const btnH = s(mobile ? 50 : 44);
     const btnX = cx - btnW / 2;
-    const btnY = boxY + boxH - s(70);
+    const btnY = boxY + boxH - s(mobile ? 85 : 70);
     const pulse = 0.8 + Math.sin(time / 300) * 0.2;
 
     // Button background
@@ -179,12 +177,15 @@ export function renderArcadeGameOver(
 
     // Button text
     ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + 0.3 * pulse})`;
-    ctx.font = `bold ${r(16)}px monospace`;
+    ctx.font = `bold ${r(mobile ? 18 : 16)}px monospace`;
     ctx.textAlign = 'center';
-    ctx.fillText('[ ESPAÇO ] CONTINUAR', cx, btnY + btnH / 2 + s(5));
+    const continueBtnText = mobile ? 'TOQUE OK PARA VOLTAR' : '[ ESPAÇO ] CONTINUAR';
+    ctx.fillText(continueBtnText, cx, btnY + btnH / 2 + s(6));
 
-    // Small hint
-    ctx.fillStyle = '#555';
-    ctx.font = `${r(10)}px monospace`;
-    ctx.fillText('ESC para sair', cx, btnY + btnH + s(18));
+    // Small exit hint for PC only
+    if (!mobile) {
+        ctx.fillStyle = '#555';
+        ctx.font = `${r(10)}px monospace`;
+        ctx.fillText('ESC para sair', cx, btnY + btnH + s(18));
+    }
 }

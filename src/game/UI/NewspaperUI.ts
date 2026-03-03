@@ -1,4 +1,5 @@
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 import { getFullNews, type NewsItem } from '../NewsData';
 
 export class NewspaperUI {
@@ -131,7 +132,8 @@ export class NewspaperUI {
         ctx.globalAlpha = this.opacity * pulse;
 
         const footerY = py + paperH - s(35);
-        ctx.fillText("[ APERTE QUALQUER TECLA PARA FECHAR ]", screenW / 2, footerY);
+        const footerText = isMobile() ? "[ TOQUE PARA FECHAR ]" : "[ APERTE QUALQUER TECLA PARA FECHAR ]";
+        ctx.fillText(footerText, screenW / 2, footerY);
 
         ctx.restore();
     }

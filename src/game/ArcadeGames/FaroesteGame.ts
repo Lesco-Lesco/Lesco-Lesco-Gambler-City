@@ -5,6 +5,7 @@
  */
 import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 
 export class FaroesteGame {
@@ -178,9 +179,10 @@ export class FaroesteGame {
         ctx.shadowBlur = 0;
 
         // Duelists
-        const playerX = cx - s(120);
-        const aiX = cx + s(120);
-        const bodyY = cy + s(40);
+        const mobile = isMobile();
+        const playerX = cx - s(mobile ? 90 : 120);
+        const aiX = cx + s(mobile ? 90 : 120);
+        const bodyY = cy + s(mobile ? 50 : 40);
 
         // Player silhouette (left)
         this.drawCowboy(ctx, playerX, bodyY, s, '#44aa44', this.phase === 'result' && this.roundWon);
@@ -207,14 +209,15 @@ export class FaroesteGame {
             ctx.fillText('NÃO aperte antes da hora!', cx, cy - s(30));
         } else if (this.phase === 'draw') {
             ctx.fillStyle = '#ff0000';
-            ctx.font = `bold ${r(50)}px serif`;
+            ctx.font = `bold ${r(mobile ? 56 : 50)}px serif`;
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#ff0000';
-            ctx.fillText('SAQUE!', cx, cy - s(50));
+            ctx.fillText('SAQUE!', cx, cy - s(mobile ? 60 : 50));
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#fff';
             ctx.font = `bold ${r(16)}px monospace`;
-            ctx.fillText('[ESPAÇO] AGORA!', cx, cy - s(15));
+            const drawHint = isMobile() ? 'TOQUE NO OK!' : '[ESPAÇO] AGORA!';
+            ctx.fillText(drawHint, cx, cy - s(15));
         } else if (this.phase === 'result') {
             const msg = this.roundWon ? 'ACERTOU!' : (this.playerDrawTime < 0 ? 'SACOU CEDO DEMAIS!' : 'LEVOU TIRO!');
             ctx.fillStyle = this.roundWon ? '#44ff44' : '#ff4444';
@@ -247,7 +250,7 @@ export class FaroesteGame {
         }
 
         // Controls
-        if (this.phase !== 'game_over') {
+        if (this.phase !== 'game_over' && !isMobile()) {
             ctx.fillStyle = '#555';
             ctx.font = `${r(11)}px monospace`;
             ctx.textAlign = 'center';

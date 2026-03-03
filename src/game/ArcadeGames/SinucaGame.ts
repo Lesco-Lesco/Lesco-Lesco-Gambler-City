@@ -13,6 +13,7 @@
  */
 import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 
 interface Ball {
@@ -146,8 +147,13 @@ export class SinucaGame {
         }
 
         if (this.phase === 'aiming') {
-            if (input.isDown('ArrowLeft')) this.aimAngle -= 2.0 * dt;
-            if (input.isDown('ArrowRight')) this.aimAngle += 2.0 * dt;
+            const jv = input.getJoystickVector();
+            if (jv.x !== 0) {
+                this.aimAngle += jv.x * 2.5 * dt;
+            } else {
+                if (input.isDown('ArrowLeft')) this.aimAngle -= 2.0 * dt;
+                if (input.isDown('ArrowRight')) this.aimAngle += 2.0 * dt;
+            }
 
             if (input.isDown('Space')) {
                 this.holdingShot = true;
@@ -442,12 +448,12 @@ export class SinucaGame {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
         ctx.fillRect(0, 0, screenW, screenH);
 
-        // Scale table to fit screen
-        const scaleX = (screenW * 0.85) / this.tableW;
-        const scaleY = (screenH * 0.6) / this.tableH;
+        const mobile = isMobile();
+        const scaleX = (screenW * (mobile ? 0.95 : 0.85)) / this.tableW;
+        const scaleY = (screenH * (mobile ? 0.75 : 0.6)) / this.tableH;
         const scale = Math.min(scaleX, scaleY);
         const ox = (screenW - this.tableW * scale) / 2;
-        const oy = (screenH - this.tableH * scale) / 2 + s(25);
+        const oy = (screenH - this.tableH * scale) / 2 + (mobile ? s(15) : s(25));
 
         ctx.save();
         ctx.translate(ox, oy);
@@ -570,18 +576,21 @@ export class SinucaGame {
         ctx.restore();
 
         // --- HUD ---
+        const hudY = mobile ? Math.max(s(20), oy - s(10)) : oy - s(12);
+        const titleY = mobile ? hudY - s(20) : oy - s(35);
+
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${r(22)}px monospace`;
-        ctx.fillText('SINUCA MATA MATA', cx, oy - s(35));
+        ctx.font = `bold ${r(mobile ? 18 : 22)}px monospace`;
+        ctx.fillText('SINUCA MATA MATA', cx, titleY);
 
         // Turn indicator
         ctx.fillStyle = this.playerTurn ? '#44ff44' : '#4444ff';
-        ctx.font = `bold ${r(14)}px monospace`;
+        ctx.font = `bold ${r(mobile ? 12 : 14)}px monospace`;
         const turnText = this.phase === 'turn_transition'
             ? this.transitionMessage
             : (this.playerTurn ? 'SUA VEZ' : 'VEZ DA IA');
-        ctx.fillText(turnText, cx, oy - s(12));
+        ctx.fillText(turnText, cx, hudY);
 
         // Bonus turn indicator
         if (this.bonusTurns > 0) {
@@ -593,19 +602,22 @@ export class SinucaGame {
         // Ball counts
         const playerAlive = 4 - this.playerBallsSunk;
         const aiAlive = 4 - this.aiBallsSunk;
-        ctx.font = `${r(13)}px monospace`;
+        const ballY = oy + this.tableH * scale + s(mobile ? 18 : 22);
+
+        ctx.font = `${mobile ? r(11) : r(13)}px monospace`;
         ctx.textAlign = 'left';
         ctx.fillStyle = '#ff4444';
-        ctx.fillText(`Suas: ${'●'.repeat(playerAlive)}${'○'.repeat(4 - playerAlive)}`, ox + s(5), oy + this.tableH * scale + s(22));
+        ctx.fillText(`Suas: ${'●'.repeat(playerAlive)}${'○'.repeat(4 - playerAlive)}`, ox + s(5), ballY);
+
         ctx.textAlign = 'right';
         ctx.fillStyle = '#4444ff';
-        ctx.fillText(`IA: ${'●'.repeat(aiAlive)}${'○'.repeat(4 - aiAlive)}`, ox + this.tableW * scale - s(5), oy + this.tableH * scale + s(22));
+        ctx.fillText(`IA: ${'●'.repeat(aiAlive)}${'○'.repeat(4 - aiAlive)}`, ox + this.tableW * scale - s(5), ballY);
 
         // Score
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `${r(12)}px monospace`;
-        ctx.fillText(`PONTOS: ${this.score}`, cx, oy + this.tableH * scale + s(40));
+        ctx.font = `${mobile ? r(10) : r(12)}px monospace`;
+        ctx.fillText(`PONTOS: ${this.score}`, cx, ballY + s(mobile ? 14 : 18));
 
         // Game Over
         if (this.phase === 'game_over') {
@@ -613,7 +625,7 @@ export class SinucaGame {
         }
 
         // Controls
-        if (this.phase === 'aiming') {
+        if (this.phase === 'aiming' && !isMobile()) {
             ctx.textAlign = 'center';
             ctx.fillStyle = '#555';
             ctx.font = `${r(11)}px monospace`;

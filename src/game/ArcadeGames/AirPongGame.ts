@@ -6,6 +6,7 @@
  */
 import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 
 export class AirPongGame {
@@ -85,8 +86,13 @@ export class AirPongGame {
         const input = InputManager.getInstance();
 
         // Player paddle (left side)
-        if (input.isDown('ArrowUp')) this.playerY -= this.paddleSpeed * dt;
-        if (input.isDown('ArrowDown')) this.playerY += this.paddleSpeed * dt;
+        const jv = input.getJoystickVector();
+        if (jv.y !== 0) {
+            this.playerY += jv.y * this.paddleSpeed * dt;
+        } else {
+            if (input.isDown('ArrowUp')) this.playerY -= this.paddleSpeed * dt;
+            if (input.isDown('ArrowDown')) this.playerY += this.paddleSpeed * dt;
+        }
         this.playerY = Math.max(this.paddleH / 2, Math.min(this.fieldH - this.paddleH / 2, this.playerY));
 
         // AI paddle (right side) — dynamic difficulty
@@ -202,12 +208,12 @@ export class AirPongGame {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
         ctx.fillRect(0, 0, screenW, screenH);
 
-        // Scale field to fit screen
-        const scaleX = (screenW * 0.8) / this.fieldW;
-        const scaleY = (screenH * 0.7) / this.fieldH;
+        const mobile = isMobile();
+        const scaleX = (screenW * (mobile ? 0.95 : 0.8)) / this.fieldW;
+        const scaleY = (screenH * (mobile ? 0.8 : 0.7)) / this.fieldH;
         const scale = Math.min(scaleX, scaleY);
         const ox = (screenW - this.fieldW * scale) / 2;
-        const oy = (screenH - this.fieldH * scale) / 2 + s(20);
+        const oy = (screenH - this.fieldH * scale) / 2 + (mobile ? s(10) : s(20));
 
         ctx.save();
         ctx.translate(ox, oy);
@@ -283,18 +289,21 @@ export class AirPongGame {
         ctx.restore();
 
         // HUD
+        const hudY = mobile ? Math.max(s(25), oy - s(12)) : oy - s(5);
+        const titleY = mobile ? hudY - s(25) : oy - s(30);
+
         ctx.textAlign = 'center';
         ctx.fillStyle = '#00ccff';
-        ctx.font = `bold ${r(24)}px monospace`;
-        ctx.fillText('AIR PONG', screenW / 2, oy - s(30));
+        ctx.font = `bold ${r(mobile ? 18 : 24)}px monospace`;
+        ctx.fillText('AIR PONG', screenW / 2, titleY);
 
-        ctx.font = `bold ${r(40)}px monospace`;
+        ctx.font = `bold ${r(mobile ? 28 : 40)}px monospace`;
         ctx.fillStyle = '#ff4444';
-        ctx.fillText(`${this.playerGoals}`, screenW / 2 - s(60), oy - s(5));
+        ctx.fillText(`${this.playerGoals}`, screenW / 2 - s(mobile ? 40 : 60), hudY);
         ctx.fillStyle = '#666';
-        ctx.fillText('x', screenW / 2, oy - s(5));
+        ctx.fillText('x', screenW / 2, hudY);
         ctx.fillStyle = '#4444ff';
-        ctx.fillText(`${this.aiGoals}`, screenW / 2 + s(60), oy - s(5));
+        ctx.fillText(`${this.aiGoals}`, screenW / 2 + s(mobile ? 40 : 60), hudY);
 
         // Score
         ctx.fillStyle = '#ffcc00';
@@ -316,7 +325,7 @@ export class AirPongGame {
         }
 
         // Controls hint
-        if (this.phase === 'playing') {
+        if (this.phase === 'playing' && !isMobile()) {
             ctx.fillStyle = '#555';
             ctx.font = `${r(11)}px monospace`;
             ctx.fillText('[↑↓] Mover  |  [ESC] Sair', screenW / 2, screenH - s(15));

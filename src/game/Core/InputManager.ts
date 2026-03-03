@@ -14,14 +14,44 @@ export class InputManager {
     private mouseX: number = 0;
     private mouseY: number = 0;
     private mouseDown: boolean = false;
+    private joystickX: number = 0;
+    private joystickY: number = 0;
     private contextStack: InputContext[] = ['exploration'];
 
     private constructor() {
         window.addEventListener('keydown', this.onKeyDown);
         window.addEventListener('keyup', this.onKeyUp);
         window.addEventListener('mousemove', this.onMouseMove);
-        window.addEventListener('mousedown', () => (this.mouseDown = true));
-        window.addEventListener('mouseup', () => (this.mouseDown = false));
+
+        const onDown = (e: MouseEvent | TouchEvent) => {
+            this.mouseDown = true;
+            this.setKeyState('MouseLeft', true);
+            if (e instanceof MouseEvent) {
+                this.onMouseMove(e);
+            } else if (e.touches.length > 0) {
+                this.updateMousePos(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        };
+        const onUp = () => {
+            this.mouseDown = false;
+            this.setKeyState('MouseLeft', false);
+        };
+
+        window.addEventListener('mousedown', onDown);
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchstart', onDown, { passive: false });
+        window.addEventListener('touchend', onUp);
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                this.updateMousePos(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+    }
+
+    private updateMousePos(clientX: number, clientY: number) {
+        const dpr = window.devicePixelRatio || 1;
+        this.mouseX = clientX * dpr;
+        this.mouseY = clientY * dpr;
     }
 
     public static getInstance(): InputManager {
@@ -59,10 +89,26 @@ export class InputManager {
         }
     }
 
+    /** Set joystick vector (normalized -1 to 1) */
+    public setJoystickVector(x: number, y: number) {
+        this.joystickX = x;
+        this.joystickY = y;
+
+        const threshold = 0.3;
+
+        // Use setKeyState to ensure justPressed/justReleased are triggered correctly
+        this.setKeyState('ArrowUp', y < -threshold);
+        this.setKeyState('ArrowDown', y > threshold);
+        this.setKeyState('ArrowLeft', x < -threshold);
+        this.setKeyState('ArrowRight', x > threshold);
+    }
+
+    public getJoystickVector(): { x: number; y: number } {
+        return { x: this.joystickX, y: this.joystickY };
+    }
+
     private onMouseMove = (e: MouseEvent) => {
-        const dpr = window.devicePixelRatio || 1;
-        this.mouseX = e.clientX * dpr;
-        this.mouseY = e.clientY * dpr;
+        this.updateMousePos(e.clientX, e.clientY);
     };
 
     /** Call at the END of each frame to reset transient state */
@@ -90,10 +136,14 @@ export class InputManager {
     }
 
     public isDown(code: string): boolean {
+        // Direct key check
         if (this.keys.get(code)) return true;
+
+        // Alias check
         for (const alias of this.getAliases(code)) {
             if (this.keys.get(alias)) return true;
         }
+
         return false;
     }
 

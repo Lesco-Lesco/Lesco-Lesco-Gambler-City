@@ -1,5 +1,6 @@
 import { DogRacingGame } from './DogRacingGame';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 
 export class DogRacingUI {
     private game: DogRacingGame;
@@ -19,6 +20,7 @@ export class DogRacingUI {
     public update(dt: number) {
         const input = (window as any).gameInput;
         if (!input) return;
+        const mobile = isMobile();
 
         if (this.game.phase === 'betting') {
             // Selection logic
@@ -26,8 +28,10 @@ export class DogRacingUI {
             if (input.wasPressed('ArrowDown')) this.game.selectedDog = (this.game.selectedDog + 1) % 8;
 
             // Bet adjustment
-            if (input.wasPressed('ArrowLeft')) this.game.betAmount = Math.max(10, this.game.betAmount - 10);
-            if (input.wasPressed('ArrowRight')) this.game.betAmount = Math.min(500, this.game.betAmount + 10);
+            const left = input.wasPressed('ArrowLeft') || (mobile && input.wasPressed('KeyA'));
+            const right = input.wasPressed('ArrowRight') || (mobile && input.wasPressed('KeyD'));
+            if (left) this.game.betAmount = Math.max(10, this.game.betAmount - 10);
+            if (right) this.game.betAmount = Math.min(500, this.game.betAmount + 10);
 
             if (input.wasPressed('Space') || input.wasPressed('Enter')) {
                 const bmanager = (window as any).bmanager;
@@ -45,7 +49,7 @@ export class DogRacingUI {
         }
 
         if (input.wasPressed('Escape')) {
-            const payout = (this.game.phase === 'result') ? this.game.getPayout() : 0;
+            const payout = this.game.phase === 'result' ? this.game.getPayout() : 0;
             this.onExit(payout);
         }
 
@@ -68,17 +72,19 @@ export class DogRacingUI {
 
     private drawBetting(ctx: CanvasRenderingContext2D, w: number, h: number) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
         ctx.textAlign = 'center';
 
         // Header
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(32)}px "Segoe UI"`;
-        ctx.fillText("CAMPEONATO DE GALGOS", w / 2, s(60));
+        ctx.font = `bold ${r(mobile ? 20 : 32)}px "Segoe UI"`;
+        ctx.fillText("CAMPEONATO DE GALGOS", w / 2, s(mobile ? 35 : 60));
 
         // Dog List
-        const listX = w / 2 - s(200);
-        const listY = s(125);
-        const itemH = s(42);
+        const listX = w / 2 - s(mobile ? 180 : 200);
+        const listY = s(mobile ? 75 : 125);
+        const itemH = s(mobile ? 32 : 42);
 
         this.game.dogs.forEach((dog, i) => {
             const isSelected = this.game.selectedDog === i;
@@ -86,36 +92,38 @@ export class DogRacingUI {
 
             if (isSelected) {
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                ctx.fillRect(listX - s(15), y - s(30), s(430), itemH - s(2));
+                ctx.fillRect(listX - s(15), y - s(mobile ? 22 : 30), s(mobile ? 360 : 430), itemH - s(2));
                 ctx.strokeStyle = '#ffcc00';
                 ctx.lineWidth = s(2);
-                ctx.strokeRect(listX - s(15), y - s(30), s(430), itemH - s(2));
+                ctx.strokeRect(listX - s(15), y - s(mobile ? 22 : 30), s(mobile ? 360 : 430), itemH - s(2));
             }
 
-            this.renderDogIcon(ctx, listX + s(15), y - s(10), s(28), dog);
+            this.renderDogIcon(ctx, listX + s(15), y - s(mobile ? 8 : 10), s(mobile ? 22 : 28), dog);
 
             ctx.fillStyle = isSelected ? '#fff' : '#ccc';
-            ctx.font = `bold ${UIScale.r(18)}px monospace`;
+            ctx.font = `bold ${r(mobile ? 13 : 18)}px monospace`;
             ctx.textAlign = 'left';
-            ctx.fillText(`${dog.name.toUpperCase()} (${dog.breed})`, listX + s(60), y - s(10));
+            ctx.fillText(`${dog.name.toUpperCase()}`, listX + s(45), y - s(mobile ? 8 : 10));
 
             ctx.textAlign = 'right';
             ctx.fillStyle = isSelected ? '#00ff00' : '#888';
-            ctx.fillText(`ODDS: ${dog.odds.toFixed(1)}x`, listX + s(400), y - s(10));
+            ctx.fillText(`${dog.odds.toFixed(1)}x`, listX + s(mobile ? 335 : 400), y - s(mobile ? 8 : 10));
         });
 
         // Bet Box
         ctx.textAlign = 'center';
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(22)}px monospace`;
-        ctx.fillText(`SUA APOSTA: R$ ${this.game.betAmount}`, w / 2, h - s(110));
+        ctx.font = `bold ${r(mobile ? 16 : 22)}px monospace`;
+        ctx.fillText(`SUA APOSTA: R$ ${this.game.betAmount}`, w / 2, h - s(mobile ? 85 : 110));
 
         ctx.fillStyle = '#aaa';
-        ctx.font = `${UIScale.r(14)}px monospace`;
-        ctx.fillText("[↑↓] ESCOLHER CÃO  [←→] AJUSTAR VALOR", w / 2, h - s(75));
+        ctx.font = `${r(mobile ? 10 : 14)}px monospace`;
+        const controlsHint = mobile ? "[↑↓] Escolher  [A/D] Valor" : "[↑↓] ESCOLHER CÃO  [←→] AJUSTAR VALOR";
+        ctx.fillText(controlsHint, w / 2, h - s(mobile ? 60 : 75));
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(18)}px monospace`;
-        ctx.fillText("CORRA COM [ESPAÇO] PARA COMEÇAR", w / 2, h - s(45));
+        ctx.font = `bold ${r(mobile ? 13 : 18)}px monospace`;
+        const startHint = mobile ? "TOQUE NO [OK] PARA COMEÇAR" : "CORRA COM [ESPAÇO] PARA COMEÇAR";
+        ctx.fillText(startHint, w / 2, h - s(mobile ? 32 : 45));
     }
 
     private drawRacing(ctx: CanvasRenderingContext2D, w: number, _h: number) {

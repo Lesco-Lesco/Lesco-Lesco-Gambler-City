@@ -3,6 +3,7 @@ import type { IMinigameUI } from './BaseMinigame';
 import { UIScale } from '../Core/UIScale';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
+import { isMobile } from '../Core/MobileDetect';
 
 export class PokerUI implements IMinigameUI {
     private game: PokerGame;
@@ -18,14 +19,13 @@ export class PokerUI implements IMinigameUI {
 
     public update(_dt: number) {
         const bmanager = BichoManager.getInstance();
-
+        const mobile = isMobile();
         const humanCurrentBet = () => this.game.players[0].currentBet;
 
         if (this.game.phase === 'betting') {
-            // Force minimum bet of 10 for initial confirmation
             this.game.betAmount = 10;
-
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+            const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
+            if (okPressed) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startMatch();
@@ -45,10 +45,13 @@ export class PokerUI implements IMinigameUI {
             // Mid-game phases
             if (this.game.phase === 'pre_flop') {
                 const step = 10;
-                if (this.input.wasPressed('ArrowUp')) {
+                const up = this.input.wasPressed('ArrowUp') || (mobile && this.input.wasPressed('KeyW'));
+                const down = this.input.wasPressed('ArrowDown') || (mobile && this.input.wasPressed('KeyS'));
+
+                if (up) {
                     this.pendingRaise = Math.min(this.pendingRaise + step, bmanager.playerMoney);
                 }
-                if (this.input.wasPressed('ArrowDown')) {
+                if (down) {
                     this.pendingRaise = Math.max(0, this.pendingRaise - step);
                 }
 
@@ -81,8 +84,10 @@ export class PokerUI implements IMinigameUI {
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const cx = screenW / 2;
         const cy = screenH / 2;
+        const mobile = isMobile();
 
         // Background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
@@ -91,53 +96,62 @@ export class PokerUI implements IMinigameUI {
         // Poker Table (Green Felt)
         ctx.fillStyle = '#0a3a0a';
         ctx.beginPath();
-        ctx.roundRect(cx - s(300), cy - s(150), s(600), s(300), s(150));
+        const tableW = mobile ? s(540) : s(600);
+        const tableH = mobile ? s(220) : s(300);
+        ctx.roundRect(cx - tableW / 2, cy - tableH / 2, tableW, tableH, s(mobile ? 100 : 150));
         ctx.fill();
         ctx.strokeStyle = '#daa520';
-        ctx.lineWidth = s(4);
+        ctx.lineWidth = s(mobile ? 2.5 : 4);
         ctx.stroke();
 
         // Community Cards
-        this.drawCommunityCards(ctx, cx, cy, this.game.communityCards);
+        const commY = mobile ? cy - s(10) : cy;
+        this.drawCommunityCards(ctx, cx, commY, this.game.communityCards);
 
         // Pot
-        ctx.fillStyle = '#ffcc00'; // Slightly more premium gold
-        ctx.font = `${UIScale.r(18)}px "Press Start 2P"`;
+        ctx.fillStyle = '#ffcc00';
+        ctx.font = `${r(mobile ? 14 : 18)}px "Press Start 2P"`;
         ctx.textAlign = 'center';
         ctx.shadowBlur = s(8);
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.fillText(`POT: R$${this.game.pot}`, cx, cy - s(60));
+        ctx.fillText(`POT: R$${this.game.pot}`, cx, cy - (mobile ? s(45) : s(60)));
         ctx.shadowBlur = 0;
 
         // Players
-        this.drawPlayer(ctx, cx, cy + s(180), this.game.players[0], true);   // Bottom: Human
-        this.drawPlayer(ctx, cx - s(250), cy - s(200), this.game.players[1], false); // Top Left: NPC
-        this.drawPlayer(ctx, cx + s(250), cy - s(200), this.game.players[2], false); // Top Right: NPC
+        const playerY = mobile ? cy + s(105) : cy + s(180);
+        const npcY = mobile ? cy - s(142) : cy - s(200);
+        const npcXOff = mobile ? s(180) : s(250);
+
+        this.drawPlayer(ctx, cx, playerY, this.game.players[0], true);   // Bottom: Human
+        this.drawPlayer(ctx, cx - npcXOff, npcY, this.game.players[1], false); // Top Left: NPC
+        this.drawPlayer(ctx, cx + npcXOff, npcY, this.game.players[2], false); // Top Right: NPC
 
         // Instructions
         ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(12)}px "Press Start 2P"`;
+        ctx.font = `${r(mobile ? 9 : 12)}px "Press Start 2P"`;
         if (this.game.phase === 'betting') {
             ctx.fillStyle = '#ffcc00';
-            ctx.fillText(`Aposta (BB): R$${this.game.betAmount}`, cx, cy + s(50));
+            ctx.fillText(`Aposta (BB): R$${this.game.betAmount}`, cx, cy + s(mobile ? 35 : 50));
             ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(11)}px "Press Start 2P"`;
-            ctx.fillText('[↑/↓] Ajustar  [Enter] Confirmar', cx, cy + s(85));
+            ctx.font = `${r(mobile ? 9 : 11)}px "Press Start 2P"`;
+            const hint = mobile ? '[+/-] Ajustar  [OK] Confirmar' : '[↑/↓] Ajustar  [Enter] Confirmar';
+            ctx.fillText(hint, cx, cy + s(mobile ? 65 : 85));
         } else if (this.game.phase === 'result') {
             ctx.fillStyle = '#4f4';
-            ctx.font = `${UIScale.r(16)}px "Press Start 2P"`;
-            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(50));
+            ctx.font = `${r(mobile ? 12 : 16)}px "Press Start 2P"`;
+            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(mobile ? 40 : 50));
             ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(11)}px "Press Start 2P"`;
-            ctx.fillText('[Enter] Continuar', cx, cy + s(85));
+            ctx.font = `${r(mobile ? 9 : 11)}px "Press Start 2P"`;
+            ctx.fillText(mobile ? '[OK] Continuar' : '[Enter] Continuar', cx, cy + s(mobile ? 65 : 85));
         } else if (this.game.phase === 'pre_flop') {
             ctx.fillStyle = '#ffcc00';
-            ctx.fillText(`Aumentar? R$${this.pendingRaise}`, cx, cy + s(50));
+            ctx.fillText(`Aumentar? R$${this.pendingRaise}`, cx, cy + s(mobile ? 35 : 50));
             ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(11)}px "Press Start 2P"`;
-            ctx.fillText('[↑/↓] Ajustar  [Enter] Confirmar', cx, cy + s(85));
+            ctx.font = `${r(mobile ? 9 : 11)}px "Press Start 2P"`;
+            const hint = mobile ? '[+/-] Ajustar  [OK] Confirmar' : '[↑/↓] Ajustar  [Enter] Confirmar';
+            ctx.fillText(hint, cx, cy + s(mobile ? 65 : 85));
         } else {
-            ctx.fillText('[Enter] Próxima fase', cx, cy + s(60));
+            ctx.fillText(mobile ? '[OK] Próxima fase' : '[Enter] Próxima fase', cx, cy + s(mobile ? 45 : 60));
         }
     }
 

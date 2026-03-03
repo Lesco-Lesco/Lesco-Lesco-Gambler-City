@@ -6,6 +6,7 @@
  */
 import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 
 export class RiscaFacaGame {
@@ -158,10 +159,10 @@ export class RiscaFacaGame {
         ctx.fillText('RISCA FACA', cx, s(40));
         ctx.shadowBlur = 0;
 
-        // Duelists
-        const playerX = cx - s(100);
-        const aiX = cx + s(100);
-        const bodyY = cy + s(30);
+        const mobile = isMobile();
+        const playerX = cx - s(mobile ? 80 : 100);
+        const aiX = cx + s(mobile ? 80 : 100);
+        const bodyY = cy + s(mobile ? 40 : 30);
 
         this.drawNordestino(ctx, playerX, bodyY, s, '#44aa44', this.phase === 'result' && this.roundWon);
         this.drawNordestino(ctx, aiX, bodyY, s, '#aa4444', this.phase === 'result' && !this.roundWon);
@@ -220,8 +221,9 @@ export class RiscaFacaGame {
             ctx.fillText('PREPARE-SE...', cx, cy - s(70));
         } else if (this.phase === 'timing') {
             ctx.fillStyle = '#ff0000';
-            ctx.font = `bold ${r(22)}px monospace`;
-            ctx.fillText('[ESPAÇO] NA HORA CERTA!', cx, cy - s(40));
+            ctx.font = `bold ${r(mobile ? 28 : 22)}px monospace`;
+            const timingHint = isMobile() ? 'TOQUE NO OK!' : '[ESPAÇO] NA HORA CERTA!';
+            ctx.fillText(timingHint, cx, cy - s(40));
         } else if (this.phase === 'result') {
             const msg = this.roundWon ? 'ACERTOU A FACADA!' : 'LEVOU UMA FACADA!';
             ctx.fillStyle = this.roundWon ? '#44ff44' : '#ff4444';
@@ -250,7 +252,7 @@ export class RiscaFacaGame {
         }
 
         // Controls
-        if (this.phase !== 'game_over') {
+        if (this.phase !== 'game_over' && !isMobile()) {
             ctx.fillStyle = '#555';
             ctx.font = `${r(11)}px monospace`;
             ctx.textAlign = 'center';
