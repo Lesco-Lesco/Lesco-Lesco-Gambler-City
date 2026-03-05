@@ -1190,15 +1190,15 @@ export class TileRenderer {
 
             // Sign background panel
             ctx.fillStyle = 'rgba(10, 10, 20, 0.85)';
-            ctx.fillRect(sx - 10 * z, signY - 10 * z, 20 * z, 12 * z);
+            ctx.fillRect(sx - 18 * z, signY - 10 * z, 36 * z, 12 * z);
             ctx.strokeStyle = stripeColor;
             ctx.lineWidth = 1 * z * flicker;
-            ctx.strokeRect(sx - 10 * z, signY - 10 * z, 20 * z, 12 * z);
+            ctx.strokeRect(sx - 18 * z, signY - 10 * z, 36 * z, 12 * z);
 
             // Draw neon joystick
-            this.drawNeonJoystick(ctx, sx - 3 * z, signY - 4 * z, z, stripeColor, flicker);
+            this.drawNeonJoystick(ctx, sx - 11 * z, signY - 4 * z, z, stripeColor, flicker);
 
-            // "FLIPERAMA" Text (abbreviated)
+            // "GAMES" Text
             ctx.fillStyle = '#fff';
             ctx.font = `bold ${Math.round(5 * z)}px "Press Start 2P"`;
             ctx.textAlign = 'center';
@@ -1903,14 +1903,20 @@ export class TileRenderer {
 
     /** Render improved street name signs */
     private renderStreetSigns(ctx: CanvasRenderingContext2D, camera: Camera) {
+        ctx.save();
+        const z = camera.zoom;
+
         for (const sign of STREET_SIGNS) {
             const { sx, sy } = camera.worldToScreen(sign.x, sign.y);
-            const z = camera.zoom;
 
             if (sx < -100 || sx > ctx.canvas.width + 100 || sy < -100 || sy > ctx.canvas.height + 100) continue;
 
             const fontSize = 7.5 * z;
+            // Set font before measuring
             ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
             const textWidth = ctx.measureText(sign.name).width;
             const signH = 10 * z;
             const signX = sx - textWidth / 2;
@@ -1929,24 +1935,29 @@ export class TileRenderer {
             ctx.lineWidth = 1 * z;
             ctx.strokeRect(signX - 2 * z, signY, textWidth + 4 * z, signH);
 
-            // Text
+            // Text - Center vertically in the box
             ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.fillText(sign.name, sx, signY + signH - 3.5 * z);
+            ctx.fillText(sign.name, sx, signY + signH / 2);
         }
+        ctx.restore();
     }
 
     /** Render area labels */
     private renderAreaLabels(ctx: CanvasRenderingContext2D, camera: Camera) {
+        ctx.save();
+        const z = camera.zoom;
+
         for (const label of AREA_LABELS) {
             const { sx, sy } = camera.worldToScreen(label.x, label.y);
-            const z = camera.zoom;
             if (sx < -200 || sx > ctx.canvas.width + 200 || sy < -200 || sy > ctx.canvas.height + 200) continue;
 
             const lines = label.name.split('\n');
             const fontSize = label.type === 'shopping' ? 8.5 * z : 7.5 * z;
-            ctx.font = `${fontSize}px "Press Start 2P", monospace`;
+
+            // Set font and alignment before measuring
+            ctx.font = `bold ${fontSize}px "Press Start 2P", monospace`;
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
 
             // Measure box
             let maxWidth = 0;
@@ -1976,6 +1987,7 @@ export class TileRenderer {
                 ctx.fillText(lines[i], sx, ly);
             }
         }
+        ctx.restore();
     }
 }
 

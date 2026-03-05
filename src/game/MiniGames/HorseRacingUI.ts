@@ -1,7 +1,11 @@
 import { HorseRacingGame } from './HorseRacingGame';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import type { IMinigameUI } from './BaseMinigame';
 
-export class HorseRacingUI {
+export class HorseRacingUI implements IMinigameUI {
     private game: HorseRacingGame;
     private onExit: (payout: number) => void;
     private onPlayAgain: (payout: number) => void;
@@ -51,218 +55,226 @@ export class HorseRacingUI {
 
     }
 
-    public draw(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    public render(ctx: CanvasRenderingContext2D, w: number, h: number) {
+        const theme = MINIGAME_THEMES.horseracing;
 
-        ctx.fillStyle = '#1a3a1a'; // Turf Green
-        ctx.fillRect(0, 0, w, h);
+        drawMinigameBackground(ctx, w, h, theme);
 
         if (this.game.phase === 'betting') {
-            this.drawBetting(ctx, w, h);
-        } else if (this.game.phase === 'racing') {
-            this.drawRacing(ctx, w, h);
-        } else if (this.game.phase === 'result') {
-            this.drawRacing(ctx, w, h); // Keep track visible
-            this.drawResult(ctx, w, h);
+            this.drawBettingUI(ctx, w, h, theme);
+        } else {
+            this.drawRacingUI(ctx, w, h, theme);
+            if (this.game.phase === 'result') {
+                this.drawResultUI(ctx, w, h, theme);
+            }
         }
     }
 
-    private drawBetting(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    private drawBettingUI(ctx: CanvasRenderingContext2D, w: number, h: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        ctx.textAlign = 'center';
+        const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
+        const cx = w / 2;
 
-        // Header
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(32)}px "Segoe UI"`;
-        ctx.fillText("GRANDE PRÊMIO LESCO-LESCO", w / 2, s(60));
+        drawMinigameTitle(ctx, w, h, theme, "GP LESCO-LESCO");
 
-        // Horse List
-        const listX = w / 2 - s(200);
-        const listY = s(125);
-        const itemH = s(42);
+        // ── Selection List ──
+        const listW = Math.min(w * 0.9, s(mobile ? 380 : 500));
+        const itemH = s(mobile ? 32 : 42);
+        const listX = cx - listW / 2;
+        const listY = h * 0.18;
 
         this.game.horses.forEach((horse, i) => {
             const isSelected = this.game.selectedHorse === i;
             const y = listY + i * itemH;
 
             if (isSelected) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                ctx.fillRect(listX - s(15), y - s(30), s(430), itemH - s(2));
-                ctx.strokeStyle = '#ffcc00';
-                ctx.lineWidth = s(2);
-                ctx.strokeRect(listX - s(15), y - s(30), s(430), itemH - s(2));
+                // Classic gold underline selection
+                ctx.fillStyle = theme.accent + '15';
+                ctx.fillRect(listX, y, listW, itemH);
+
+                ctx.strokeStyle = theme.accent;
+                ctx.lineWidth = s(3);
+                ctx.beginPath();
+                ctx.moveTo(listX, y + itemH - s(2));
+                ctx.lineTo(listX + listW, y + itemH - s(2));
+                ctx.stroke();
             }
 
-            // Consistent Rendering
-            this.renderHorseIcon(ctx, listX + s(15), y - s(10), s(28), horse);
-
-            ctx.fillStyle = isSelected ? '#fff' : '#ccc';
-            ctx.font = `bold ${UIScale.r(18)}px monospace`;
+            // Horse Icon & Name
+            ctx.fillStyle = isSelected ? '#fff' : theme.textMuted;
+            ctx.font = `bold ${r(mobile ? 14 : 17)}px ${theme.titleFont}`;
             ctx.textAlign = 'left';
-            ctx.fillText(`${horse.name.toUpperCase()}`, listX + s(60), y - s(10));
+            ctx.textBaseline = 'middle';
 
+            const numText = `${i + 1}.`;
+            ctx.fillText(numText, listX + s(10), y + itemH / 2);
+            ctx.fillText(horse.name.toUpperCase(), listX + s(50), y + itemH / 2);
+
+            // Odds
             ctx.textAlign = 'right';
-            ctx.fillStyle = isSelected ? '#00ff00' : '#888';
-            ctx.fillText(`ODDS: ${horse.odds.toFixed(1)}x`, listX + s(400), y - s(10));
+            ctx.fillStyle = isSelected ? theme.accent : theme.textMuted;
+            ctx.font = `bold ${r(mobile ? 12 : 15)}px ${theme.bodyFont}`;
+            ctx.fillText(`${horse.odds.toFixed(1)}x`, listX + listW - s(10), y + itemH / 2);
         });
 
-        // Bet Box
+        // ── Bet Context ──
+        const betY = h * 0.80;
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(22)}px monospace`;
-        ctx.fillText(`SUA APOSTA: R$ ${this.game.betAmount}`, w / 2, h - s(110));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
+        ctx.fillText("APOSTA ATUAL", cx, betY);
 
-        ctx.fillStyle = '#aaa';
-        ctx.font = `${UIScale.r(14)}px monospace`;
-        ctx.fillText("[↑↓] ESCOLHER CAVALO  [←→] AJUSTAR VALOR", w / 2, h - s(75));
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(18)}px monospace`;
-        ctx.fillText("APOSTE COM [ESPAÇO] PARA COMEÇAR", w / 2, h - s(45));
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(42)}px ${theme.titleFont}`;
+        ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(40));
+
+        const hint = mobile ? 'DPAD Selecionar • [OK] Apostar' : '↑↓ SELECIONAR • ←→ VALOR • ESPAÇO CONFIRMAR';
+        drawMinigameFooter(ctx, w, h, theme, hint);
     }
 
-    private drawRacing(ctx: CanvasRenderingContext2D, w: number, _h: number) {
+    private drawRacingUI(ctx: CanvasRenderingContext2D, w: number, h: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
 
-        const trackY = s(100);
-        const trackH = s(400);
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(0, trackY, w, trackH);
-
-        const startX = s(100);
-        const finishX = w - s(100);
-        const trackW = finishX - startX;
-
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.setLineDash([s(5), s(5)]);
-        ctx.lineWidth = 1;
-
+        // Classic Grass Track
+        const trackY = h * 0.15;
+        const trackH = h * 0.65;
         const laneH = trackH / 8;
-        for (let i = 0; i <= 8; i++) {
-            const py = trackY + i * laneH;
-            ctx.beginPath();
-            ctx.moveTo(0, py);
-            ctx.lineTo(w, py);
-            ctx.stroke();
-        }
-        ctx.setLineDash([]);
 
-        // Finish Line
+        // Striped Grass Effect
+        for (let i = 0; i < 8; i++) {
+            const ly = trackY + i * laneH;
+            ctx.fillStyle = i % 2 === 0 ? '#1b4d3e' : '#235e4d'; // Aristocratic greens
+            ctx.fillRect(0, ly, w, laneH);
+
+            // White rail markers
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillRect(0, ly, w, s(1));
+        }
+
+        const startX = s(60);
+        const finishX = w - s(80);
+        const raceW = finishX - startX;
+
+        // Checkerboard Finish Line
+        const chkS = s(12);
         ctx.fillStyle = '#fff';
-        for (let i = 0; i < 16; i++) {
-            const blockH = trackH / 16;
-            if (i % 2 === 0) ctx.fillRect(finishX, trackY + i * blockH, s(12), blockH);
-            else ctx.fillRect(finishX + s(12), trackY + i * blockH, s(12), blockH);
+        for (let i = 0; i < (trackH / chkS); i++) {
+            if (i % 2 === 0) ctx.fillRect(finishX, trackY + i * chkS, chkS, chkS);
+            else ctx.fillRect(finishX + chkS, trackY + i * chkS, chkS, chkS);
         }
 
         // Horses
         this.game.horses.forEach((horse, i) => {
-            const py = trackY + i * laneH + laneH / 2;
             const progress = horse.position / this.game.RACE_DISTANCE;
-            const hx = startX + progress * trackW;
+            const hx = startX + progress * raceW;
+            const hy = trackY + i * laneH + laneH / 2;
 
-            // Name label
-            const nameSize = UIScale.r(13);
-            ctx.font = `bold ${nameSize}px Arial`;
-            const nameW = ctx.measureText(horse.name).width;
-
-            ctx.fillStyle = 'rgba(0,0,0,0.85)';
-            ctx.beginPath();
-            ctx.roundRect(hx - nameW / 2 - s(10), py - s(38), nameW + s(20), s(18), s(4));
-            ctx.fill();
-
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'center';
-            ctx.fillText(horse.name, hx, py - s(24));
+            ctx.save();
+            ctx.translate(hx, hy);
 
             // Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
             ctx.beginPath();
-            ctx.ellipse(hx, py + s(8), s(15), s(5), 0, 0, Math.PI * 2);
+            ctx.ellipse(0, s(12), s(18), s(6), 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Unified Rendering
-            const bounce = Math.sin(this.game.raceTime * 15 + i) * s(4);
-            this.renderHorseIcon(ctx, hx, py + bounce, s(38), horse);
-
+            // Player Marker
             if (horse.id === this.game.selectedHorse) {
-                ctx.strokeStyle = '#ffff00';
-                ctx.setLineDash([s(4), s(2)]);
-                ctx.lineWidth = s(3);
+                ctx.strokeStyle = theme.accent;
+                ctx.lineWidth = s(2);
+                ctx.setLineDash([s(4), s(4)]);
                 ctx.beginPath();
-                ctx.arc(hx, py, s(28), 0, Math.PI * 2);
+                ctx.arc(0, 0, s(28), 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                ctx.fillStyle = '#ffff00';
-                ctx.beginPath();
-                ctx.moveTo(hx, py - s(45));
-                ctx.lineTo(hx - s(7), py - s(58));
-                ctx.lineTo(hx + s(7), py - s(58));
-                ctx.fill();
+                // Pulsing glow
+                const glow = Math.sin(this.game.raceTime * 10) * 0.5 + 0.5;
+                ctx.shadowBlur = s(10) * glow;
+                ctx.shadowColor = theme.accent;
             }
+
+            // Sprite
+            const bounce = Math.sin(this.game.raceTime * 15 + i) * s(5);
+            this.renderHorseIcon(ctx, 0, bounce, s(42), horse);
+
+            // Label
+            const isLeader = horse === this.game.horses.reduce((prev, curr) => prev.position > curr.position ? prev : curr);
+            if (isLeader || horse.id === this.game.selectedHorse) {
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = horse.id === this.game.selectedHorse ? theme.accent : '#fff';
+                ctx.font = `bold ${r(11)}px ${theme.titleFont}`;
+                ctx.textAlign = 'center';
+                ctx.fillText(horse.name.toUpperCase(), 0, -s(35));
+            }
+
+            ctx.restore();
         });
     }
 
     private renderHorseIcon(ctx: CanvasRenderingContext2D, x: number, y: number, fontSize: number, horse: any) {
         ctx.save();
         ctx.translate(x, y);
-
         ctx.filter = this.getHorseFilter(horse.color);
         ctx.font = `${fontSize}px serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = 1;
         ctx.fillText("🐎", 0, 0);
-
         ctx.restore();
     }
 
     private getHorseFilter(color: string): string {
         switch (color.toUpperCase()) {
-            case '#FFFFFF': // Realistic White
-                return 'grayscale(1) brightness(1.8) contrast(1.1)';
-            case '#D2B48C': // Light Brown (Tan)
-            case '#C19A6B':
-                return 'sepia(0.3) brightness(1.1) saturate(1.1)';
-            case '#5C4033': // Dark Brown (Rich)
-            case '#3D2B1F':
-            case '#4B3621':
-            case '#A0522D':
-                return 'sepia(0.6) brightness(0.65) saturate(0.9)';
-            default:
-                return 'none';
+            case '#FFFFFF': return 'grayscale(1) brightness(1.8)';
+            case '#D2B48C': return 'sepia(0.3) saturate(1.2) brightness(1.1)';
+            case '#5C4033': return 'sepia(0.6) brightness(0.7) contrast(1.2)';
+            default: return 'none';
         }
     }
 
-    private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    private drawResultUI(ctx: CanvasRenderingContext2D, w: number, h: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        const r = UIScale.r.bind(UIScale);
+        const cx = w / 2;
+        const cy = h / 2;
+
+        ctx.fillStyle = 'rgba(10,25,10,0.92)'; // Deep green overlay
         ctx.fillRect(0, 0, w, h);
 
-        ctx.textAlign = 'center';
         const winner = this.game.winners[0];
-        const isPlayerWinner = winner.id === this.game.selectedHorse;
+        const isWin = winner.id === this.game.selectedHorse;
 
-        ctx.fillStyle = isPlayerWinner ? '#00ff00' : '#ff4444';
-        ctx.font = `bold ${UIScale.r(50)}px "Segoe UI"`;
-        ctx.fillText(isPlayerWinner ? "VOCÊ VENCEU!" : "VOCÊ PERDEU!", w / 2, h / 2 - s(80));
+        // Royal Label
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(16)}px ${theme.bodyFont}`;
+        ctx.textAlign = 'center';
+        ctx.fillText("RESULTADO OFICIAL", cx, cy - s(100));
 
+        // Result Status
+        ctx.fillStyle = isWin ? '#fff' : '#aaa';
+        ctx.font = `900 ${r(54)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(15);
+        ctx.shadowColor = theme.accent + '44';
+        ctx.fillText(isWin ? "VENCEDOR!" : "PERDEDOR", cx, cy - s(40));
+        ctx.shadowBlur = 0;
+
+        // Winner Details
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(24)}px monospace`;
-        ctx.fillText(`1º LUGAR: ${winner.name.toUpperCase()}`, w / 2, h / 2 - s(20));
+        ctx.font = `italic 700 ${r(22)}px ${theme.titleFont}`;
+        ctx.fillText(winner.name.toUpperCase(), cx, cy + s(20));
 
-        if (this.game.winners.length > 1) {
-            ctx.font = `${UIScale.r(18)}px monospace`;
-            ctx.fillStyle = '#aaa';
-            ctx.fillText(`2º: ${this.game.winners[1].name}  3º: ${this.game.winners[2]?.name || "---"}`, w / 2, h / 2 + s(15));
+        if (isWin) {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(28)}px ${theme.bodyFont}`;
+            ctx.fillText(`+ R$ ${this.game.getPayout()}`, cx, cy + s(70));
         }
 
-        if (isPlayerWinner) {
-            ctx.fillStyle = '#ffcc00';
-            ctx.font = `bold ${UIScale.r(30)}px monospace`;
-            ctx.fillText(`PRÊMIO: R$ ${this.game.getPayout()}`, w / 2, h / 2 + s(70));
-        }
-
-        ctx.fillStyle = '#888';
-        ctx.font = `${UIScale.r(14)}px monospace`;
-        ctx.fillText("Pressione [ESPAÇO] para continuar", w / 2, h / 2 + s(120));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
+        ctx.fillText("ESPAÇO PARA NOVA PARTIDA", cx, h - s(80));
     }
 }

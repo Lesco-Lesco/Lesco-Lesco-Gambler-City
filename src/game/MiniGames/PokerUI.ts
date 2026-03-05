@@ -4,6 +4,8 @@ import { UIScale } from '../Core/UIScale';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
 import { isMobile } from '../Core/MobileDetect';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 
 export class PokerUI implements IMinigameUI {
     private game: PokerGame;
@@ -81,145 +83,186 @@ export class PokerUI implements IMinigameUI {
         }
     }
 
-
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
         const cx = screenW / 2;
         const cy = screenH / 2;
         const mobile = isMobile();
+        const theme = MINIGAME_THEMES.poker;
 
-        // Background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-        ctx.fillRect(0, 0, screenW, screenH);
+        drawMinigameBackground(ctx, screenW, screenH, theme);
+        drawMinigameTitle(ctx, screenW, screenH, theme);
 
-        // Poker Table (Green Felt)
-        ctx.fillStyle = '#0a3a0a';
+        // ── Poker Table (Deep Felt) ──
+        const tableW = Math.min(screenW * 0.95, s(mobile ? 560 : 700));
+        const tableH = Math.min(screenH * 0.45, s(mobile ? 240 : 340));
+        const tableY = cy - tableH * 0.1;
+
+        const tableGrad = ctx.createRadialGradient(cx, tableY, s(50), cx, tableY, tableW / 2);
+        tableGrad.addColorStop(0, '#065f46'); // brighter felt
+        tableGrad.addColorStop(1, '#064e3b'); // darker shade
+
+        ctx.fillStyle = tableGrad;
         ctx.beginPath();
-        const tableW = mobile ? s(540) : s(600);
-        const tableH = mobile ? s(220) : s(300);
-        ctx.roundRect(cx - tableW / 2, cy - tableH / 2, tableW, tableH, s(mobile ? 100 : 150));
+        ctx.roundRect(cx - tableW / 2, tableY - tableH / 2, tableW, tableH, s(mobile ? 110 : 160));
         ctx.fill();
-        ctx.strokeStyle = '#daa520';
-        ctx.lineWidth = s(mobile ? 2.5 : 4);
+
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = s(mobile ? 3 : 5);
         ctx.stroke();
 
-        // Community Cards
-        const commY = mobile ? cy - s(10) : cy;
-        this.drawCommunityCards(ctx, cx, commY, this.game.communityCards);
+        // Felt rail
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = s(2);
+        ctx.setLineDash([s(10), s(15)]);
+        ctx.stroke();
+        ctx.setLineDash([]);
 
-        // Pot
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `${r(mobile ? 14 : 18)}px "Press Start 2P"`;
+        // ── Pot and Information ──
+        const potY = tableY - tableH * 0.18;
+        ctx.fillStyle = '#fde047';
+        ctx.font = `bold ${r(mobile ? 18 : 24)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.shadowBlur = s(8);
+        ctx.shadowBlur = s(10);
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.fillText(`POT: R$${this.game.pot}`, cx, cy - (mobile ? s(45) : s(60)));
+        ctx.fillText(`POT: R$ ${this.game.pot}`, cx, potY);
         ctx.shadowBlur = 0;
 
-        // Players
-        const playerY = mobile ? cy + s(105) : cy + s(180);
-        const npcY = mobile ? cy - s(142) : cy - s(200);
-        const npcXOff = mobile ? s(180) : s(250);
+        // ── Community Cards ──
+        const commY = tableY + s(5);
+        this.drawCommunityCards(ctx, cx, commY, this.game.communityCards, theme);
 
-        this.drawPlayer(ctx, cx, playerY, this.game.players[0], true);   // Bottom: Human
-        this.drawPlayer(ctx, cx - npcXOff, npcY, this.game.players[1], false); // Top Left: NPC
-        this.drawPlayer(ctx, cx + npcXOff, npcY, this.game.players[2], false); // Top Right: NPC
+        // ── Players ──
+        const playerY = screenH * 0.82;
+        const npcY = screenH * 0.28;
+        const npcXOff = screenW * 0.32;
 
-        // Instructions
-        ctx.fillStyle = '#fff';
-        ctx.font = `${r(mobile ? 9 : 12)}px "Press Start 2P"`;
-        if (this.game.phase === 'betting') {
-            ctx.fillStyle = '#ffcc00';
-            ctx.fillText(`Aposta (BB): R$${this.game.betAmount}`, cx, cy + s(mobile ? 35 : 50));
-            ctx.fillStyle = '#fff';
-            ctx.font = `${r(mobile ? 9 : 11)}px "Press Start 2P"`;
-            const hint = mobile ? '[+/-] Ajustar  [OK] Confirmar' : '[↑/↓] Ajustar  [Enter] Confirmar';
-            ctx.fillText(hint, cx, cy + s(mobile ? 65 : 85));
-        } else if (this.game.phase === 'result') {
-            ctx.fillStyle = '#4f4';
-            ctx.font = `${r(mobile ? 12 : 16)}px "Press Start 2P"`;
-            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(mobile ? 40 : 50));
-            ctx.fillStyle = '#fff';
-            ctx.font = `${r(mobile ? 9 : 11)}px "Press Start 2P"`;
-            ctx.fillText(mobile ? '[OK] Continuar' : '[Enter] Continuar', cx, cy + s(mobile ? 65 : 85));
-        } else if (this.game.phase === 'pre_flop') {
-            ctx.fillStyle = '#ffcc00';
-            ctx.fillText(`Aumentar? R$${this.pendingRaise}`, cx, cy + s(mobile ? 35 : 50));
-            ctx.fillStyle = '#fff';
-            ctx.font = `${r(mobile ? 9 : 11)}px "Press Start 2P"`;
-            const hint = mobile ? '[+/-] Ajustar  [OK] Confirmar' : '[↑/↓] Ajustar  [Enter] Confirmar';
-            ctx.fillText(hint, cx, cy + s(mobile ? 65 : 85));
-        } else {
-            ctx.fillText(mobile ? '[OK] Próxima fase' : '[Enter] Próxima fase', cx, cy + s(mobile ? 45 : 60));
+        this.drawPlayer(ctx, cx, playerY, this.game.players[0], true, theme);
+        this.drawPlayer(ctx, cx - npcXOff, npcY, this.game.players[1], false, theme);
+        this.drawPlayer(ctx, cx + npcXOff, npcY, this.game.players[2], false, theme);
+
+        // ── Phase / Pending Raise Overlay ──
+        if (this.game.phase === 'pre_flop' && this.pendingRaise > 0) {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(mobile ? 12 : 16)}px ${theme.titleFont}`;
+            ctx.fillText(`AUMENTAR: R$ ${this.pendingRaise}`, cx, tableY + tableH * 0.3);
         }
+
+        // ── Footer Instructions ──
+        let footerHint = '';
+        if (this.game.phase === 'betting') {
+            footerHint = mobile ? '[OK] INICIAR PARTIDA' : 'ENTER INICIAR PARTIDA • ESC SAIR';
+        } else if (this.game.phase === 'result') {
+            footerHint = mobile ? '[OK] CONTINUAR' : 'ENTER CONTINUAR • ESC SAIR';
+        } else if (this.game.phase === 'pre_flop') {
+            footerHint = mobile ? '[↑↓] Ajustar Aumento • [OK] OK' : '↑↓ AJUSTAR AUMENTO • ENTER CONFIRMAR';
+        } else {
+            footerHint = mobile ? '[OK] PRÓXIMA FASE' : 'ENTER PRÓXIMA FASE • ESC SAIR';
+        }
+        drawMinigameFooter(ctx, screenW, screenH, theme, footerHint);
     }
 
-    private drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, player: any, isMain: boolean) {
+    private drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, player: any, isMain: boolean, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(14)}px "Press Start 2P"`;
+        const r = UIScale.r.bind(UIScale);
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Player Name/Label
+        ctx.fillStyle = isMain ? '#fff' : theme.textMuted;
+        ctx.font = `bold ${r(isMain ? 14 : 12)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.shadowBlur = s(4);
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.fillText(player.name.toUpperCase(), x, y);
-        ctx.shadowBlur = 0;
+        ctx.fillText(player.name.toUpperCase(), 0, 0);
+
+        // Stake/Bet
+        if (player.currentBet > 0) {
+            ctx.fillStyle = '#4ade80';
+            ctx.font = `800 ${r(11)}px ${theme.bodyFont}`;
+            ctx.fillText(`APOSTA: R$ ${player.currentBet}`, 0, s(15));
+        }
 
         // Cards
-        const cardW = s(40);
-        const cardH = s(60);
+        const cardW = s(isMain ? 45 : 35);
+        const cardH = s(isMain ? 65 : 50);
+        const spacing = cardW * 0.7;
+
         player.hand.forEach((card: any, i: number) => {
-            const cardX = x - cardW + i * (cardW + s(5));
-            const cardY = y + s(10);
+            const cardX = (i - 0.5) * spacing;
+            const cardY = isMain ? s(30) : s(25);
 
             if (isMain || this.game.phase === 'result') {
-                this.drawCard(ctx, cardX, cardY, cardW, cardH, card);
+                this.drawCard(ctx, cardX, cardY, cardW, cardH, card, theme);
             } else {
-                // Card back
-                ctx.fillStyle = '#800';
-                ctx.fillRect(cardX, cardY, cardW, cardH);
-                ctx.strokeStyle = '#fff';
-                ctx.strokeRect(cardX + s(2), cardY + s(2), cardW - s(4), cardH - s(4));
+                // Simplified Back
+                ctx.fillStyle = theme.accent;
+                ctx.beginPath();
+                ctx.roundRect(cardX - cardW / 2, cardY - cardH / 2, cardW, cardH, s(5));
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.stroke();
             }
         });
+
+        ctx.restore();
     }
 
-    private drawCommunityCards(ctx: CanvasRenderingContext2D, x: number, y: number, cards: any[]) {
+    private drawCommunityCards(ctx: CanvasRenderingContext2D, x: number, y: number, cards: any[], theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const cardW = s(45);
-        const cardH = s(65);
-        const spacing = cardW + s(10);
-        const startX = x - (2 * spacing + cardW / 2);
+        const cardW = s(isMobile() ? 50 : 65);
+        const cardH = s(isMobile() ? 75 : 95);
+        const spacing = cardW * 1.15;
+        const startX = x - (2 * spacing);
 
         for (let i = 0; i < 5; i++) {
             const cardX = startX + i * spacing;
-            const cardY = y - cardH / 2;
             if (i < cards.length) {
-                this.drawCard(ctx, cardX, cardY, cardW, cardH, cards[i]);
+                this.drawCard(ctx, cardX, y, cardW, cardH, cards[i], theme);
             } else {
-                // Empty slot
-                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                ctx.strokeRect(cardX, cardY, cardW, cardH);
+                // Empty Dark Slot
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.roundRect(cardX - cardW / 2, y - cardH / 2, cardW, cardH, s(8));
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.stroke();
             }
         }
     }
 
-    private drawCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, card: any) {
+    private drawCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, card: any, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(x, y, w, h);
-        ctx.strokeStyle = '#000';
-        ctx.strokeRect(x, y, w, h);
+        const r = UIScale.r.bind(UIScale);
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Body with Shadow
+        ctx.shadowBlur = s(8);
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.roundRect(-w / 2, -h / 2, w, h, s(6));
+        ctx.fill();
+        ctx.shadowBlur = 0;
 
         const isRed = card.suit === 'H' || card.suit === 'D';
-        ctx.fillStyle = isRed ? '#cc0000' : '#111';
-        ctx.font = `bold ${UIScale.r(16)}px Arial`; // Increased from 12
-        ctx.textAlign = 'left';
-        ctx.fillText(card.value, x + s(2), y + s(18));
+        ctx.fillStyle = isRed ? '#e11d48' : '#1e293b';
 
-        ctx.textAlign = 'center';
+        // Corner Rank
+        const cornerSize = r(Math.floor(h * 0.18));
+        ctx.font = `bold ${cornerSize}px ${theme.bodyFont}`;
+        ctx.textAlign = 'left';
+        ctx.fillText(card.value, -w / 2 + s(4), -h / 2 + s(14));
+
+        // Center Suit
         const suitIcon = { 'H': '♥', 'D': '♦', 'C': '♣', 'S': '♠' }[card.suit as 'H' | 'D' | 'C' | 'S'];
-        ctx.font = `${UIScale.r(24)}px Arial`; // Increased icon size
-        ctx.fillText(suitIcon, x + w / 2, y + h / 2 + s(8));
+        const suitSize = r(Math.floor(h * 0.45));
+        ctx.font = `${suitSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(suitIcon || '', 0, h * 0.15);
+
+        ctx.restore();
     }
 }

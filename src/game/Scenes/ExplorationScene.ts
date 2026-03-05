@@ -53,6 +53,8 @@ import { TankAttackGame } from '../ArcadeGames/TankAttackGame';
 import { FaroesteGame } from '../ArcadeGames/FaroesteGame';
 import { RiscaFacaGame } from '../ArcadeGames/RiscaFacaGame';
 import { SinucaGame } from '../ArcadeGames/SinucaGame';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 
 export class ExplorationScene implements Scene {
     public name = 'exploration';
@@ -316,7 +318,7 @@ export class ExplorationScene implements Scene {
             const pm = PoliceManager.getInstance();
             if (pm.phase === 'none') {
                 if (this.headsTailsUI) this.headsTailsUI.update(dt);
-                if (this.palitinhoUI) this.palitinhoUI.update(dt);
+                if (this.palitinhoUI) this.palitinhoUI.update();
                 if (this.fanTanUI) this.fanTanUI.update(dt);
                 if (this.jokenpoUI) this.jokenpoUI.update(dt);
             }
@@ -849,22 +851,23 @@ export class ExplorationScene implements Scene {
         this.input.pushContext('menu');
     }
 
-    private getArcadeMenuItems(): { label: string; cost: string; gameType: ArcadeGameType | 'buy' }[] {
-        const GAME_LABELS: Record<ArcadeGameType, string> = {
-            'air_pong': '🏓 AIR PONG',
-            'tank_attack': '🎯 TANK ATTACK',
-            'faroeste': '🤠 FAROESTE',
-            'risca_faca': '🔪 RISCA FACA',
-            'sinuca': '🎱 SINUCA MATA MATA',
+    private getArcadeMenuItems(): { label: string; cost: string; gameType: ArcadeGameType | 'buy'; icon: string; color: string }[] {
+        const GAME_INFO: Record<ArcadeGameType, { label: string; icon: string; color: string }> = {
+            'air_pong': { label: 'AIR PONG', icon: '🏓', color: '#00ccff' },
+            'tank_attack': { label: 'TANK ATTACK', icon: '🎯', color: '#7cb342' },
+            'faroeste': { label: 'FAROESTE', icon: '🤠', color: '#d2691e' },
+            'risca_faca': { label: 'RISCA FACA', icon: '🔪', color: '#cc0000' },
+            'sinuca': { label: 'SINUCA', icon: '🎱', color: '#009966' },
         };
 
-        const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy' }[] = [
-            { label: '💰 COMPRAR CRÉDITOS (2 por R$10)', cost: '', gameType: 'buy' }
+        const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy'; icon: string; color: string }[] = [
+            { label: 'COMPRAR CRÉDITOS', cost: '2 por R$10', gameType: 'buy', icon: '💰', color: '#ffcc00' }
         ];
 
         const availableGames: ArcadeGameType[] = this.currentArcade?.games || [];
         for (const game of availableGames) {
-            items.push({ label: GAME_LABELS[game], cost: '1 crédito', gameType: game });
+            const info = GAME_INFO[game];
+            items.push({ label: info.label, cost: '1 crédito', gameType: game, icon: info.icon, color: info.color });
         }
 
         return items;
@@ -964,117 +967,238 @@ export class ExplorationScene implements Scene {
         const s = UIScale.s.bind(UIScale);
         const w = this.screenW;
         const h = this.screenH;
+        const mobile = isMobile();
+        const theme = MINIGAME_THEMES.bar_menu;
+        const cx = w / 2;
 
-        // Overlay
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.fillRect(0, 0, w, h);
+        // Fullscreen themed background
+        drawMinigameBackground(ctx, w, h, theme);
 
+        // Bar name title
+        ctx.save();
+        ctx.shadowBlur = s(20);
+        ctx.shadowColor = theme.accent;
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${UIScale.r(mobile ? 20 : 28)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(32)}px "Segoe UI"`;
-        ctx.fillText(this.currentBar?.name.toUpperCase() || "BAR", w / 2, h / 2 - s(100));
+        ctx.fillText(this.currentBar?.name.toUpperCase() || 'BAR', cx, h * 0.10);
+        ctx.shadowBlur = 0;
+        ctx.restore();
 
+        // Subtitle
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `${UIScale.r(mobile ? 9 : 11)}px ${theme.titleFont}`;
+        ctx.textAlign = 'center';
+        ctx.fillText('ESCOLHA SUA DIVERSÃO', cx, h * 0.16);
+
+        // Game options as decorative cards
         const options = [
-            "VIDEO BINGO ELETRÔNICO",
-            "APOSTAS EM CAVALOS",
-            "CORRIDA DE CÃES"
+            { name: 'VIDEO BINGO', icon: '🎰', desc: 'Bingo eletrônico com cartelas', color: '#7b2dff' },
+            { name: 'APOSTAS EM CAVALOS', icon: '🐎', desc: 'Corrida com apostas ao vivo', color: '#228b22' },
+            { name: 'CORRIDA DE CÃES', icon: '🐕', desc: 'Galgos em alta velocidade', color: '#ff6b00' },
         ];
+
+        const cardW = Math.min(s(mobile ? 280 : 320), w * 0.85);
+        const cardH = s(mobile ? 65 : 75);
+        const spacing = s(mobile ? 10 : 14);
+        const totalH = options.length * cardH + (options.length - 1) * spacing;
+        const startY = (h - totalH) / 2 + s(10);
 
         options.forEach((opt, i) => {
             const isSelected = i === this.selectedBarMenuIndex;
-            ctx.fillStyle = isSelected ? '#fff' : '#666';
-            ctx.font = `${isSelected ? 'bold ' : ''}${UIScale.r(20)}px monospace`;
+            const y = startY + i * (cardH + spacing);
+            const cardX = cx - cardW / 2;
 
+            // Card background
+            ctx.save();
             if (isSelected) {
-                ctx.fillText(`> ${opt} <`, w / 2, h / 2 - s(20) + i * s(40));
-            } else {
-                ctx.fillText(opt, w / 2, h / 2 - s(20) + i * s(40));
+                ctx.shadowBlur = s(18);
+                ctx.shadowColor = opt.color;
+            }
+            ctx.fillStyle = isSelected ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)';
+            ctx.beginPath();
+            ctx.roundRect(cardX, y, cardW, cardH, s(10));
+            ctx.fill();
+
+            ctx.strokeStyle = isSelected ? opt.color : 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = isSelected ? s(2.5) : s(1);
+            ctx.stroke();
+            ctx.restore();
+
+            // Icon
+            const iconSize = Math.floor(cardH * 0.55);
+            ctx.font = `${iconSize}px "Segoe UI Emoji", Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(opt.icon, cardX + s(35), y + cardH / 2);
+            ctx.textBaseline = 'alphabetic';
+
+            // Name
+            ctx.fillStyle = isSelected ? '#fff' : '#999';
+            ctx.font = `bold ${UIScale.r(mobile ? 13 : 16)}px "Press Start 2P", monospace`;
+            ctx.textAlign = 'left';
+            ctx.fillText(opt.name, cardX + s(65), y + cardH * 0.40);
+
+            // Description
+            ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+            ctx.font = `${UIScale.r(mobile ? 9 : 11)}px "Segoe UI", sans-serif`;
+            ctx.fillText(opt.desc, cardX + s(65), y + cardH * 0.72);
+
+            // Selection arrow
+            if (isSelected) {
+                const bounce = Math.sin(Date.now() / 200) * s(4);
+                ctx.fillStyle = opt.color;
+                ctx.font = `bold ${UIScale.r(16)}px monospace`;
+                ctx.textAlign = 'right';
+                ctx.fillText('▶', cardX + cardW - s(12) + bounce, y + cardH / 2 + s(5));
             }
         });
 
-        ctx.fillStyle = '#888';
-        ctx.font = `${UIScale.r(14)}px monospace`;
-        ctx.fillText("Use [SETAS] para selecionar e [ESPAÇO/E] para entrar", w / 2, h / 2 + s(100));
-        ctx.fillText("[ESC] para sair", w / 2, h / 2 + s(125));
+        // Footer
+        const hint = mobile
+            ? '[↑↓] SELECIONAR  |  [OK] ENTRAR  |  [✕] SAIR'
+            : '[↑↓] SELECIONAR  |  [ESPAÇO/E] ENTRAR  |  [ESC] SAIR';
+        drawMinigameFooter(ctx, w, h, theme, hint);
     }
 
     private renderArcadeMenu(ctx: CanvasRenderingContext2D) {
         const s = UIScale.s.bind(UIScale);
         const w = this.screenW;
         const h = this.screenH;
+        const mobile = isMobile();
+        const theme = MINIGAME_THEMES.arcade_menu;
+        const cx = w / 2;
+        const time = Date.now() / 1000;
 
-        // Overlay with neon tint
-        ctx.fillStyle = 'rgba(0, 5, 15, 0.92)';
-        ctx.fillRect(0, 0, w, h);
+        // Fullscreen themed background
+        drawMinigameBackground(ctx, w, h, theme, time);
 
-        // Neon border
-        const time = Date.now();
-        const hue = (time / 20) % 360;
-        ctx.strokeStyle = `hsl(${hue}, 100%, 60%)`;
-        ctx.lineWidth = s(3);
-        ctx.strokeRect(w * 0.15, h * 0.08, w * 0.7, h * 0.84);
+        // Animated neon grid (arcade atmosphere)
+        const gridSize = s(60);
+        const gridPulse = Math.sin(time * 0.8) * 0.04 + 0.08;
+        ctx.strokeStyle = `rgba(0, 255, 136, ${gridPulse})`;
+        ctx.lineWidth = 1;
+        for (let y = 0; y < h; y += gridSize) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+        for (let x = 0; x < w; x += gridSize) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
 
-        // Title with glow
+        // Title
+        drawMinigameTitle(ctx, w, h, theme, this.currentArcade?.name?.toUpperCase() || 'FLIPERAMA');
+
+        // Credits LED display
         ctx.save();
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#00ff88';
-        ctx.textAlign = 'center';
+        const ledW = s(mobile ? 200 : 260);
+        const ledH = s(mobile ? 40 : 48);
+        const ledX = cx - ledW / 2;
+        const ledY = h * 0.12;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.beginPath();
+        ctx.roundRect(ledX, ledY, ledW, ledH, s(8));
+        ctx.fill();
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = s(1.5);
+        ctx.stroke();
+
         ctx.fillStyle = '#00ff88';
-        ctx.font = `bold ${UIScale.r(32)}px monospace`;
-        ctx.fillText(this.currentArcade?.name?.toUpperCase() || "FLIPERAMA", w / 2, h * 0.16);
-        ctx.shadowBlur = 0;
+        ctx.font = `bold ${UIScale.r(mobile ? 12 : 15)}px "Press Start 2P", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`CRÉDITOS: ${this.arcadeCredits}`, cx, ledY + ledH * 0.55);
+
+        // Money display
+        const bm = BichoManager.getInstance();
+        ctx.fillStyle = '#ffcc00';
+        ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P", monospace`;
+        ctx.fillText(`R$ ${bm.playerMoney.toFixed(0)}`, cx, ledY + ledH + s(18));
         ctx.restore();
 
-        // Credits display
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(18)}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText(`CRÉDITOS: ${this.arcadeCredits}`, w / 2, h * 0.22);
-
-        // Dinheiro
-        const bm = BichoManager.getInstance();
-        ctx.fillStyle = '#88ff88';
-        ctx.font = `${UIScale.r(14)}px monospace`;
-        ctx.fillText(`Dinheiro: R$ ${bm.playerMoney.toFixed(2)}`, w / 2, h * 0.27);
-
+        // Game items as arcade cabinet cards
         const options = this.getArcadeMenuItems();
-
-        const startY = h * 0.35;
-        const itemH = s(42);
+        const cols = mobile ? 2 : 3;
+        const cardW = Math.min(s(mobile ? 140 : 170), (w * 0.88) / cols - s(10));
+        const cardH = s(mobile ? 100 : 120);
+        const gapX = s(mobile ? 8 : 14);
+        const gapY = s(mobile ? 8 : 14);
+        const gridW = cols * cardW + (cols - 1) * gapX;
+        const gridStartX = cx - gridW / 2;
+        const gridStartY = h * (mobile ? 0.34 : 0.32);
 
         options.forEach((opt, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = gridStartX + col * (cardW + gapX);
+            const y = gridStartY + row * (cardH + gapY);
             const isSelected = i === this.selectedArcadeMenuIndex;
-            const yPos = startY + i * itemH;
 
+            ctx.save();
+
+            // Card body
             if (isSelected) {
-                // Selected highlight
-                ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
-                ctx.fillRect(w * 0.2, yPos - itemH * 0.4, w * 0.6, itemH * 0.8);
-                ctx.strokeStyle = '#00ff88';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(w * 0.2, yPos - itemH * 0.4, w * 0.6, itemH * 0.8);
+                ctx.shadowBlur = s(20);
+                ctx.shadowColor = opt.color;
             }
 
-            ctx.fillStyle = isSelected ? '#ffffff' : '#666666';
-            ctx.font = `${isSelected ? 'bold ' : ''}${UIScale.r(16)}px monospace`;
-            ctx.textAlign = 'center';
-            ctx.fillText(opt.label, w / 2, yPos);
+            // Card background gradient
+            const cardGrad = ctx.createLinearGradient(x, y, x, y + cardH);
+            cardGrad.addColorStop(0, isSelected ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)');
+            cardGrad.addColorStop(1, isSelected ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.2)');
+            ctx.fillStyle = cardGrad;
+            ctx.beginPath();
+            ctx.roundRect(x, y, cardW, cardH, s(10));
+            ctx.fill();
 
+            // Card border
+            ctx.strokeStyle = isSelected ? opt.color : 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = isSelected ? s(2.5) : s(1);
+            ctx.stroke();
+
+            // Top accent bar
+            ctx.fillStyle = isSelected ? opt.color : 'rgba(255,255,255,0.08)';
+            ctx.fillRect(x + s(1), y + s(1), cardW - s(2), s(4));
+
+            ctx.restore();
+
+            // Icon
+            const iconSize = Math.floor(cardH * 0.35);
+            ctx.font = `${iconSize}px "Segoe UI Emoji", Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(opt.icon, x + cardW / 2, y + cardH * 0.38);
+            ctx.textBaseline = 'alphabetic';
+
+            // Name
+            ctx.fillStyle = isSelected ? '#fff' : '#888';
+            ctx.font = `bold ${UIScale.r(mobile ? 9 : 11)}px "Press Start 2P", monospace`;
+            ctx.textAlign = 'center';
+            ctx.fillText(opt.label, x + cardW / 2, y + cardH * 0.72);
+
+            // Cost / subtitle
             if (opt.cost) {
-                ctx.fillStyle = isSelected ? '#ffcc00' : '#444';
-                ctx.font = `${UIScale.r(11)}px monospace`;
-                ctx.fillText(opt.cost, w / 2, yPos + s(14));
+                ctx.fillStyle = isSelected ? opt.color : '#555';
+                ctx.font = `${UIScale.r(mobile ? 7 : 9)}px "Press Start 2P", monospace`;
+                ctx.fillText(opt.cost, x + cardW / 2, y + cardH * 0.88);
+            }
+
+            // Selection indicator
+            if (isSelected) {
+                const bounce = Math.sin(time * 6) * s(3);
+                ctx.fillStyle = '#fff';
+                ctx.font = `${UIScale.r(mobile ? 12 : 14)}px monospace`;
+                ctx.fillText('▼', x + cardW / 2, y - s(4) + bounce);
             }
         });
 
-        // Instructions
-        ctx.fillStyle = '#555';
-        ctx.font = `${UIScale.r(12)}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText("[↑↓] Selecionar  |  [ESPAÇO/E] Confirmar  |  [ESC] Sair", w / 2, h * 0.92);
+        // Decorative joystick
+        this.drawMenuJoystickDecoration(ctx, w * (mobile ? 0.88 : 0.88), h * 0.08, s);
 
-        // Decorative pixel art joystick in corner
-        this.drawMenuJoystickDecoration(ctx, w * 0.82, h * 0.15, s);
+        // Footer
+        const hint = mobile
+            ? '[↑↓] SELECIONAR  |  [OK] JOGAR  |  [✕] SAIR'
+            : '[↑↓ ←→] SELECIONAR  |  [ESPAÇO/E] JOGAR  |  [ESC] SAIR';
+        drawMinigameFooter(ctx, w, h, theme, hint);
     }
 
     private drawMenuJoystickDecoration(ctx: CanvasRenderingContext2D, x: number, y: number, s: (v: number) => number) {
@@ -1155,22 +1279,22 @@ export class ExplorationScene implements Scene {
         if (this.activeMinigame === 'purrinha' && this.purrinhaUI) {
             this.purrinhaUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'dice' && this.diceUI) {
-            this.diceUI.draw(ctx, this.screenW, this.screenH);
+            this.diceUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'ronda' && this.rondaUI) {
-            this.rondaUI.draw(ctx, this.screenW, this.screenH);
+            this.rondaUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'domino' && this.dominoUI) {
-            this.dominoUI.draw(ctx, this.screenW, this.screenH);
+            this.dominoUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'generic' || this.activeMinigame === 'heads_tails' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
-            if (this.headsTailsUI) this.headsTailsUI.draw(ctx, this.screenW, this.screenH);
-            if (this.palitinhoUI) this.palitinhoUI.draw(ctx, this.screenW, this.screenH);
-            if (this.fanTanUI) this.fanTanUI.draw(ctx, this.screenW, this.screenH);
-            if (this.jokenpoUI) this.jokenpoUI.draw(ctx, this.screenW, this.screenH);
+            if (this.headsTailsUI) this.headsTailsUI.render(ctx, this.screenW, this.screenH);
+            if (this.palitinhoUI) this.palitinhoUI.render(ctx, this.screenW, this.screenH);
+            if (this.fanTanUI) this.fanTanUI.render(ctx, this.screenW, this.screenH);
+            if (this.jokenpoUI) this.jokenpoUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'horse_racing' && this.horseRacingUI) {
-            this.horseRacingUI.draw(ctx, this.screenW, this.screenH);
+            this.horseRacingUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'dog_racing' && this.dogRacingUI) {
-            this.dogRacingUI.draw(ctx, this.screenW, this.screenH);
+            this.dogRacingUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'video_bingo' && this.videoBingoUI) {
-            this.videoBingoUI.draw(ctx, this.screenW, this.screenH);
+            this.videoBingoUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'bar_menu') {
             this.renderBarMenu(ctx);
         } else if (this.activeMinigame === 'arcade_menu') {

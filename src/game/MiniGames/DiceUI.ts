@@ -8,8 +8,11 @@ import { BichoManager } from '../BichoManager';
 import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import type { IMinigameUI } from './BaseMinigame';
 
-export class DiceUI {
+export class DiceUI implements IMinigameUI {
     private game: DiceGame;
     private betAmount: number = 10;
     private humanChoices: [number, number] = [1, 1];
@@ -23,67 +26,53 @@ export class DiceUI {
         this.onPlayAgain = onPlayAgain;
     }
 
-    public draw(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    public render(ctx: CanvasRenderingContext2D, width: number, height: number) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
+        const theme = MINIGAME_THEMES.dice;
 
-        // Fundo
-        const grad = ctx.createRadialGradient(width / 2, height / 2, s(100), width / 2, height / 2, width);
-        grad.addColorStop(0, 'rgba(20, 25, 35, 0.95)');
-        grad.addColorStop(1, 'rgba(8, 8, 12, 0.99)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
+        // Fullscreen themed background
+        drawMinigameBackground(ctx, width, height, theme);
+        drawMinigameTitle(ctx, width, height, theme);
 
         const cx = width / 2;
         const mobile = isMobile();
 
-        // ── Zonas proporcionais ──
-        // TITLE 12% | DICE 28% | MESSAGE 8% | PLAYERS 28% | FOOTER 24%
-        const TITLE_H = height * 0.12;
-        const DICE_H = height * 0.28;
+        // ── Layout Proportional Zones ──
+        const TITLE_H = height * 0.15;
+        const DICE_H = height * 0.30;
         const MSG_H = height * 0.08;
-        const PLAYERS_H = height * 0.28;
-        const FOOTER_H = height * 0.24;
+        const PLAYERS_H = height * 0.25;
+        const FOOTER_H = height * 0.22;
 
-        const titleY = TITLE_H * 0.70;
-        const diceCY = TITLE_H + DICE_H * 0.52;
-        const msgY = TITLE_H + DICE_H + MSG_H * 0.55;
+        const diceCY = TITLE_H + DICE_H * 0.45;
+        const msgY = TITLE_H + DICE_H + MSG_H * 0.4;
         const playersY = TITLE_H + DICE_H + MSG_H;
-        const footerY = TITLE_H + DICE_H + MSG_H + PLAYERS_H;
+        const footerY = height - FOOTER_H;
 
-        // ── Título ──
-        ctx.shadowBlur = s(15);
-        ctx.shadowColor = '#00aaff';
-        ctx.fillStyle = '#00aaff';
-        ctx.font = `bold ${UIScale.r(mobile ? 18 : 22)}px \"Press Start 2P\", monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText('DADOS DE RUA', cx, titleY);
-        ctx.shadowBlur = 0;
-
-        // ── Dados ──
-        const diceSize = Math.min(s(mobile ? 80 : 110), DICE_H * 0.85, width * 0.18);
-        const diceSpacing = Math.min(s(mobile ? 55 : 80), width * 0.20);
+        // ── Dice ──
+        const diceSize = Math.min(s(mobile ? 85 : 115), DICE_H * 0.8, width * 0.16);
+        const diceSpacing = Math.min(s(mobile ? 60 : 85), width * 0.18);
         this.drawDie(ctx, cx - diceSpacing, diceCY, this.game.dice1, diceSize);
         this.drawDie(ctx, cx + diceSpacing, diceCY, this.game.dice2, diceSize);
 
-        // ── Mensagem ──
-        ctx.fillStyle = this.game.winner?.isHuman ? '#44ff44' : '#ffffff';
-        ctx.font = `600 ${UIScale.r(mobile ? 10 : 13)}px \"Segoe UI\", sans-serif`;
+        // ── Message ──
+        ctx.fillStyle = this.game.winner?.isHuman ? '#4ade80' : theme.text;
+        ctx.font = `600 ${r(mobile ? 14 : 16)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText(this.game.message, cx, msgY);
+        ctx.fillText(this.game.message.toUpperCase(), cx, msgY);
 
-        // ── Lista de jogadores ──
-        this.drawPlayersList(ctx, cx, playersY, PLAYERS_H, width);
+        // ── Players List ──
+        this.drawPlayersList(ctx, cx, playersY, PLAYERS_H, width, theme);
 
-        // ── Rodapé ──
+        // ── Footer / Betting ──
         if (this.game.phase === 'betting') {
-            this.drawBettingInterface(ctx, cx, footerY, FOOTER_H, width);
+            this.drawBettingInterface(ctx, cx, footerY, FOOTER_H, theme);
         } else if (this.game.phase === 'result') {
-            ctx.fillStyle = '#ffff66';
-            ctx.font = `bold ${UIScale.r(mobile ? 9 : 11)}px \"Press Start 2P\", monospace`;
             const resultHint = mobile
-                ? '[OK] Jogar Novamente   [✕] Sair'
-                : '[ESPAÇO] Jogar Novamente   [ESC] Sair';
-            ctx.fillText(resultHint, cx, footerY + FOOTER_H * 0.35);
+                ? 'TAP CENTRAL para Reiniciar • TAP LADO para Sair'
+                : 'ESPAÇO JOGAR NOVAMENTE • ESC SAIR';
+            drawMinigameFooter(ctx, width, height, theme, resultHint);
         }
     }
 
@@ -91,31 +80,56 @@ export class DiceUI {
         const s = UIScale.s.bind(UIScale);
 
         if (this.game.isRolling) {
-            x += (Math.random() - 0.5) * s(12);
-            y += (Math.random() - 0.5) * s(12);
+            x += (Math.random() - 0.5) * s(15);
+            y += (Math.random() - 0.5) * s(15);
             value = Math.floor(Math.random() * 6) + 1;
         }
 
-        ctx.fillStyle = '#f0f0f5';
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+        // Drop shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.roundRect(x - size / 2 + s(6), y - size / 2 + s(6), size, size, s(12));
+        ctx.fill();
+
+        // Main Body
+        const dieGrad = ctx.createLinearGradient(x - size / 2, y - size / 2, x + size / 2, y + size / 2);
+        dieGrad.addColorStop(0, '#ffffff');
+        dieGrad.addColorStop(1, '#e0e0f0');
+        ctx.fillStyle = dieGrad;
+
         ctx.beginPath();
         ctx.roundRect(x - size / 2, y - size / 2, size, size, s(12));
         ctx.fill();
-        ctx.shadowBlur = 0;
 
-        ctx.strokeStyle = '#ccccdd';
-        ctx.lineWidth = s(2);
+        // Border
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = s(1);
         ctx.stroke();
 
-        ctx.fillStyle = '#222';
-        const pipSize = size * 0.10;
-        const qs = size / 4;
+        // Dots (Pips)
+        ctx.fillStyle = '#111';
+        const pipR = size * 0.11;
+        const dotOffset = size / 4;
 
-        if (value === 1 || value === 3 || value === 5) this.drawPip(ctx, x, y, pipSize);
-        if (value >= 2) { this.drawPip(ctx, x - qs, y - qs, pipSize); this.drawPip(ctx, x + qs, y + qs, pipSize); }
-        if (value >= 4) { this.drawPip(ctx, x + qs, y - qs, pipSize); this.drawPip(ctx, x - qs, y + qs, pipSize); }
-        if (value === 6) { this.drawPip(ctx, x - qs, y, pipSize); this.drawPip(ctx, x + qs, y, pipSize); }
+        if (value % 2 !== 0) this.drawPip(ctx, x, y, pipR);
+        if (value >= 2) {
+            this.drawPip(ctx, x - dotOffset, y - dotOffset, pipR);
+            this.drawPip(ctx, x + dotOffset, y + dotOffset, pipR);
+        }
+        if (value >= 4) {
+            this.drawPip(ctx, x + dotOffset, y - dotOffset, pipR);
+            this.drawPip(ctx, x - dotOffset, y + dotOffset, pipR);
+        }
+        if (value === 6) {
+            this.drawPip(ctx, x - dotOffset, y, pipR);
+            this.drawPip(ctx, x + dotOffset, y, pipR);
+        }
+
+        // Highlight shine
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        ctx.roundRect(x - size / 2 + s(4), y - size / 2 + s(4), size * 0.4, size * 0.1, s(2));
+        ctx.fill();
     }
 
     private drawPip(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
@@ -124,15 +138,15 @@ export class DiceUI {
         ctx.fill();
     }
 
-    private drawPlayersList(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, screenW: number) {
+    private drawPlayersList(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, screenW: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
         const players = this.game.players;
 
-        // Card proporcional à zona disponível
-        const cardH = Math.min(zoneH * 0.90, s(mobile ? 100 : 130));
-        const cardW = Math.min(s(mobile ? 130 : 160), (screenW * 0.92) / players.length - s(8));
-        const spacing = cardW + s(8);
+        const cardH = Math.min(zoneH * 0.9, s(mobile ? 100 : 130));
+        const cardW = Math.min(s(mobile ? 115 : 150), (screenW * 0.95) / players.length - s(10));
+        const spacing = cardW + s(mobile ? 6 : 12);
         const startX = cx - (players.length - 1) * spacing / 2;
         const cardTop = zoneTop + (zoneH - cardH) / 2;
 
@@ -140,83 +154,92 @@ export class DiceUI {
             const px = startX + i * spacing;
             const isWinner = this.game.winner === p;
 
-            ctx.fillStyle = isWinner ? 'rgba(50, 205, 50, 0.2)' : 'rgba(255, 255, 255, 0.05)';
-            if (p.isHuman && this.game.phase === 'betting') ctx.fillStyle = 'rgba(0, 170, 255, 0.1)';
+            ctx.save();
+            ctx.translate(px, cardTop);
+
+            // Card Background
+            ctx.fillStyle = isWinner ? 'rgba(74, 222, 128, 0.15)' : 'rgba(0, 0, 0, 0.25)';
+            if (p.isHuman && this.game.phase === 'betting') ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
 
             ctx.beginPath();
-            ctx.roundRect(px - cardW / 2, cardTop, cardW, cardH, s(10));
+            ctx.roundRect(-cardW / 2, 0, cardW, cardH, s(12));
             ctx.fill();
 
-            ctx.strokeStyle = isWinner ? '#44dd66' : (p.isHuman ? '#00aaff' : '#444');
+            // Border
+            ctx.strokeStyle = isWinner ? '#4ade80' : (p.isHuman ? theme.accent : 'rgba(255, 255, 255, 0.1)');
             ctx.lineWidth = s(isWinner ? 2.5 : 1.5);
-            if (isWinner) { ctx.shadowBlur = s(16); ctx.shadowColor = '#44dd66'; }
+            if (isWinner) {
+                ctx.shadowBlur = s(15);
+                ctx.shadowColor = '#4ade8066';
+            }
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // Nome
-            const nameFontSize = UIScale.r(mobile ? 9 : 11);
-            ctx.fillStyle = p.isHuman ? '#fff' : '#aaa';
-            ctx.font = `bold ${nameFontSize}px \"Segoe UI\", sans-serif`;
+            // Name
+            ctx.fillStyle = p.isHuman ? '#fff' : theme.textMuted;
+            ctx.font = `bold ${r(mobile ? 11 : 14)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
-            ctx.fillText(p.name, px, cardTop + cardH * 0.26);
+            ctx.fillText(p.name, 0, cardH * 0.28);
 
-            // Escolhas / números
+            // Choices
             if (this.game.phase !== 'betting' || !p.isHuman) {
-                const numSize = UIScale.r(mobile ? 18 : 22);
                 ctx.fillStyle = '#fff';
-                ctx.font = `${numSize}px \"Segoe UI\", sans-serif`;
-                ctx.fillText(`${p.choices[0]} & ${p.choices[1]}`, px, cardTop + cardH * 0.58);
+                ctx.font = `bold ${r(mobile ? 18 : 22)}px ${theme.bodyFont}`;
+                ctx.fillText(`${p.choices[0]} • ${p.choices[1]}`, 0, cardH * 0.62);
             } else {
-                // Fase betting: destaca o número ativo
-                const c1Size = this.activeChoice === 0 ? UIScale.r(mobile ? 22 : 28) : UIScale.r(mobile ? 16 : 20);
-                const c2Size = this.activeChoice === 1 ? UIScale.r(mobile ? 22 : 28) : UIScale.r(mobile ? 16 : 20);
-                ctx.font = `bold ${c1Size}px \"Segoe UI\", sans-serif`;
-                ctx.fillStyle = this.activeChoice === 0 ? '#00aaff' : '#777';
-                ctx.fillText(`${this.humanChoices[0]}`, px - s(16), cardTop + cardH * 0.58);
-                ctx.font = `bold ${c2Size}px \"Segoe UI\", sans-serif`;
-                ctx.fillStyle = this.activeChoice === 1 ? '#00aaff' : '#777';
-                ctx.fillText(`${this.humanChoices[1]}`, px + s(16), cardTop + cardH * 0.58);
-                ctx.fillStyle = '#888';
-                ctx.font = `${UIScale.r(mobile ? 7 : 9)}px \"Press Start 2P\", monospace`;
-                ctx.fillText('SEUS Nº', px, cardTop + cardH * 0.82);
+                // Interactive Human Choices
+                const c1Size = this.activeChoice === 0 ? r(24) : r(16);
+                const c2Size = this.activeChoice === 1 ? r(24) : r(16);
+
+                ctx.font = `bold ${c1Size}px ${theme.bodyFont}`;
+                ctx.fillStyle = this.activeChoice === 0 ? theme.accent : 'rgba(255,255,255,0.3)';
+                ctx.fillText(`${this.humanChoices[0]}`, -s(18), cardH * 0.62);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.font = `600 ${r(16)}px ${theme.bodyFont}`;
+                ctx.fillText('•', 0, cardH * 0.62);
+
+                ctx.font = `bold ${c2Size}px ${theme.bodyFont}`;
+                ctx.fillStyle = this.activeChoice === 1 ? theme.accent : 'rgba(255,255,255,0.3)';
+                ctx.fillText(`${this.humanChoices[1]}`, s(18), cardH * 0.62);
+
+                ctx.fillStyle = theme.textMuted;
+                ctx.font = `700 ${r(9)}px ${theme.bodyFont}`;
+                ctx.fillText('SUA ESCOLHA', 0, cardH * 0.88);
             }
 
-            // Score resultado
+            // Margin Result
             if (this.game.phase === 'result') {
-                ctx.fillStyle = isWinner ? '#44dd66' : '#ff5555';
-                ctx.font = `bold ${UIScale.r(mobile ? 8 : 10)}px \"Segoe UI\", sans-serif`;
-                ctx.fillText(`Erro: ${p.score}`, px, cardTop + cardH * 0.92);
+                ctx.fillStyle = isWinner ? '#4ade80' : '#f87171';
+                ctx.font = `bold ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
+                ctx.fillText(`ERRO: ${p.score}`, 0, cardH * 0.9);
             }
+
+            ctx.restore();
         });
     }
 
-    private drawBettingInterface(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, _screenW: number) {
+    private drawBettingInterface(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        const labelY = zoneTop + zoneH * 0.20;
-        const valueY = zoneTop + zoneH * 0.56;
-        const hintY = zoneTop + zoneH * 0.86;
-
-        ctx.fillStyle = '#aaa';
-        ctx.font = `${UIScale.r(mobile ? 8 : 10)}px \"Press Start 2P\", monospace`;
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(mobile ? 14 : 16)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('A SUA APOSTA', cx, labelY);
+        ctx.fillText('VALOR DA APOSTA', cx, zoneTop + zoneH * 0.2);
 
-        const betSize = Math.min(UIScale.r(mobile ? 32 : 44), zoneH * 0.32);
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${betSize}px \"Segoe UI\", sans-serif`;
-        ctx.shadowBlur = s(12);
-        ctx.shadowColor = 'rgba(255,255,255,0.2)';
-        ctx.fillText(`R$ ${this.betAmount}`, cx, valueY);
+        ctx.font = `bold ${r(mobile ? 40 : 54)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(15);
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
+        ctx.fillText(`R$ ${this.betAmount}`, cx, zoneTop + zoneH * 0.58);
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#888';
-        ctx.font = `${UIScale.r(mobile ? 7 : 9)}px \"Press Start 2P\", monospace`;
-        const betHint = mobile
-            ? '[🏃] Trocar  [D-Pad] Ajustar  [OK] JOGAR'
-            : '[SHIFT/Q] Trocar  [SETAS] Ajustar  [ESPAÇO] JOGAR';
-        ctx.fillText(betHint, cx, hintY);
+        const helpHint = mobile
+            ? 'TAP CORPO para Iniciar • [OK] JOGAR'
+            : '[SETAS] AJUSTAR • [Q] TROCA DADO • [SPACE] JOGAR';
+        drawMinigameFooter(ctx, cx * 2, zoneTop + zoneH * 4.5, theme, helpHint);
     }
 
     public update(_dt: number) {

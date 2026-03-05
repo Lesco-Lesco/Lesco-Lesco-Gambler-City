@@ -78,7 +78,7 @@ export class PalitinhoGame implements IMinigame {
             { isBroken: false, pickedBy: null },
             { isBroken: false, pickedBy: null }
         ];
-        
+
         // Randomly pick 2 distinct indices to be broken
         const indices = [0, 1, 2, 3];
         for (let i = 0; i < 2; i++) {
@@ -95,6 +95,11 @@ export class PalitinhoGame implements IMinigame {
                 this.phase = 'choosing';
                 this.currentPlayerIdx = 0;
                 this.processNPCTurns();
+            }
+        } else if (this.phase === 'reveal') {
+            this.diceTimer += dt;
+            if (this.diceTimer > 2.0) {
+                this.calculateResult();
             }
         }
     }
@@ -119,6 +124,7 @@ export class PalitinhoGame implements IMinigame {
 
         // All have picked
         this.phase = 'reveal';
+        this.diceTimer = 0;
     }
 
     public chooseMatchstick(idx: number) {
@@ -137,7 +143,7 @@ export class PalitinhoGame implements IMinigame {
     public calculateResult() {
         const brokenSticks = this.matchsticks.filter(m => m.isBroken);
         const losers = this.players.filter(p => brokenSticks.some(m => m.pickedBy === p.name));
-        
+
         losers.forEach(l => l.isLoser = true);
 
         const human = this.players.find(p => p.isHuman);

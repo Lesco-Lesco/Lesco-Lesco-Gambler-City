@@ -69,6 +69,7 @@ export class HUD {
         // --- Interaction hint (bottom-center) ---
         if (interactionHint) {
             ctx.font = `bold ${UIScale.r(14)}px monospace`;
+            ctx.textAlign = 'center';
             const textWidth = ctx.measureText(interactionHint).width;
 
             // Padding and containment
@@ -118,6 +119,7 @@ export class HUD {
             ctx.globalAlpha = alpha;
 
             ctx.font = `bold ${UIScale.r(12)}px monospace`;
+            ctx.textAlign = mobile ? 'left' : 'right';
             const textWidth = ctx.measureText(note.message).width;
 
             const boxW = Math.min(screenW - s(40), textWidth + s(40));

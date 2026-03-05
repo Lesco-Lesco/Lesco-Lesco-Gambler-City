@@ -4,8 +4,11 @@ import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { BichoManager } from '../BichoManager';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import type { IMinigameUI } from './BaseMinigame';
 
-export class JokenpoUI {
+export class JokenpoUI implements IMinigameUI {
     private game: JokenpoGame;
     private input: InputManager;
     private onClose: (moneyChange: number) => void;
@@ -83,85 +86,56 @@ export class JokenpoUI {
         this.game.playerChoice = choices[idx];
     }
 
-    public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
-        const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
+    public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+        const theme = MINIGAME_THEMES.jokenpo;
 
-        // Dark background with gradient
-        ctx.globalAlpha = 1.0;
-        const bgGrad = ctx.createRadialGradient(screenW / 2, screenH / 2, 0, screenW / 2, screenH / 2, screenH);
-        bgGrad.addColorStop(0, 'rgba(20, 20, 40, 0.98)');
-        bgGrad.addColorStop(1, 'rgba(10, 10, 20, 1)');
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, screenW, screenH);
+        drawMinigameBackground(ctx, screenW, screenH, theme);
+        drawMinigameTitle(ctx, screenW, screenH, theme, 'PEDRA PAPEL TESOURA');
 
         const cx = screenW / 2;
-
-        // ── Zonas de layout proporcionais ──
-        const TITLE_H = screenH * 0.12;
-        const CONTENT_H = screenH * 0.60;
-        const contentCY = TITLE_H + CONTENT_H * 0.5;
-
-        // Title
-        ctx.fillStyle = '#00ffff';
-        ctx.font = `bold ${UIScale.r(mobile ? 20 : 26)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        ctx.shadowBlur = s(15);
-        ctx.shadowColor = 'rgba(0, 255, 255, 0.5)';
-        ctx.fillText('JO KEN PO', cx, screenH * 0.15);
-        ctx.shadowBlur = 0;
-
+        const cy = screenH / 2;
         const phase = this.game.phase;
 
         if (phase === 'betting') {
-            this.drawBettingUI(ctx, cx, contentCY);
+            this.drawBettingUI(ctx, cx, cy, theme);
         } else if (phase === 'choosing') {
-            this.drawChoosingUI(ctx, cx, contentCY);
+            this.drawChoosingUI(ctx, cx, cy, theme);
         } else if (phase === 'showdown') {
-            this.drawShowdownUI(ctx, cx, contentCY);
+            this.drawShowdownUI(ctx, cx, cy, theme);
         } else if (phase === 'result') {
-            this.drawResultUI(ctx, cx, contentCY);
+            this.drawResultUI(ctx, cx, cy, theme);
         }
 
-        // Footer hint
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        const hint = mobile
-            ? '[E/OK] CONFIRMAR | [✕] SAIR'
-            : 'AD/ENTER SELECIONAR | ESC SAIR';
-        ctx.fillText(hint, cx, screenH - s(20));
+        const hint = isMobile() ? 'DPAD Selecionar • [OK] Confirmar' : '←→ SELECIONAR • ESPAÇO CONFIRMAR • ESC SAIR';
+        drawMinigameFooter(ctx, screenW, screenH, theme, hint);
     }
 
-    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
+    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
+        const r = UIScale.r.bind(UIScale);
 
-        ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P", monospace`;
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(14)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('VALOR DA APOSTA', cx, cy - s(60));
+        ctx.fillText('QUANTO VAI APOSTAR?', cx, cy - s(60));
 
-        ctx.fillStyle = '#00ffff';
-        ctx.font = `bold ${UIScale.r(mobile ? 48 : 64)}px "Segoe UI", sans-serif`;
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = 'rgba(0, 255, 255, 0.4)';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(10));
+        ctx.fillStyle = theme.accent;
+        ctx.font = `800 ${r(64)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(25);
+        ctx.shadowColor = theme.accent + '88';
+        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(15));
         ctx.shadowBlur = 0;
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
-        ctx.fillText('[↑↓] AJUSTAR', cx, cy + s(60));
     }
 
-    private drawChoosingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
+    private drawChoosingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
         ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P", monospace`;
+        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('PEDRA, PAPEL OU TESOURA?', cx, cy - s(120));
+        ctx.fillText('QUAL A SUA ESCOLHA?', cx, cy - s(120));
 
         const options: { id: JokenpoChoice, icon: string, label: string }[] = [
             { id: 'rock', icon: '✊', label: 'PEDRA' },
@@ -169,143 +143,142 @@ export class JokenpoUI {
             { id: 'scissors', icon: '✌️', label: 'TESOURA' }
         ];
 
-        const spacing = s(mobile ? 90 : 120);
+        const spacing = s(mobile ? 100 : 140);
         options.forEach((opt, i) => {
             const x = cx + (i - 1) * spacing;
             const selected = this.game.playerChoice === opt.id;
-            this.drawOption(ctx, x, cy, opt.icon, opt.label, selected);
+
+            ctx.save();
+            ctx.translate(x, cy);
+
+            const size = s(mobile ? 40 : 55);
+
+            // Background Circle
+            if (selected) {
+                ctx.fillStyle = theme.accent + '33';
+                ctx.shadowBlur = s(30);
+                ctx.shadowColor = theme.accent;
+                ctx.beginPath();
+                ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = theme.accent;
+                ctx.lineWidth = s(4);
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.beginPath();
+                ctx.arc(0, 0, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+
+            // Icon
+            ctx.font = `${s(mobile ? 40 : 55)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 1;
+            ctx.fillText(opt.icon, 0, 0);
+
+            // Label
+            ctx.fillStyle = selected ? '#fff' : theme.textMuted;
+            ctx.font = `bold ${r(12)}px ${theme.bodyFont}`;
+            ctx.fillText(opt.label, 0, size * 1.6);
+
+            ctx.restore();
         });
     }
 
-    private drawOption(ctx: CanvasRenderingContext2D, x: number, y: number, icon: string, label: string, selected: boolean) {
+    private drawShowdownUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
-        const size = s(mobile ? 60 : 80);
 
-        if (selected) {
-            ctx.fillStyle = 'rgba(0, 255, 255, 0.4)';
-            ctx.beginPath();
-            ctx.roundRect(x - size, y - size, size * 2, size * 2, s(15));
-            ctx.fill();
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = s(5);
-            ctx.stroke();
+        const icons: Record<string, string> = { rock: '✊', paper: '✋', scissors: '✌️' };
+        const getIcon = (c: JokenpoChoice) => (c ? icons[c] : '❓');
 
-            // Selection glow
-            ctx.shadowBlur = s(25);
-            ctx.shadowColor = '#00ffff';
-        } else {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.beginPath();
-            ctx.roundRect(x - size, y - size, size * 2, size * 2, s(15));
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = s(1);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
+        // Animation timing
+        let animText = 'JO...';
+        if (this.showdownTimer < 1.3) animText = 'KEN...';
+        if (this.showdownTimer < 0.6) animText = 'PO!';
 
-        ctx.font = `${s(mobile ? 50 : 60)}px sans-serif`;
+        ctx.fillStyle = theme.accent;
+        ctx.font = `900 ${r(mobile ? 42 : 64)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fff'; // Ensure icon is opaque
-        ctx.fillText(icon, x, y);
-        ctx.shadowBlur = 0;
+        ctx.fillText(animText, cx, cy - s(120));
 
-        ctx.fillStyle = selected ? '#fff' : 'rgba(255, 255, 255, 0.5)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 10)}px "Press Start 2P", monospace`;
-        ctx.fillText(label, x, y + size + s(15));
-    }
+        // Hands
+        const xOff = s(mobile ? 85 : 130);
+        const isRevealed = this.showdownTimer < 0.6;
 
-    private drawShowdownUI(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
-        const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
-
-        const getIcon = (c: JokenpoChoice) => {
-            if (c === 'rock') return '✊';
-            if (c === 'paper') return '✋';
-            if (c === 'scissors') return '✌️';
-            return '?';
-        };
-
-        // Player side
-        this.drawShowdownHand(ctx, cx - s(mobile ? 80 : 120), cy, getIcon(this.game.playerChoice), 'VOCÊ', '#00ffff');
+        this.drawLargeHand(ctx, cx - xOff, cy, getIcon(this.game.playerChoice), 'VOCÊ', theme.accent, theme);
+        this.drawLargeHand(ctx, cx + xOff, cy, isRevealed ? getIcon(this.game.npcChoice) : '❓', 'BANCA', theme.accentAlt, theme);
 
         // VS
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(mobile ? 18 : 24)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
+        ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
         ctx.fillText('VS', cx, cy);
-
-        // NPC side (revealing or hidden)
-        const isRevealed = this.showdownTimer < 0.5;
-        const npcIcon = isRevealed ? getIcon(this.game.npcChoice) : '❓';
-        this.drawShowdownHand(ctx, cx + s(mobile ? 80 : 120), cy, npcIcon, 'BANCA', '#ff3366');
-
-        // Counting text
-        let countText = 'JO...';
-        if (this.showdownTimer < 1.3) countText = 'KEN...';
-        if (this.showdownTimer < 0.6) countText = 'PO!';
-
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(mobile ? 20 : 30)}px "Press Start 2P", monospace`;
-        ctx.fillText(countText, cx, cy - s(120));
     }
 
-    private drawShowdownHand(ctx: CanvasRenderingContext2D, x: number, y: number, icon: string, label: string, color: string) {
+    private drawLargeHand(ctx: CanvasRenderingContext2D, x: number, y: number, icon: string, label: string, color: string, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
+        const r = UIScale.r.bind(UIScale);
+        const size = s(isMobile() ? 50 : 70);
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Circle
+        ctx.fillStyle = color + '22';
+        ctx.shadowBlur = s(20);
+        ctx.shadowColor = color;
         ctx.beginPath();
-        ctx.arc(x, y, s(mobile ? 55 : 75), 0, Math.PI * 2);
+        ctx.arc(0, 0, size, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = color;
         ctx.lineWidth = s(3);
         ctx.stroke();
-
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = color;
-
-        ctx.font = `${s(mobile ? 55 : 75)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fff'; // Ensure icon is opaque
-        ctx.fillText(icon, x, y);
         ctx.shadowBlur = 0;
 
+        // Icon
+        ctx.font = `${size}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = 1;
+        ctx.fillText(icon, 0, 0);
+
+        // Label
         ctx.fillStyle = color;
-        ctx.font = `bold ${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P", monospace`;
-        ctx.fillText(label, x, y + s(mobile ? 70 : 100));
+        ctx.font = `bold ${r(12)}px ${theme.bodyFont}`;
+        ctx.fillText(label, 0, size + s(25));
+
+        ctx.restore();
     }
 
-    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
+    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        const getIcon = (c: JokenpoChoice) => {
-            if (c === 'rock') return '✊';
-            if (c === 'paper') return '✋';
-            if (c === 'scissors') return '✌️';
-            return '?';
-        };
+        const iconMap: Record<string, string> = { rock: '✊', paper: '✋', scissors: '✌️' };
+        const xOff = s(mobile ? 85 : 130);
+        const yOff = s(mobile ? 20 : 30);
 
-        // Final Hands
-        this.drawShowdownHand(ctx, cx - s(mobile ? 80 : 120), cy - s(40), getIcon(this.game.playerChoice), 'VOCÊ', '#00ffff');
-        this.drawShowdownHand(ctx, cx + s(mobile ? 80 : 120), cy - s(40), getIcon(this.game.npcChoice), 'BANCA', '#ff3366');
+        // Show final hands smaller
+        this.drawLargeHand(ctx, cx - xOff, cy - yOff, iconMap[this.game.playerChoice as string] || '❓', 'VOCÊ', theme.accent, theme);
+        this.drawLargeHand(ctx, cx + xOff, cy - yOff, iconMap[this.game.npcChoice as string] || '❓', 'BANCA', theme.accentAlt, theme);
 
         // Result Message
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(mobile ? 16 : 22)}px "Segoe UI", sans-serif`;
+        ctx.font = `900 ${r(mobile ? 32 : 48)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText(this.game.resultMessage, cx, cy + s(mobile ? 100 : 120));
+        ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(110));
 
         const canPlayAgain = BichoManager.getInstance().playerMoney + this.game.settle() >= this.game.minBet;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 10)}px "Press Start 2P", monospace`;
-        const hint = canPlayAgain
-            ? (mobile ? '[OK] NOVAMENTE' : '[ESPAÇO] NOVAMENTE')
-            : (mobile ? '[✕] SEM SALDO - SAIR' : '[ESC] SEM SALDO - SAIR');
-        ctx.fillText(hint, cx, cy + s(mobile ? 130 : 150));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
+        ctx.fillText(canPlayAgain ? 'ESPAÇO PARA NOVA PARTIDA' : 'SALDO INSUFICIENTE - ESC PARA SAIR', cx, cy + s(150));
     }
 }

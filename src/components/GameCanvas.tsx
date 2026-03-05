@@ -98,6 +98,7 @@ const GameCanvas = () => {
                     loop.setScene('exploration');
 
                     // Start loop
+                    await document.fonts.ready; // Ensure custom fonts are loaded
                     loop.start();
                     triggerSplash(); // Show splash on first start
                     engineRef.current = { loop, renderer, scene, casinoScene: casinoShopping, gameOverScene };

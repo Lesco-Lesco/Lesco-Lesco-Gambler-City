@@ -1,7 +1,11 @@
 import { VideoBingoGame } from './VideoBingoGame';
 import { UIScale } from '../Core/UIScale';
+import { isMobile } from '../Core/MobileDetect';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import type { IMinigameUI } from './BaseMinigame';
 
-export class VideoBingoUI {
+export class VideoBingoUI implements IMinigameUI {
     private game: VideoBingoGame;
     private onExit: (payout: number) => void;
     private onPlayAgain: (payout: number) => void;
@@ -67,222 +71,202 @@ export class VideoBingoUI {
 
     private drawInterval: any = null;
 
-    public draw(ctx: CanvasRenderingContext2D, w: number, h: number) {
-        const s = UIScale.s.bind(UIScale);
-        ctx.fillStyle = '#0a0a20'; // Electric Blue/Black
-        ctx.fillRect(0, 0, w, h);
+    public render(ctx: CanvasRenderingContext2D, w: number, h: number) {
+        const mobile = isMobile();
+        const theme = MINIGAME_THEMES.videobingo;
 
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00ffff';
-        ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
-        ctx.fillText("VIDEO BINGO ELETRÔNICO", w / 2, s(50));
+        drawMinigameBackground(ctx, w, h, theme);
+        drawMinigameTitle(ctx, w, h, theme, 'VÍDEO BINGO NEON');
 
-        this.drawCards(ctx, w, h);
-        this.drawDrawnNumbers(ctx, w, h);
-        this.drawCurrentBall(ctx, w, h);
+        this.drawCards(ctx, w, h, theme);
+        this.drawUIOverlay(ctx, w, h, theme);
 
         if (this.game.phase === 'result') {
-            this.drawResult(ctx, w, h);
+            this.drawResult(ctx, w, h, theme);
         } else if (this.game.phase === 'betting') {
-            ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(16)}px monospace`;
-            ctx.fillText("Pressione [ESPAÇO] para comprar a entrada (R$10)", w / 2, h - s(30));
+            const hint = mobile ? 'TAP COMPRAR ENTRADA (R$10)' : 'ESPAÇO COMPRAR ENTRADA (R$10)';
+            drawMinigameFooter(ctx, w, h, theme, hint);
         } else if (this.game.phase === 'picking') {
-            ctx.fillStyle = '#ffcc00';
-            ctx.font = `${UIScale.r(18)}px monospace`;
-            ctx.fillText("ESCOLHA SUA CARTELA COM AS SETAS E [ESPAÇO]", w / 2, h - s(30));
+            const hint = mobile ? 'DPAD SELECIONAR • [OK] ESCOLHER' : 'SETAS SELECIONAR • ESPAÇO ESCOLHER';
+            drawMinigameFooter(ctx, w, h, theme, hint);
         }
     }
 
-    private drawCards(ctx: CanvasRenderingContext2D, w: number, _h: number) {
+    private drawCards(ctx: CanvasRenderingContext2D, w: number, h: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const cardW = s(160);
-        const cardH = s(160);
-        const spacing = s(30);
+        const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
+
+        const cardW = s(mobile ? 145 : 175);
+        const cardH = cardW;
+        const spacingX = s(mobile ? 12 : 30);
+        const spacingY = s(mobile ? 18 : 30);
+
+        const gridCX = w / 2;
+        const gridCY = h * 0.46;
 
         this.game.cards.forEach((card, i) => {
             const row = Math.floor(i / 2);
             const col = i % 2;
-            const x = (w / 2) - cardW - (spacing / 2) + col * (cardW + spacing);
-            const y = s(100) + row * (cardH + spacing);
+            const x = gridCX + (col - 0.5) * (cardW + spacingX);
+            const y = gridCY + (row - 0.5) * (cardH + spacingY);
 
             const isPlayerCard = this.game.selectedCardIndex === i;
             const isSelected = this.game.phase === 'picking' && isPlayerCard;
 
             ctx.save();
+            ctx.translate(x - cardW / 2, y - cardH / 2);
+
+            // Glass Body
+            ctx.fillStyle = 'rgba(20, 10, 40, 0.7)';
+            ctx.beginPath();
+            ctx.roundRect(0, 0, cardW, cardH, s(12));
+            ctx.fill();
+
+            // Border / Glow
             if (isSelected) {
+                const pulse = Math.sin(Date.now() * 0.01) * 5 + 10;
                 ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 4;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#fff';
+                ctx.lineWidth = s(3);
+                ctx.shadowBlur = s(pulse);
+                ctx.shadowColor = theme.accent;
             } else if (isPlayerCard && this.game.phase !== 'picking') {
-                ctx.strokeStyle = '#44ff44';
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#4ade80';
+                ctx.lineWidth = s(2);
             } else {
-                ctx.strokeStyle = '#00ffff';
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = (this.game.phase === 'picking') ? 0.4 : 1.0;
+                ctx.strokeStyle = theme.accent + '33';
+                ctx.lineWidth = 1;
+                if (this.game.phase === 'picking') ctx.globalAlpha = 0.4;
             }
-            ctx.strokeRect(x, y, cardW, cardH);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
 
-            // Label
-            ctx.fillStyle = isPlayerCard ? '#00ff00' : '#888';
-            ctx.font = `bold ${UIScale.r(12)}px monospace`;
+            // Player Label
+            ctx.fillStyle = isPlayerCard ? '#fff' : theme.textMuted;
+            ctx.font = `800 ${r(10)}px ${theme.bodyFont}`;
             ctx.textAlign = 'left';
+            const displayName = (this.game.phase === 'picking' && !isPlayerCard) ? "???" : card.playerName;
+            ctx.fillText(displayName.toUpperCase(), s(4), -s(8));
 
-            const nameToDraw = (this.game.phase === 'picking' && !isPlayerCard) ? "???" : card.playerName.toUpperCase();
-            ctx.fillText(nameToDraw, x, y - s(8));
-
-            ctx.restore();
-
-            const cellW = cardW / 5;
-            const cellH = cardH / 5;
-
+            // Numbers Grid
+            const cellS = cardW / 5;
             ctx.textAlign = 'center';
-            for (let r = 0; r < 5; r++) {
-                for (let c = 0; c < 5; c++) {
-                    const val = card.numbers[r][c];
-                    const marked = card.marked[r][c];
-                    const isLast = val !== 0 && val === this.game.lastDrawnNumber;
+            ctx.textBaseline = 'middle';
+
+            for (let r_ = 0; r_ < 5; r_++) {
+                for (let c_ = 0; c_ < 5; c_++) {
+                    const val = card.numbers[r_][c_];
+                    const marked = card.marked[r_][c_];
+                    const cx_ = c_ * cellS + cellS / 2;
+                    const cy_ = r_ * cellS + cellS / 2;
 
                     if (marked) {
-                        ctx.fillStyle = isPlayerCard ? 'rgba(0, 255, 0, 0.25)' : 'rgba(0, 255, 255, 0.15)';
-                        ctx.fillRect(x + c * cellW, y + r * cellH, cellW, cellH);
+                        ctx.fillStyle = isPlayerCard ? 'rgba(74, 222, 128, 0.25)' : 'rgba(123, 45, 255, 0.15)';
+                        ctx.beginPath();
+                        ctx.arc(cx_, cy_, cellS * 0.42, 0, Math.PI * 2);
+                        ctx.fill();
                     }
 
-                    if (isLast) {
-                        ctx.strokeStyle = '#ffcc00';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(x + c * cellW + 1, y + r * cellH + 1, cellW - 2, cellH - 2);
+                    if (val !== 0 && val === this.game.lastDrawnNumber) {
+                        ctx.strokeStyle = '#fde047';
+                        ctx.lineWidth = s(2);
+                        ctx.strokeRect(c_ * cellS + s(2), r_ * cellS + s(2), cellS - s(4), cellS - s(4));
                     }
 
-                    ctx.fillStyle = marked ? '#fff' : '#444';
-                    ctx.font = `${UIScale.r(12)}px monospace`;
-                    ctx.fillText(val === 0 ? "★" : val.toString(), x + c * cellW + cellW / 2, y + r * cellH + cellH / 2 + s(5));
+                    ctx.fillStyle = marked ? '#fff' : 'rgba(255,255,255,0.25)';
+                    ctx.font = `700 ${r(mobile ? 11 : 13)}px ${theme.bodyFont}`;
+                    ctx.fillText(val === 0 ? "★" : val.toString(), cx_, cy_);
                 }
             }
 
-            // Draw winning lines
-            if (this.game.phase === 'result' && card.winningPatterns.length > 0) {
-                ctx.strokeStyle = '#ffcc00';
-                ctx.lineWidth = 4;
-                card.winningPatterns.forEach(p => {
-                    ctx.beginPath();
-                    if (p.type === 'row') {
-                        const py = y + p.index! * cellH + cellH / 2;
-                        ctx.moveTo(x, py); ctx.lineTo(x + cardW, py);
-                    } else if (p.type === 'col') {
-                        const px = x + p.index! * cellW + cellW / 2;
-                        ctx.moveTo(px, y); ctx.lineTo(px, y + cardH);
-                    } else if (p.type === 'diag') {
-                        if (p.index === 1) { // Main
-                            ctx.moveTo(x, y); ctx.lineTo(x + cardW, y + cardH);
-                        } else { // Anti
-                            ctx.moveTo(x + cardW, y); ctx.lineTo(x, y + cardH);
-                        }
-                    } else if (p.type === 'corner') {
-                        ctx.strokeRect(x, y, cellW, cellH);
-                        ctx.strokeRect(x + cardW - cellW, y, cellW, cellH);
-                        ctx.strokeRect(x, y + cardH - cellH, cellW, cellH);
-                        ctx.strokeRect(x + cardW - cellW, y + cardH - cellH, cellW, cellH);
-                    }
-                    ctx.stroke();
-                });
-            }
+            ctx.restore();
         });
     }
 
-    private drawCurrentBall(ctx: CanvasRenderingContext2D, w: number, h: number) {
-        if (!this.game.lastDrawnNumber) return;
+    private drawUIOverlay(ctx: CanvasRenderingContext2D, w: number, h: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
 
-        ctx.save();
-        const ballX = w / 2;
-        const ballY = h / 2 - s(20);
-        const ballR = s(35);
+        // Current Ball
+        if (this.game.lastDrawnNumber) {
+            const bx = w / 2;
+            const by = h * 0.82;
+            const br = s(38);
 
-        ctx.fillStyle = '#fff';
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#00ffff';
-        ctx.beginPath();
-        ctx.arc(ballX, ballY, ballR, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#000';
-        ctx.font = `bold ${UIScale.r(30)}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.game.lastDrawnNumber.toString(), ballX, ballY);
-        ctx.restore();
-    }
-
-    private drawDrawnNumbers(ctx: CanvasRenderingContext2D, w: number, h: number) {
-        const s = UIScale.s.bind(UIScale);
-        const balls = this.game.drawnHistory;
-        if (balls.length === 0) return;
-
-        const trayH = s(60);
-        const trayY = h - trayH - s(60);
-        const ballR = s(15);
-        const spacing = s(10);
-
-        // Take last 15 balls
-        const recent = balls.slice(-15);
-        const totalW = recent.length * (ballR * 2 + spacing);
-        let startX = (w - totalW) / 2 + ballR;
-
-        recent.forEach((num, i) => {
-            const isLatest = i === recent.length - 1;
-            ctx.fillStyle = isLatest ? '#fff' : '#009999';
+            ctx.fillStyle = theme.accent;
+            ctx.shadowBlur = s(25);
+            ctx.shadowColor = theme.accent;
             ctx.beginPath();
-            ctx.arc(startX, trayY, ballR, 0, Math.PI * 2);
+            ctx.arc(bx, by, br, 0, Math.PI * 2);
             ctx.fill();
+            ctx.shadowBlur = 0;
 
-            ctx.fillStyle = isLatest ? '#000' : '#fff';
-            ctx.font = `bold ${UIScale.r(12)}px Arial`;
+            ctx.fillStyle = '#111';
+            ctx.font = `bold ${r(30)}px ${theme.titleFont}`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(num.toString(), startX, trayY);
+            ctx.fillText(this.game.lastDrawnNumber.toString(), bx, by);
+        }
 
-            startX += ballR * 2 + spacing;
-        });
+        // History tray
+        const history = this.game.drawnHistory;
+        if (history.length > 0) {
+            const trayY = h * 0.92;
+            const ballR = s(10);
+            const gap = s(6);
+            const recent = history.slice(-15);
+            const totalW = recent.length * (ballR * 2 + gap);
+            let curX = w / 2 - totalW / 2 + ballR;
+
+            recent.forEach((num, i) => {
+                const isLatest = i === recent.length - 1;
+                ctx.fillStyle = isLatest ? '#fff' : 'rgba(255,255,255,0.15)';
+                ctx.beginPath();
+                ctx.arc(curX, trayY, ballR, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = isLatest ? '#000' : '#fff';
+                ctx.font = `700 ${r(8)}px ${theme.bodyFont}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(num.toString(), curX, trayY);
+                curX += ballR * 2 + gap;
+            });
+        }
     }
 
-    private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        const r = UIScale.r.bind(UIScale);
+
+        ctx.fillStyle = 'rgba(10, 5, 20, 0.92)';
         ctx.fillRect(0, 0, w, h);
-        ctx.textAlign = 'center';
 
         const won = this.game.winners.includes(this.game.selectedCardIndex);
-        ctx.fillStyle = won ? '#00ff00' : '#ff4444';
-        ctx.font = `bold ${UIScale.r(60)}px "Segoe UI"`;
+        const color = won ? '#4ade80' : '#f87171';
 
-        let resultText = "";
-        if (this.game.winnerNames.length > 1) {
-            resultText = "EMPATE!";
-        } else if (won) {
-            resultText = "BINGO!";
-        } else {
-            resultText = `${this.game.winnerNames[0]?.toUpperCase()} VENCEU!`;
-        }
+        ctx.fillStyle = color;
+        ctx.font = `bold ${r(58)}px ${theme.titleFont}`;
+        ctx.textAlign = 'center';
 
-        ctx.fillText(resultText, w / 2, h / 2 - s(40));
+        let txt = "DERROTA";
+        if (this.game.winnerNames.length > 1) txt = "EMPATE!";
+        else if (won) txt = "BINGO!";
+        else if (this.game.winnerNames[0]) txt = `${this.game.winnerNames[0].toUpperCase()} VENCEU!`;
 
-        if (this.game.winnerNames.length > 1) {
-            ctx.fillStyle = '#fff';
-            ctx.font = `${UIScale.r(20)}px monospace`;
-            ctx.fillText(`GANHADORES: ${this.game.winnerNames.join(", ")}`, w / 2, h / 2 + s(10));
-        }
+        ctx.shadowBlur = s(30);
+        ctx.shadowColor = color;
+        ctx.fillText(txt, w / 2, h / 2 - s(20));
+        ctx.shadowBlur = 0;
 
         if (won) {
             ctx.fillStyle = '#fff';
-            ctx.font = `bold ${UIScale.r(30)}px "Segoe UI"`;
-            ctx.fillText(`PAGAMENTO: R$ ${this.game.totalPayout}`, w / 2, h / 2 + s(60));
+            ctx.font = `800 ${r(28)}px ${theme.bodyFont}`;
+            ctx.fillText(`+ R$ ${this.game.totalPayout}`, w / 2, h / 2 + s(40));
         }
 
-        ctx.fillStyle = '#888';
-        ctx.font = `${UIScale.r(16)}px monospace`;
-        ctx.fillText("Pressione [ESPAÇO] para continuar", w / 2, h / 2 + s(120));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
+        ctx.fillText('ESPAÇO PARA REINICIAR', w / 2, h * 0.8);
     }
 }

@@ -4,6 +4,8 @@ import { UIScale } from '../Core/UIScale';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
 import { isMobile } from '../Core/MobileDetect';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 
 export class BlackjackUI implements IMinigameUI {
     private game: BlackjackGame;
@@ -62,120 +64,196 @@ export class BlackjackUI implements IMinigameUI {
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
         const cx = screenW / 2;
-        const cy = screenH / 2;
         const mobile = isMobile();
+        const theme = MINIGAME_THEMES.blackjack;
 
-        // Background Overlay
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.fillRect(0, 0, screenW, screenH);
+        // Shared background and title
+        drawMinigameBackground(ctx, screenW, screenH, theme);
+        drawMinigameTitle(ctx, screenW, screenH, theme);
 
-        // Table
-        ctx.fillStyle = '#1a4a1a';
+        // ── Proportional Table ──
+        const tableW = Math.min(screenW * 0.9, s(mobile ? 320 : 450));
+        const tableH = Math.min(screenH * 0.5, s(mobile ? 200 : 320));
+        const tableY = screenH * 0.6;
+
+        const tableGrad = ctx.createRadialGradient(cx, tableY, s(50), cx, tableY, tableW);
+        tableGrad.addColorStop(0, theme.accentAlt);
+        tableGrad.addColorStop(1, '#064e3b'); // Dark forest green
+
+        ctx.fillStyle = tableGrad;
         ctx.beginPath();
-        const tableW = mobile ? s(300) : s(350);
-        const tableH = mobile ? s(180) : s(250);
-        const tableY = mobile ? cy + s(30) : cy + s(50);
         ctx.ellipse(cx, tableY, tableW, tableH, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#daa520';
-        ctx.lineWidth = s(mobile ? 3 : 5);
+
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = s(mobile ? 4 : 8);
         ctx.stroke();
 
-        // Dealer Hand
-        const dealerY = mobile ? cy - s(110) : cy - s(100);
-        this.drawHand(ctx, cx, dealerY, this.game.dealerHand, this.game.phase === 'playing');
+        // ── Dealer Hand ──
+        const dealerY = screenH * 0.35;
+        this.drawHand(ctx, cx, dealerY, this.game.dealerHand, this.game.phase === 'playing', theme);
 
-        // Player Hand
-        const playerY = mobile ? cy + s(75) : cy + s(150);
-        this.drawHand(ctx, cx, playerY, this.game.playerHand, false);
+        // ── Player Hand ──
+        const playerY = screenH * 0.75;
+        this.drawHand(ctx, cx, playerY, this.game.playerHand, false, theme);
 
-        // Points
-        ctx.fillStyle = '#fff';
-        ctx.font = `${r(mobile ? 11 : 14)}px "Press Start 2P"`;
+        // ── Score Display ──
         ctx.textAlign = 'center';
-
         if (this.game.phase !== 'betting') {
-            const playerPointsY = playerY + (mobile ? s(65) : s(130));
-            ctx.fillText(`VOCÊ: ${this.game.calculatePoints(this.game.playerHand)}`, cx, playerPointsY);
+            ctx.fillStyle = '#fff';
+            ctx.font = `800 ${r(mobile ? 12 : 14)}px ${theme.titleFont}`;
+
+            // Player Points
+            const pPoints = this.game.calculatePoints(this.game.playerHand);
+            ctx.fillText(`PONTOS: ${pPoints}`, cx, playerY - s(mobile ? 75 : 100));
+
             if (this.game.phase !== 'playing') {
-                const dealerPointsY = dealerY - (mobile ? s(65) : s(130));
-                ctx.fillText(`DEALER: ${this.game.calculatePoints(this.game.dealerHand)}`, cx, dealerPointsY);
+                // Dealer Points
+                const dPoints = this.game.calculatePoints(this.game.dealerHand);
+                ctx.fillText(`DEALER: ${dPoints}`, cx, dealerY + s(mobile ? 75 : 100));
             }
         }
 
-        // UI Text based on phase
-        ctx.shadowBlur = 0;
+        // ── Phase UI ──
         if (this.game.phase === 'betting') {
-            const titleY = mobile ? cy - s(35) : cy - s(30);
-            ctx.font = `bold ${r(mobile ? 20 : 32)}px "Press Start 2P"`;
-            ctx.fillStyle = '#daa520';
-            ctx.fillText('BLACKJACK', cx, titleY);
-
-            ctx.font = `bold ${r(mobile ? 14 : 20)}px "Press Start 2P"`;
-            ctx.fillStyle = '#fff';
-            ctx.fillText(`Aposta: R$${this.game.betAmount}`, cx, cy + s(mobile ? 20 : 30));
-
-            ctx.font = `${r(mobile ? 10 : 14)}px "Press Start 2P"`;
-            ctx.fillStyle = 'rgba(255,255,255,0.7)';
-            const hint = mobile ? '[+/-] Ajustar  [OK] Apostar' : '[↑/↓] Ajustar  [Enter] Apostar';
-            ctx.fillText(hint, cx, cy + s(mobile ? 50 : 70));
+            this.drawBettingUI(ctx, cx, screenH * 0.55, theme);
         } else if (this.game.phase === 'playing') {
-            ctx.font = `bold ${r(mobile ? 13 : 18)}px "Press Start 2P"`;
-            ctx.fillStyle = '#daa520';
-            const hint = mobile ? '[OK] PEDIR (HIT)  [↑] PARAR (STAND)' : '[H] HIT  [S] STAND';
-            ctx.fillText(hint, cx, cy + s(mobile ? 15 : 30));
+            this.drawControlsUI(ctx, cx, screenH * 0.55, theme);
         } else if (this.game.phase === 'result') {
-            ctx.font = `bold ${r(mobile ? 16 : 24)}px "Press Start 2P"`;
-            ctx.fillStyle = this.game.winner === 'player' ? '#4f4' : (this.game.winner === 'push' ? '#ff4' : '#f44');
-            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(mobile ? 15 : 30));
-            ctx.fillStyle = 'rgba(255,255,255,0.8)';
-            ctx.font = `${r(mobile ? 11 : 14)}px "Press Start 2P"`;
-            ctx.fillText(mobile ? '[OK] NOVAMENTE' : '[Enter] Nova Partida', cx, cy + s(mobile ? 50 : 70));
+            this.drawResultUI(ctx, cx, screenH * 0.55, theme);
         }
+
+        // Shared footer
+        const footerHint = mobile ? "[EXIT] Sair" : "[ESC] Sair";
+        drawMinigameFooter(ctx, screenW, screenH, theme, footerHint);
     }
 
-    private drawHand(ctx: CanvasRenderingContext2D, x: number, y: number, hand: any[], hideFirst: boolean) {
+    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
+        const r = UIScale.r.bind(UIScale);
         const s = UIScale.s.bind(UIScale);
-        const cardW = s(60);
-        const cardH = s(90);
-        const spacing = s(70);
+        const mobile = isMobile();
+
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(mobile ? 32 : 48)}px ${theme.titleFont}`;
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = s(15);
+        ctx.shadowColor = theme.accent + '66';
+        ctx.fillText('R$ ' + this.game.betAmount, cx, cy);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
+        ctx.fillText('DEFINA SUA APOSTA', cx, cy - s(40));
+
+        const hint = mobile ? 'DPAD AJUSTAR • [OK] APOSTAR' : '↑↓ AJUSTAR • ENTER CONFIRMAR';
+        ctx.font = `600 ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
+        ctx.fillText(hint, cx, cy + s(40));
+    }
+
+    private drawControlsUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
+        const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
+
+        ctx.fillStyle = '#fde047';
+        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.titleFont}`;
+        ctx.textAlign = 'center';
+
+        const hint = mobile ? '[OK] HIT (PEDIR) • [↑] STAND (PARAR)' : '[H] HIT • [S] STAND';
+        ctx.fillText(hint, cx, cy);
+    }
+
+    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
+        const r = UIScale.r.bind(UIScale);
+        const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+
+        const win = this.game.winner === 'player';
+        const push = this.game.winner === 'push';
+
+        ctx.fillStyle = win ? '#4ade80' : (push ? '#fde047' : '#f87171');
+        ctx.font = `bold ${r(mobile ? 20 : 32)}px ${theme.titleFont}`;
+        ctx.textAlign = 'center';
+
+        ctx.shadowBlur = s(20);
+        ctx.shadowColor = ctx.fillStyle + '66';
+        ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = theme.text;
+        ctx.font = `600 ${r(mobile ? 11 : 13)}px ${theme.bodyFont}`;
+        ctx.fillText(mobile ? '[OK] JOGAR NOVAMENTE' : '[ENTER] NOVA PARTIDA', cx, cy + s(40));
+    }
+
+    private drawHand(ctx: CanvasRenderingContext2D, x: number, y: number, hand: any[], hideFirst: boolean, theme: any) {
+        const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
+
+        const cardW = s(mobile ? 55 : 70);
+        const cardH = s(mobile ? 80 : 100);
+        const spacing = cardW * 1.1;
 
         const startX = x - ((hand.length - 1) * spacing) / 2;
 
         hand.forEach((card, i) => {
-            const cardX = startX + i * spacing - cardW / 2;
-            const cardY = y - cardH / 2;
+            const cardX = startX + i * spacing;
 
-            // Simple Card Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fillRect(cardX + s(4), cardY + s(4), cardW, cardH);
+            ctx.save();
+            ctx.translate(cardX, y);
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath();
+            ctx.roundRect(-cardW / 2 + s(4), -cardH / 2 + s(4), cardW, cardH, s(8));
+            ctx.fill();
 
             if (hideFirst && i === 0) {
                 // Card Back
-                ctx.fillStyle = '#800';
-                ctx.fillRect(cardX, cardY, cardW, cardH);
-                ctx.strokeStyle = '#fff';
+                ctx.fillStyle = theme.accent;
+                ctx.beginPath();
+                ctx.roundRect(-cardW / 2, -cardH / 2, cardW, cardH, s(8));
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
                 ctx.lineWidth = s(2);
-                ctx.strokeRect(cardX + s(4), cardY + s(4), cardW - s(8), cardH - s(8));
+                ctx.beginPath();
+                ctx.roundRect(-cardW / 2 + s(6), -cardH / 2 + s(6), cardW - s(12), cardH - s(12), s(4));
+                ctx.stroke();
             } else {
                 // Card Front
                 ctx.fillStyle = '#fff';
-                ctx.fillRect(cardX, cardY, cardW, cardH);
+                ctx.beginPath();
+                ctx.roundRect(-cardW / 2, -cardH / 2, cardW, cardH, s(8));
+                ctx.fill();
 
-                ctx.fillStyle = (card.suit === 'hearts' || card.suit === 'diamonds') ? '#f00' : '#000';
-                ctx.font = `bold ${UIScale.r(16)}px Arial`;
+                const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+                ctx.fillStyle = isRed ? '#e11d48' : '#1e293b';
+
+                // Rank Corner
+                ctx.font = `bold ${r(mobile ? 12 : 16)}px ${theme.bodyFont}`;
                 ctx.textAlign = 'left';
-                ctx.fillText(card.value, cardX + s(5), cardY + s(20));
+                ctx.fillText(card.value, -cardW / 2 + s(6), -cardH / 2 + s(18));
 
+                // Suit Icon Center
                 const suitIcon = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }[card.suit as 'hearts' | 'diamonds' | 'clubs' | 'spades'];
-                ctx.font = `bold ${UIScale.r(24)}px Arial`;
+                ctx.font = `${r(mobile ? 28 : 36)}px sans-serif`;
                 ctx.textAlign = 'center';
-                ctx.fillText(suitIcon, cardX + cardW / 2, cardY + cardH / 2 + s(10));
+                ctx.fillText(suitIcon || '', 0, s(12));
+
+                // Rank Reverse Corner
+                ctx.save();
+                ctx.rotate(Math.PI);
+                ctx.textAlign = 'left';
+                ctx.font = `bold ${r(mobile ? 12 : 16)}px ${theme.bodyFont}`;
+                ctx.fillText(card.value, -cardW / 2 + s(6), -cardH / 2 + s(18));
+                ctx.restore();
             }
 
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = s(1);
-            ctx.strokeRect(cardX, cardY, cardW, cardH);
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.restore();
         });
     }
 }

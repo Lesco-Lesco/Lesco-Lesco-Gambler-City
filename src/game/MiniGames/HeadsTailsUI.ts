@@ -2,8 +2,12 @@ import { HeadsTailsGame } from './HeadsTailsGame';
 import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import type { IMinigameUI } from './BaseMinigame';
 
-export class HeadsTailsUI {
+
+export class HeadsTailsUI implements IMinigameUI {
     private game: HeadsTailsGame;
     private input: InputManager;
     private onClose: (moneyChange: number) => void;
@@ -55,158 +59,172 @@ export class HeadsTailsUI {
 
 
 
-    public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
-        const s = UIScale.s.bind(UIScale);
+    public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+        const theme = MINIGAME_THEMES.headstails;
 
-        // Fundo escuro
-        ctx.fillStyle = 'rgba(10, 10, 20, 0.96)';
-        ctx.fillRect(0, 0, screenW, screenH);
+        drawMinigameBackground(ctx, screenW, screenH, theme);
+        drawMinigameTitle(ctx, screenW, screenH, theme, 'CARA OU COROA');
 
         const cx = screenW / 2;
-        const mobile = isMobile();
-        const fScale = mobile ? 1.1 : 1.0;
-
-        // ── Zonas de layout proporcionais ──
-        // TITLE  12% | CONTENT  60% | FOOTER  28%
-        const TITLE_H = screenH * 0.12;
-        const CONTENT_H = screenH * 0.60;
-
-        const titleY = TITLE_H * 0.65;
-        const contentCY = TITLE_H + CONTENT_H * 0.5;  // centro da área de conteúdo
-        const footerTop = TITLE_H + CONTENT_H;
-
-        // ── Título ──
-        ctx.fillStyle = '#ff9933';
-        ctx.font = `bold ${UIScale.r(mobile ? 18 : 22)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText('CARA OU COROA', cx, titleY);
-
+        const cy = screenH / 2;
         const phase = this.game.phase;
 
         if (phase === 'betting') {
-            this.drawBettingUI(ctx, cx, contentCY, fScale);
+            this.drawBettingUI(ctx, cx, cy, theme);
         } else if (phase === 'choosing') {
-            this.drawChoosingUI(ctx, cx, contentCY, fScale);
+            this.drawChoosingUI(ctx, cx, cy, theme);
         } else if (phase === 'flipping' || phase === 'result') {
-            // Moeda ocupa o terço superior do conteúdo
-            const coinCY = TITLE_H + CONTENT_H * 0.38;
-            this.drawCoin(ctx, cx, coinCY, fScale);
+            const coinY = cy - UIScale.s(20);
+            this.drawCoin(ctx, cx, coinY, theme);
 
             if (phase === 'result') {
-                // Resultado fica no terço inferior do conteúdo, acima do rodapé
-                const resultY = TITLE_H + CONTENT_H * 0.75;
-                this.drawResultUI(ctx, cx, resultY, footerTop, fScale);
+                this.drawResultUI(ctx, cx, coinY + UIScale.s(120), theme);
             }
         }
 
-        // ── Dica de controles (rodapé fixo) ──
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        const hint = mobile
-            ? '[E/OK] CONFIRMAR | [✕] SAIR'
-            : 'ENTER CONFIRMAR | ESC SAIR';
-        ctx.fillText(hint, cx, screenH - s(14));
+        const hint = isMobile() ? 'DPAD Selecionar • [OK] Confirmar' : '←→ ESCOLHER • ENTER CONFIRMAR • ESC SAIR';
+        drawMinigameFooter(ctx, screenW, screenH, theme, hint);
     }
 
-    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, fScale: number) {
+    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
+        const r = UIScale.r.bind(UIScale);
 
-        ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P", monospace`;
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(14)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('QUANTO VAI APOSTAR?', cx, cy - s(55));
+        ctx.fillText('VALOR DA APOSTA', cx, cy - s(60));
 
-        ctx.fillStyle = '#ff9933';
-        ctx.font = `bold ${UIScale.r(mobile ? 42 : 54) * fScale}px "Segoe UI", sans-serif`;
-        ctx.shadowBlur = UIScale.s(16);
-        ctx.shadowColor = 'rgba(255,153,51,0.35)';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(12));
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(64)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(20);
+        ctx.shadowColor = theme.accent + '66';
+        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(15));
         ctx.shadowBlur = 0;
-
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
-        ctx.fillText(mobile ? '[↑↓] Ajustar  [E] Confirmar' : '[↑↓] Ajustar  [Enter] Confirmar', cx, cy + s(60));
     }
 
-    private drawChoosingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, fScale: number) {
+    private drawChoosingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P", monospace`;
+        ctx.fillStyle = theme.text;
+        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('ESCOLHA UM LADO', cx, cy - s(mobile ? 90 : 100));
+        ctx.fillText('QUAL LADO VOCÊ ESCOLHE?', cx, cy - s(mobile ? 100 : 130));
 
-        const spacing = s(mobile ? 80 : 100);
-        this.drawOption(ctx, cx - spacing, cy, 'CARA', this.game.humanChoice === 'heads', fScale);
-        this.drawOption(ctx, cx + spacing, cy, 'COROA', this.game.humanChoice === 'tails', fScale);
+        const sides: { id: 'heads' | 'tails', label: string, icon: string }[] = [
+            { id: 'heads', label: 'CARA', icon: '🪙' },
+            { id: 'tails', label: 'COROA', icon: '💰' }
+        ];
+
+        const spacing = s(mobile ? 90 : 130);
+        sides.forEach((side, i) => {
+            const x = cx + (i - 0.5) * 2 * spacing;
+            const selected = this.game.humanChoice === side.id;
+
+            ctx.save();
+            ctx.translate(x, cy);
+
+            const size = s(mobile ? 50 : 70);
+
+            // Selection Glow
+            if (selected) {
+                ctx.fillStyle = theme.accent + '22';
+                ctx.shadowBlur = s(30);
+                ctx.shadowColor = theme.accent;
+                ctx.beginPath();
+                ctx.arc(0, 0, size * 1.1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = theme.accent;
+                ctx.lineWidth = s(3);
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.beginPath();
+                ctx.arc(0, 0, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+
+            // Icon/Text
+            ctx.font = `${s(mobile ? 40 : 55)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(side.icon, 0, 0);
+
+            // Label
+            ctx.fillStyle = selected ? '#fff' : theme.textMuted;
+            ctx.font = `bold ${r(12)}px ${theme.bodyFont}`;
+            ctx.fillText(side.label, 0, size + s(30));
+
+            ctx.restore();
+        });
     }
 
-    private drawOption(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, selected: boolean, fScale: number) {
+    private drawCoin(ctx: CanvasRenderingContext2D, x: number, y: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
-        const boxW = s(mobile ? 68 : 58);
-        const boxH = s(mobile ? 46 : 38);
-
-        ctx.fillStyle = selected ? '#ff9933' : 'rgba(255,255,255,0.08)';
-        ctx.beginPath();
-        ctx.roundRect(x - boxW, y - boxH, boxW * 2, boxH * 2, s(10));
-        ctx.fill();
-        ctx.strokeStyle = selected ? '#fff' : 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = s(selected ? 2 : 1);
-        ctx.stroke();
-
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(mobile ? 11 : 13) * fScale}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText(label, x, y + s(6 * fScale));
-    }
-
-    private drawCoin(ctx: CanvasRenderingContext2D, x: number, y: number, fScale: number) {
-        const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
-        const scaleX = Math.cos(this.game.currentRotation);
-        const size = s(mobile ? 100 : 90);
+        const size = s(mobile ? 80 : 110);
+        const cos = Math.cos(this.game.currentRotation);
+        const absCos = Math.abs(cos);
 
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(Math.abs(scaleX), 1);
 
-        ctx.fillStyle = '#ffcc00';
+        // Motion Blur (simulated during flipping)
+        if (this.game.phase === 'flipping') {
+            ctx.shadowBlur = s(15);
+            ctx.shadowColor = theme.accent;
+        }
+
+        ctx.scale(absCos, 1);
+
+        // Coin Face
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        grad.addColorStop(0, '#fde047'); // Gold highlight
+        grad.addColorStop(0.7, '#eab308'); // Pure gold
+        grad.addColorStop(1, '#a16207'); // Dark rim
+
+        ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(0, 0, size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#e6b800';
-        ctx.lineWidth = s(5);
+
+        // Rim
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = s(4);
         ctx.stroke();
 
-        ctx.fillStyle = '#e6b800';
-        ctx.font = `bold ${UIScale.r(38 * fScale)}px sans-serif`;
-        ctx.textAlign = 'center';
-        const sideSymbol = Math.abs(scaleX) < 0.1 ? '' : (scaleX > 0 ? '🪙' : '💰');
-        ctx.fillText(sideSymbol, 0, s(14 * fScale));
+        // Inner Rim
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = s(2);
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.85, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Icon (Revealed based on cos sign)
+        if (absCos > 0.1) {
+            ctx.font = `${size * 0.7}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(cos > 0 ? '🪙' : '💰', 0, 10);
+        }
 
         ctx.restore();
     }
 
-    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, y: number, footerTop: number, fScale: number) {
+    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, y: number, theme: any) {
+        const r = UIScale.r.bind(UIScale);
         const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
-        // Garante que o resultado fique dentro da área de conteúdo
-        const safeY = Math.min(y, footerTop - s(mobile ? 55 : 65));
 
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${UIScale.r(mobile ? 14 : 18) * fScale}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${r(32)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText(this.game.resultMessage, cx, safeY);
+        ctx.fillText(this.game.resultMessage.toUpperCase(), cx, y);
 
-        ctx.fillStyle = 'rgba(255,255,255,0.35)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
-        const hint = mobile
-            ? '[OK] NOVAMENTE | [E] CONTINUAR'
-            : 'ESPAÇO NOVAMENTE | ENTER CONTINUAR';
-        ctx.fillText(hint, cx, safeY + s(mobile ? 30 : 38));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
+        ctx.fillText('ESPAÇO PARA NOVA PARTIDA', cx, y + s(40));
     }
 }

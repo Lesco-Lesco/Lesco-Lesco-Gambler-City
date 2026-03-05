@@ -7,8 +7,11 @@ import { PurrinhaGame } from './PurrinhaGame';
 import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameFooter } from '../Core/MinigameBackground';
+import type { IMinigameUI } from './BaseMinigame';
 
-export class PurrinhaUI {
+export class PurrinhaUI implements IMinigameUI {
     private game: PurrinhaGame;
     private input: InputManager;
     private onClose: (moneyChange: number) => void;
@@ -72,74 +75,65 @@ export class PurrinhaUI {
 
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
+        const theme = MINIGAME_THEMES.purrinha;
 
-        const bgGrad = ctx.createLinearGradient(0, 0, 0, screenH);
-        bgGrad.addColorStop(0, 'rgba(10, 15, 25, 0.96)');
-        bgGrad.addColorStop(1, 'rgba(5, 5, 10, 0.99)');
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, screenW, screenH);
+        drawMinigameBackground(ctx, screenW, screenH, theme);
+        // Standard Title
+        ctx.save();
+        ctx.shadowBlur = s(15);
+        ctx.shadowColor = theme.accent + '66';
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(screenW < 600 ? 18 : 24)}px ${theme.titleFont}`;
+        ctx.textAlign = 'center';
+        ctx.fillText(theme.name, screenW / 2, screenH * 0.12);
+        ctx.restore();
 
         const cx = screenW / 2;
         const mobile = isMobile();
-        const fScale = mobile ? 1.0 : 1.0;
 
-        // ── Zonas proporcionais ──
-        // TITLE 10% | PLAYERS 30% | CONTENT 40% | FOOTER 20%
-        const TITLE_H = screenH * 0.10;
-        const PLAYERS_H = screenH * 0.30;
-        const CONTENT_H = screenH * 0.40;
-        const FOOTER_H = screenH * 0.20;
+        // ── Proportional Layout Zones ──
+        const TITLE_H = screenH * 0.18;
+        const PLAYERS_H = screenH * 0.32;
+        const CONTENT_H = screenH * 0.50;
 
-        const titleY = TITLE_H * 0.70;
         const playersTop = TITLE_H;
         const contentTop = TITLE_H + PLAYERS_H;
-        const contentCY = contentTop + CONTENT_H * 0.50;
-        const footerTop = contentTop + CONTENT_H;
+        const contentCY = contentTop + CONTENT_H * 0.45;
 
-        // Título
-        ctx.shadowBlur = s(16);
-        ctx.shadowColor = '#ffcc00';
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(mobile ? 18 : 22)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText('PURRINHA', cx, titleY);
-        ctx.shadowBlur = 0;
+        // Player cards
+        this.drawPlayers(ctx, cx, playersTop, PLAYERS_H, screenW, theme);
 
-        // Player cards (zona fixa, não sobrepõe nada)
-        this.drawPlayers(ctx, cx, playersTop, PLAYERS_H, screenW);
-
-        // Conteúdo por fase
+        // Content by phase
         const phase = this.game.phase;
         if (phase === 'betting') {
-            this.drawBettingUI(ctx, cx, contentTop, CONTENT_H);
+            this.drawBettingUI(ctx, cx, contentTop, CONTENT_H, theme);
         } else if (phase === 'choosing') {
-            this.drawChoosingUI(ctx, cx, contentCY, CONTENT_H, fScale);
+            this.drawChoosingUI(ctx, cx, contentCY, theme);
         } else if (phase === 'guessing') {
-            this.drawGuessingUI(ctx, cx, contentCY, CONTENT_H, fScale);
+            this.drawGuessingUI(ctx, cx, contentCY, theme);
         } else if (phase === 'reveal') {
-            this.drawRevealUI(ctx, cx, contentCY);
+            this.drawRevealUI(ctx, cx, contentCY, theme);
         } else if (phase === 'result') {
-            this.drawResultUI(ctx, cx, contentCY, CONTENT_H, fScale);
+            this.drawResultUI(ctx, cx, contentCY, theme);
         }
 
-        // Controles rodapé
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
-        ctx.font = `${UIScale.r(mobile ? 7 : 9)}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        const ctrlHint = mobile
-            ? '[D-Pad] SELECIONAR  |  [E] CONFIRMAR  |  [✕] SAIR'
-            : '↑↓ SELECIONAR  |  ENTER CONFIRMAR  |  ESC SAIR';
-        ctx.fillText(ctrlHint, cx, footerTop + FOOTER_H * 0.55);
+        // Shared footer hint
+        const helpHint = mobile
+            ? 'Use D-PAD para VARIAR • [OK] CONFIRMA'
+            : '↑↓ VARIAR  •  ENTER CONFIRMAR  •  ESC SAIR';
+        drawMinigameFooter(ctx, screenW, screenH, theme, helpHint);
     }
 
-    private drawPlayers(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, screenW: number) {
+    private drawPlayers(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, screenW: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
         const players = this.game.players;
 
-        const cardH = Math.min(zoneH * 0.88, s(mobile ? 110 : 140));
-        const cardW = Math.min(s(mobile ? 120 : 160), (screenW * 0.90) / players.length - s(8));
-        const spacing = cardW + s(mobile ? 6 : 10);
+        const cardH = Math.min(zoneH * 0.9, s(mobile ? 110 : 130));
+        const cardW = Math.min(s(mobile ? 100 : 140), (screenW * 0.95) / players.length - s(12));
+        const spacing = cardW + s(mobile ? 8 : 15);
         const startX = cx - (players.length - 1) * spacing / 2;
         const cardTop = zoneTop + (zoneH - cardH) / 2;
 
@@ -153,149 +147,179 @@ export class PurrinhaUI {
             ctx.save();
             ctx.translate(px, cardTop);
 
-            if (isWinner && isResult) { ctx.shadowBlur = s(24); ctx.shadowColor = '#ffcc00'; }
-            ctx.fillStyle = (isWinner && isResult) ? 'rgba(255,204,0,0.15)' : 'rgba(255,255,255,0.05)';
+            // Card shadow/glow
+            if (isWinner && isResult) {
+                ctx.shadowBlur = s(25);
+                ctx.shadowColor = '#ffcc00';
+            }
+
+            // Card Background
+            const cardBg = (isWinner && isResult) ? 'rgba(255, 204, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)';
+            ctx.fillStyle = cardBg;
             ctx.beginPath();
-            ctx.roundRect(-cardW / 2, 0, cardW, cardH, s(10));
+            ctx.roundRect(-cardW / 2, 0, cardW, cardH, s(12));
             ctx.fill();
-            ctx.strokeStyle = (isWinner && isResult) ? '#ffcc00' : 'rgba(255,255,255,0.1)';
-            ctx.lineWidth = (isWinner && isResult) ? s(2.5) : s(1);
+
+            // Border
+            ctx.strokeStyle = (isWinner && isResult) ? '#ffcc00' : 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = (isWinner && isResult) ? s(3) : s(1.5);
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            ctx.fillStyle = p.isHuman ? '#ff4d6d' : '#8d99ae';
-            ctx.font = `bold ${UIScale.r(mobile ? 9 : 12)}px "Segoe UI", sans-serif`;
+            // Name
+            ctx.fillStyle = p.isHuman ? theme.accent : theme.text;
+            ctx.font = `bold ${r(mobile ? 11 : 14)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
-            ctx.fillText(p.name.toUpperCase(), 0, cardH * 0.24);
+            ctx.fillText(p.name.toUpperCase(), 0, cardH * 0.25);
 
-            ctx.fillStyle = '#2ec4b6';
-            ctx.font = `600 ${UIScale.r(mobile ? 8 : 10)}px "Segoe UI", sans-serif`;
-            ctx.fillText(`R$ ${p.money}`, 0, cardH * 0.44);
+            // Money
+            ctx.fillStyle = theme.textMuted;
+            ctx.font = `600 ${r(mobile ? 9 : 10)}px ${theme.bodyFont}`;
+            ctx.fillText(`R$ ${p.money}`, 0, cardH * 0.42);
 
+            // Visual State: Stones or Hidden
             if (isRevealed || isResult) {
                 ctx.fillStyle = '#fff';
-                ctx.font = `${Math.floor(cardH * 0.22)}px "Segoe UI Emoji", Arial`;
-                ctx.fillText('🪨'.repeat(p.stones) || '∅', 0, cardH * 0.72);
+                ctx.font = `${Math.floor(cardH * 0.28)}px Arial`;
+                ctx.fillText('🪨'.repeat(p.stones) || '✕', 0, cardH * 0.72);
             } else if (this.game.phase !== 'betting') {
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.font = `${Math.floor(cardH * 0.28)}px "Segoe UI Emoji", Arial`;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.font = `${Math.floor(cardH * 0.32)}px Arial`;
                 ctx.fillText('✊', 0, cardH * 0.75);
             }
 
+            // Guess Label
             if (p.hasGuessed && (this.game.phase === 'reveal' || this.game.phase === 'result')) {
                 ctx.fillStyle = '#ffcc00';
-                ctx.font = `bold ${UIScale.r(mobile ? 7 : 9)}px "Segoe UI", sans-serif`;
-                ctx.fillText(`PALPITE: ${p.guess}`, 0, cardH * 0.92);
+                ctx.font = `bold ${r(mobile ? 8 : 10)}px ${theme.bodyFont}`;
+                ctx.fillText(`ALVO: ${p.guess}`, 0, cardH * 0.92);
             }
 
             ctx.restore();
         }
     }
 
-    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number) {
+    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        ctx.fillStyle = '#adb5bd';
-        ctx.font = `600 ${UIScale.r(mobile ? 9 : 12)}px "Segoe UI", sans-serif`;
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(mobile ? 14 : 16)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('QUAL O VALOR DA APOSTA?', cx, zoneTop + zoneH * 0.22);
+        ctx.fillText('VALOR DA APOSTA', cx, zoneTop + zoneH * 0.15);
 
-        const betFontSize = Math.floor(Math.min(UIScale.r(mobile ? 40 : 60), zoneH * 0.38));
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${betFontSize}px "Segoe UI", sans-serif`;
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(mobile ? 48 : 64)}px ${theme.titleFont}`;
         ctx.shadowBlur = s(20);
-        ctx.shadowColor = 'rgba(255,204,0,0.35)';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, zoneTop + zoneH * 0.58);
+        ctx.shadowColor = theme.accent + '66';
+        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, zoneTop + zoneH * 0.5);
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#6c757d';
-        ctx.font = `${UIScale.r(mobile ? 8 : 10)}px "Segoe UI", sans-serif`;
-        ctx.fillText(`Pote Final: R$ ${this.game.selectedBet * this.game.players.length}`, cx, zoneTop + zoneH * 0.80);
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `500 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
+        ctx.fillText(`Pote Acumulado: R$ ${this.game.selectedBet * this.game.players.length}`, cx, zoneTop + zoneH * 0.75);
     }
 
-    private drawChoosingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, _zoneH: number, fScale: number) {
+    private drawChoosingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        ctx.fillStyle = '#adb5bd';
-        ctx.font = `600 ${UIScale.r(mobile ? 9 : 12) * fScale}px "Segoe UI", sans-serif`;
+        ctx.fillStyle = theme.text;
+        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('PEDRAS NA MÃO? (0-3)', cx, cy - s(mobile ? 60 : 70));
+        ctx.fillText('QUANTAS PEDRAS NA MÃO?', cx, cy - s(mobile ? 70 : 90));
 
-        const emojiSize = Math.floor(Math.min(UIScale.r(mobile ? 48 : 65) * fScale, s(75)));
-        ctx.font = `${emojiSize}px "Segoe UI Emoji", Arial`;
-        ctx.fillText(this.game.selectedStones > 0 ? '🪨'.repeat(this.game.selectedStones) : '∅', cx, cy + s(mobile ? 8 : 10));
+        const emojiScale = mobile ? 45 : 60;
+        ctx.font = `${r(emojiScale)}px Arial`;
+        ctx.fillText(this.game.selectedStones > 0 ? '🪨'.repeat(this.game.selectedStones) : '∅', cx, cy - s(10));
 
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(mobile ? 22 : 30) * fScale}px "Segoe UI", sans-serif`;
-        ctx.fillText(`${this.game.selectedStones}`, cx, cy + s(mobile ? 52 : 65));
+        // Selector dots
+        const dotSize = s(mobile ? 12 : 16);
+        const dotSpacing = s(mobile ? 25 : 35);
+        for (let i = 0; i <= 3; i++) {
+            const dx = cx + (i - 1.5) * dotSpacing;
+            ctx.fillStyle = this.game.selectedStones === i ? theme.accent : 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.arc(dx, cy + s(50), dotSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            if (this.game.selectedStones === i) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = s(2);
+                ctx.stroke();
+            }
+        }
     }
 
-    private drawGuessingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, _zoneH: number, fScale: number) {
+    private drawGuessingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        ctx.fillStyle = '#adb5bd';
-        ctx.font = `600 ${UIScale.r(mobile ? 9 : 12) * fScale}px "Segoe UI", sans-serif`;
+        ctx.fillStyle = theme.text;
+        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('QUAL O TOTAL DA MESA?', cx, cy - s(mobile ? 65 : 75));
+        ctx.fillText('QUAL O TOTAL NA MESA?', cx, cy - s(mobile ? 70 : 95));
 
-        const numSize = Math.floor(Math.min(UIScale.r(mobile ? 50 : 68) * fScale, s(75)));
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${numSize}px "Segoe UI", sans-serif`;
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = 'rgba(255,204,0,0.35)';
-        ctx.fillText(`${this.game.selectedGuess}`, cx, cy + s(8));
+        ctx.font = `bold ${r(mobile ? 56 : 72)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(25);
+        ctx.shadowColor = 'rgba(255, 204, 0, 0.4)';
+        ctx.fillText(`${this.game.selectedGuess}`, cx, cy + s(10));
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#6c757d';
-        ctx.font = `600 ${UIScale.r(mobile ? 8 : 10) * fScale}px "Segoe UI", sans-serif`;
-        ctx.fillText(`(Total possível: 0 - ${this.game.maxPossibleTotal})`, cx, cy + s(mobile ? 50 : 62));
-        ctx.fillStyle = '#44aaff';
-        ctx.fillText(`Suas pedras: ${this.game.selectedStones}`, cx, cy + s(mobile ? 68 : 82));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
+        ctx.fillText(`(Possível: 0 - ${this.game.maxPossibleTotal})`, cx, cy + s(65));
+
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
+        ctx.fillText(`Você segurou: ${this.game.selectedStones} pedra(s)`, cx, cy + r(mobile ? 85 : 105));
     }
 
-    private drawRevealUI(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
+    private drawRevealUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
 
         ctx.fillStyle = '#ffcc00';
-        ctx.font = `bold ${UIScale.r(28)}px "Segoe UI", sans-serif`;
+        ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
         ctx.fillText('ABRINDO AS MÃOS...', cx, cy);
 
         if (this.game.revealIndex >= 0) {
             const revealed = this.game.players.slice(0, this.game.revealIndex + 1);
             const partialTotal = revealed.reduce((sum, p) => sum + p.stones, 0);
-            ctx.fillStyle = '#6c757d';
-            ctx.font = `bold ${UIScale.r(18)}px "Segoe UI", sans-serif`;
-            ctx.fillText(`Soma parcial: ${partialTotal}`, cx, cy + s(55));
+            ctx.fillStyle = theme.text;
+            ctx.font = `600 ${r(16)}px ${theme.bodyFont}`;
+            ctx.fillText(`Soma parcial: ${partialTotal}`, cx, cy + s(60));
         }
     }
 
-    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, _zoneH: number, fScale: number) {
+    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        ctx.fillStyle = '#adb5bd';
-        ctx.font = `600 ${UIScale.r(mobile ? 9 : 12) * fScale}px "Segoe UI", sans-serif`;
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText(`TOTAL NA MESA: ${this.game.totalStones}`, cx, cy - s(mobile ? 45 : 55));
+        ctx.fillText(`SOMA TOTAL: ${this.game.totalStones}`, cx, cy - s(mobile ? 60 : 80));
 
         const isWin = this.game.winner?.isHuman;
-        const msgSize = Math.floor(Math.min(UIScale.r(mobile ? 20 : 28) * fScale, s(44)));
-        ctx.fillStyle = isWin ? '#2ecc71' : '#e74c3c';
-        ctx.font = `bold ${msgSize}px "Segoe UI", sans-serif`;
-        ctx.shadowBlur = s(16);
-        ctx.shadowColor = isWin ? 'rgba(46,204,113,0.4)' : 'rgba(231,76,60,0.4)';
-        ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(mobile ? 8 : 10));
+        ctx.fillStyle = isWin ? '#4ade80' : '#f87171';
+        ctx.font = `bold ${r(mobile ? 24 : 36)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(20);
+        ctx.shadowColor = isWin ? '#22c55e66' : '#ef444466';
+
+        // Split message if too long
+        const msg = this.game.resultMessage.toUpperCase();
+        ctx.fillText(msg, cx, cy + s(10));
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#fff';
-        ctx.font = `600 ${UIScale.r(mobile ? 8 : 11) * fScale}px "Segoe UI", sans-serif`;
-        ctx.fillText(
-            mobile ? '[OK] JOGAR NOVAMENTE  |  [E] CONTINUAR' : 'ESPAÇO JOGAR NOVAMENTE  |  ENTER CONTINUAR',
-            cx, cy + s(mobile ? 48 : 60)
-        );
+        ctx.fillStyle = theme.text;
+        ctx.font = `600 ${r(mobile ? 10 : 13)}px ${theme.bodyFont}`;
+        const finalHint = mobile ? 'Pressione [ENTER] para Continuar' : 'ENTRE CONTINUAR • ESPAÇO REPLAY';
+        ctx.fillText(finalHint, cx, cy + s(mobile ? 55 : 75));
     }
 }

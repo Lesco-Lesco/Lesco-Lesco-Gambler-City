@@ -2,8 +2,12 @@ import { FanTanGame } from './FanTanGame';
 import { InputManager } from '../Core/InputManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import type { IMinigameUI } from './BaseMinigame';
 
-export class FanTanUI {
+
+export class FanTanUI implements IMinigameUI {
     private game: FanTanGame;
     private input: InputManager;
     private onClose: (moneyChange: number) => void;
@@ -59,213 +63,192 @@ export class FanTanUI {
 
 
 
-    public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+    public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+        const theme = MINIGAME_THEMES.fantan;
 
-        // Fundo seda vermelha
-        ctx.fillStyle = '#4a0404';
-        ctx.fillRect(0, 0, screenW, screenH);
+        drawMinigameBackground(ctx, screenW, screenH, theme);
+        drawMinigameTitle(ctx, screenW, screenH, theme, 'FAN-TAN TRADICIONAL');
 
         const cx = screenW / 2;
-        const mobile = isMobile();
-        const fScale = mobile ? 1.1 : 1.0;
-
-        // ── Zonas proporcionais ──
-        // TITLE 12% | DRAGON/BOARD 50% | RESULT 22% | FOOTER 16%
-        const TITLE_H = screenH * 0.12;
-        const BOARD_H = screenH * 0.50;
-        const RESULT_H = screenH * 0.22;
-        const FOOTER_H = screenH * 0.16;
-
-        const titleY = TITLE_H * 0.65;
-        const boardCY = TITLE_H + BOARD_H * 0.50;
-        const resultTop = TITLE_H + BOARD_H;
-        const footerY = resultTop + RESULT_H + FOOTER_H * 0.55;
-
-        // Dragão decorativo (fundo)
-        this.drawDragon(ctx, cx, boardCY);
-
-        // Título
-        ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${UIScale.r(mobile ? 22 : 30) * fScale}px "Segoe UI", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText('FAN-TAN', cx, titleY);
-
+        const cy = screenH / 2;
         const phase = this.game.phase;
 
         if (phase === 'betting') {
-            this.drawBettingUI(ctx, cx, boardCY);
+            this.drawBettingUI(ctx, cx, cy, theme);
         } else {
-            this.drawBoard(ctx, cx, boardCY);
+            this.drawDragonDecor(ctx, cx, cy, theme);
+            this.drawBoard(ctx, cx, cy, theme);
+
             if (phase === 'reveal' || phase === 'counting' || phase === 'result') {
-                this.drawGrains(ctx, cx, boardCY, fScale);
-                if (phase === 'result') {
-                    this.drawResultUI(ctx, cx, resultTop, RESULT_H, fScale);
-                }
+                this.drawGrains(ctx, cx, cy, theme);
+            }
+
+            if (phase === 'result') {
+                this.drawResultUI(ctx, cx, cy, theme);
             }
         }
 
-        // Dica de controles (rodapé)
-        ctx.fillStyle = 'rgba(255,215,0,0.45)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 10) * fScale}px monospace`;
-        ctx.textAlign = 'center';
-        let helpText: string;
-        if (mobile) {
-            helpText = phase === 'choosing'
-                ? `ESCOLHA (${this.game.currentPlayerChoices.length}/2) | [E] CONFIRMAR | [✕] SAIR`
-                : '[E] CONFIRMAR | [✕] SAIR';
-        } else {
-            helpText = phase === 'choosing'
-                ? `ESCOLHA (${this.game.currentPlayerChoices.length}/2) | ENTER CONFIRMAR | ESC SAIR`
-                : 'ENTER CONFIRMAR | ESC SAIR';
-        }
-        ctx.fillText(helpText, cx, footerY);
+        const hint = isMobile() ? 'DPAD Selecionar • [OK] Confirmar' : '←→ SELECIONAR • ENTER CONFIRMAR • ESC SAIR';
+        drawMinigameFooter(ctx, screenW, screenH, theme, hint);
     }
 
-    private drawDragon(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    private drawDragonDecor(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
         ctx.save();
-        ctx.globalAlpha = 0.05;
-        ctx.strokeStyle = '#ffd700';
+        ctx.globalAlpha = 0.08;
+        ctx.strokeStyle = theme.accent;
         ctx.lineWidth = s(2);
+
+        // Abstract Dragon Swirl
         ctx.beginPath();
-        ctx.moveTo(x - s(250), y);
-        ctx.bezierCurveTo(x - s(150), y - s(200), x - s(50), y + s(200), x + s(50), y - s(200));
-        ctx.bezierCurveTo(x + s(150), y + s(200), x + s(250), y, x + s(300), y - s(50));
-
-        for (let i = 0; i < 10; i++) {
-            const sx = x - s(200) + i * s(40);
-            const sy = y + Math.sin(i) * s(50);
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(sx + s(10), sy - s(20));
+        for (let i = 0; i < 20; i++) {
+            const r = s(100 + i * 15);
+            const angle = i * 0.4 + Date.now() * 0.0005;
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
         }
-
         ctx.stroke();
         ctx.restore();
     }
 
-    private drawBoard(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
+
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(14)}px ${theme.bodyFont}`;
+        ctx.textAlign = 'center';
+        ctx.fillText('DEFINA SUA APOSTA', cx, cy - s(60));
+
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(64)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(25);
+        ctx.shadowColor = theme.accent + '66';
+        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(15));
+        ctx.shadowBlur = 0;
+    }
+
+    private drawBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
+        const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
-        const size = s(mobile ? 150 : 180);
-        ctx.strokeStyle = '#ffd700';
+        const size = s(mobile ? 120 : 160);
+
+        ctx.strokeStyle = theme.accent;
         ctx.lineWidth = s(3);
 
-        // Square divided in 4
-        ctx.strokeRect(x - size, y - size, size * 2, size * 2);
+        // Outter Square
+        ctx.strokeRect(cx - size, cy - size, size * 2, size * 2);
+
+        // Dividers
         ctx.beginPath();
-        ctx.moveTo(x, y - size); ctx.lineTo(x, y + size);
-        ctx.moveTo(x - size, y); ctx.lineTo(x + size, y);
+        ctx.moveTo(cx, cy - size); ctx.lineTo(cx, cy + size);
+        ctx.moveTo(cx - size, cy); ctx.lineTo(cx + size, cy);
         ctx.stroke();
 
-        // Numbers
-        ctx.font = `bold ${UIScale.r(24 * fScale)}px sans-serif`;
-        ctx.fillStyle = '#ffd700';
         const positions = [
-            { id: 1, px: x + size / 2, py: y - size / 2 },
-            { id: 2, px: x + size / 2, py: y + size / 2 },
-            { id: 3, px: x - size / 2, py: y + size / 2 },
-            { id: 4, px: x - size / 2, py: y - size / 2 }
+            { id: 1, x: cx + size / 2, y: cy - size / 2 },
+            { id: 2, x: cx + size / 2, y: cy + size / 2 },
+            { id: 3, x: cx - size / 2, y: cy + size / 2 },
+            { id: 4, x: cx - size / 2, y: cy - size / 2 }
         ];
 
-        for (const pos of positions) {
+        positions.forEach(pos => {
             const isUser = this.game.currentPlayerChoices.includes(pos.id);
-            const isSelected = this.game.phase === 'choosing' && this.selectedPos === pos.id;
+            const isCurrent = this.game.phase === 'choosing' && this.selectedPos === pos.id;
 
-            if (isSelected) {
-                ctx.fillStyle = mobile ? 'rgba(255, 215, 0, 0.3)' : 'rgba(255, 215, 0, 0.2)';
-                ctx.fillRect(pos.px - size / 2 + s(5), pos.py - size / 2 + s(5), size - s(10), size - s(10));
+            if (isCurrent || isUser) {
+                ctx.fillStyle = isUser ? theme.accent + '44' : 'rgba(255,255,255,0.1)';
+                ctx.fillRect(pos.x - size / 2, pos.y - size / 2, size, size);
+
+                if (isCurrent) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = s(2);
+                    ctx.strokeRect(pos.x - size / 2 + s(5), pos.y - size / 2 + s(5), size - s(10), size - s(10));
+                }
             }
+
+            ctx.fillStyle = isUser ? theme.accent : '#fff';
+            ctx.font = `900 ${r(32)}px ${theme.titleFont}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(pos.id === 4 ? '4/0' : pos.id.toString(), pos.x, pos.y);
 
             if (isUser) {
-                ctx.fillStyle = mobile ? 'rgba(255, 77, 109, 0.4)' : 'rgba(255, 77, 109, 0.3)';
-                ctx.fillRect(pos.px - size / 2 + s(5), pos.py - size / 2 + s(5), size - s(10), size - s(10));
+                ctx.font = `bold ${r(10)}px ${theme.bodyFont}`;
+                ctx.fillText('APOSTA', pos.x, pos.y + s(30));
             }
-
-            ctx.fillStyle = '#ffd700';
-            ctx.fillText(pos.id === 4 ? '4/0' : pos.id.toString(), pos.px, pos.py);
-
-            if (isUser) {
-                ctx.fillStyle = '#ff4d6d';
-                ctx.font = `bold ${UIScale.r(12 * fScale)}px sans-serif`;
-                ctx.fillText('SUA ESCOLHA', pos.px, pos.py + s(mobile ? 40 : 30));
-                ctx.font = `bold ${UIScale.r(24 * fScale)}px sans-serif`;
-            }
-        }
+        });
     }
 
-    private drawBettingUI(ctx: CanvasRenderingContext2D, centerX: number, centerY: number) {
+    private drawGrains(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
-        const fScale = mobile ? 1.2 : 1.0;
-
-        ctx.fillStyle = '#fff';
-        ctx.font = `${UIScale.r(24 * fScale)}px sans-serif`;
-        ctx.fillText('QUAL A APOSTA?', centerX, centerY - s(60));
-        ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${UIScale.r(64 * fScale)}px sans-serif`;
-        ctx.fillText(`R$ ${this.game.selectedBet}`, centerX, centerY + s(20));
-    }
-
-    private drawGrains(ctx: CanvasRenderingContext2D, x: number, y: number, fScale: number) {
-        const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
+        const r = UIScale.r.bind(UIScale);
         const count = this.game.displayedGrains;
-        const phase = this.game.phase;
 
-        if (phase === 'reveal') {
-            // Draw Straw Basket hiding grains
-            ctx.fillStyle = '#8b4513';
+        if (this.game.phase === 'reveal') {
+            // Ceremonial Cup
+            ctx.fillStyle = '#222';
+            ctx.shadowBlur = s(20);
+            ctx.shadowColor = '#000';
             ctx.beginPath();
-            ctx.arc(x, y, s(mobile ? 75 : 60), Math.PI, 0);
+            ctx.arc(cx, cy, s(60), 0, Math.PI * 2);
             ctx.fill();
-            ctx.strokeStyle = '#5d2e0d';
-            ctx.lineWidth = s(2);
-            ctx.stroke();
 
-            ctx.fillStyle = '#ffd700';
-            ctx.font = `${UIScale.r(16 * fScale)}px monospace`;
-            ctx.fillText('CESTO DE PALHA', x, y - s(mobile ? 85 : 70));
+            ctx.strokeStyle = theme.accent;
+            ctx.lineWidth = s(3);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(12)}px ${theme.titleFont}`;
+            ctx.textAlign = 'center';
+            ctx.fillText('REVELANDO...', cx, cy);
         } else {
-            // Draw Grains
-            ctx.fillStyle = '#fff9f0';
-            const radius = s(mobile ? 50 : 40);
+            // White Porcelain Grains
+            ctx.fillStyle = '#fef3c7';
+            const radius = s(isMobile() ? 40 : 55);
+
             for (let i = 0; i < count; i++) {
-                const angle = (i / count) * Math.PI * 2 + (i * 0.5);
-                const r = (i / count) * radius * 1.5;
-                const gx = x + Math.cos(angle) * r;
-                const gy = y + Math.sin(angle) * r;
+                const angle = (i * 137.5) * (Math.PI / 180); // golden angle
+                const dist = Math.sqrt(i) * (radius / Math.sqrt(count)) * 1.8;
+                const gx = cx + Math.cos(angle) * dist;
+                const gy = cy + Math.sin(angle) * dist;
+
                 ctx.beginPath();
-                ctx.ellipse(gx, gy, s(3), s(2), angle, 0, Math.PI * 2);
+                ctx.arc(gx, gy, s(2.5), 0, Math.PI * 2);
                 ctx.fill();
             }
 
-            ctx.fillStyle = '#ffd700';
-            ctx.font = `bold ${UIScale.r(20 * fScale)}px monospace`;
-            ctx.fillText(`GRÃOS: ${count}`, x, y + s(mobile ? 120 : 100));
+            if (this.game.phase === 'counting') {
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${r(18)}px ${theme.bodyFont}`;
+                ctx.textAlign = 'center';
+                ctx.fillText(`CONTAGEM: ${count}`, cx, cy + s(110));
+            }
         }
     }
 
-    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, zoneTop: number, zoneH: number, fScale: number) {
+    private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const mobile = isMobile();
+        const r = UIScale.r.bind(UIScale);
 
-        const msgY = zoneTop + zoneH * 0.30;
-        const hintY = zoneTop + zoneH * 0.65;
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(18)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff';
-        const msgSize = Math.floor(Math.min(UIScale.r(mobile ? 16 : 22) * fScale, zoneH * 0.28));
-        ctx.font = `bold ${msgSize}px sans-serif`;
-        ctx.fillText(this.game.resultMessage, cx, msgY);
+        ctx.fillText('RESULTADO FINAL', cx, cy - s(80));
 
-        ctx.fillStyle = 'rgba(255,215,0,0.7)';
-        ctx.font = `${UIScale.r(mobile ? 8 : 10) * fScale}px monospace`;
-        ctx.fillText(
-            mobile ? '[OK] JOGAR NOVAMENTE | [E] SAIR' : 'ESPAÇO JOGAR NOVAMENTE | ENTER SAIR',
-            cx, hintY
-        );
-        // avoid unused warning
-        void s;
+        ctx.fillStyle = '#fff';
+        ctx.font = `900 ${r(54)}px ${theme.titleFont}`;
+        ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy);
+
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
+        ctx.fillText('ESPAÇO PARA NOVA PARTIDA • ESC PARA SAIR', cx, cy + s(80));
     }
 }
