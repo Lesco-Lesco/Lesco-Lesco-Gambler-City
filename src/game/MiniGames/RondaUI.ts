@@ -36,7 +36,6 @@ export class RondaUI implements IMinigameUI {
         const valueY = height * 0.26;
         const cardsTop = height * 0.38;
         const cardsH = height * 0.40;
-        const footerTop = height * 0.85;
 
         // ── Betting Status ──
         if (this.game.phase === 'betting') {
