@@ -114,8 +114,8 @@ export class HeadsTailsUI implements IMinigameUI {
         ctx.fillText('QUAL LADO VOCÊ ESCOLHE?', cx, cy - s(mobile ? 100 : 130));
 
         const sides: { id: 'heads' | 'tails', label: string, icon: string }[] = [
-            { id: 'heads', label: 'CARA', icon: '🪙' },
-            { id: 'tails', label: 'COROA', icon: '💰' }
+            { id: 'heads', label: 'CARA', icon: '🎭' },
+            { id: 'tails', label: 'COROA', icon: '👑' }
         ];
 
         const spacing = s(mobile ? 90 : 130);
@@ -148,6 +148,8 @@ export class HeadsTailsUI implements IMinigameUI {
             ctx.shadowBlur = 0;
 
             // Icon/Text
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 1;
             ctx.font = `${s(mobile ? 40 : 55)}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -205,10 +207,12 @@ export class HeadsTailsUI implements IMinigameUI {
 
         // Icon (Revealed based on cos sign)
         if (absCos > 0.1) {
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 1;
             ctx.font = `${size * 0.7}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(cos > 0 ? '🪙' : '💰', 0, 10);
+            ctx.fillText(cos > 0 ? '🎭' : '👑', 0, 10);
         }
 
         ctx.restore();

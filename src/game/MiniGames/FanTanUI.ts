@@ -203,7 +203,7 @@ export class FanTanUI implements IMinigameUI {
             ctx.shadowBlur = 0;
 
             ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(12)}px ${theme.titleFont}`;
+            ctx.font = `bold ${r(10)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
             ctx.fillText('REVELANDO...', cx, cy);
         } else {
@@ -244,7 +244,7 @@ export class FanTanUI implements IMinigameUI {
         ctx.fillText('RESULTADO FINAL', cx, cy - s(80));
 
         ctx.fillStyle = '#fff';
-        ctx.font = `900 ${r(54)}px ${theme.titleFont}`;
+        ctx.font = `900 ${r(24)}px ${theme.titleFont}`;
         ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy);
 
         ctx.fillStyle = theme.textMuted;

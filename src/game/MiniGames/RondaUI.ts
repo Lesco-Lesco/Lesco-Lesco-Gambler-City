@@ -32,29 +32,28 @@ export class RondaUI implements IMinigameUI {
         const mobile = isMobile();
 
         // ── Layout Zones ──
-        const TITLE_ZONE = height * 0.15;
-        const BET_ZONE = height * 0.15;
-        const CARDS_ZONE = height * 0.45;
-        const FOOTER_ZONE = height * 0.25;
-
-        const betY = TITLE_ZONE + BET_ZONE * 0.4;
-        const cardsTop = TITLE_ZONE + BET_ZONE;
-        const cardsH = CARDS_ZONE;
-        const footerTop = height - FOOTER_ZONE;
+        const labelY = height * 0.16;
+        const valueY = height * 0.26;
+        const cardsTop = height * 0.38;
+        const cardsH = height * 0.40;
+        const footerTop = height * 0.85;
 
         // ── Betting Status ──
         if (this.game.phase === 'betting') {
+            ctx.save();
+            ctx.textBaseline = 'middle';
+
             ctx.fillStyle = theme.textMuted;
             ctx.font = `600 ${r(mobile ? 11 : 14)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
-            ctx.fillText('VALOR DA APOSTA', cx, betY);
+            ctx.fillText('VALOR DA APOSTA', cx, labelY);
 
             ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(mobile ? 42 : 56)}px ${theme.titleFont}`;
+            ctx.font = `bold ${r(mobile ? 40 : 52)}px ${theme.titleFont}`; // Slightly smaller but clearer
             ctx.shadowBlur = s(20);
             ctx.shadowColor = theme.accent + '55';
-            ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(mobile ? 35 : 45));
-            ctx.shadowBlur = 0;
+            ctx.fillText(`R$ ${this.game.betAmount}`, cx, valueY);
+            ctx.restore();
         }
 
         // ── Card Area ──
@@ -93,28 +92,29 @@ export class RondaUI implements IMinigameUI {
             const lastCard = this.game.communityCards[this.game.communityCards.length - 1];
             this.drawCard(ctx, cx, pileCenterY, lastCard, false, true, pileCardW, pileCardH, theme);
             ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
-            ctx.fillText('RESULTADO', cx, pileCenterY - pileCardH / 2 - s(15));
+            ctx.font = `bold ${r(mobile ? 8 : 10)}px ${theme.bodyFont}`;
+            ctx.fillText('RESULTADO', cx, pileCenterY + pileCardH / 2 + s(12));
         } else {
             this.drawCardBack(ctx, cx, pileCenterY, pileCardW, pileCardH);
             ctx.fillStyle = theme.textMuted;
-            ctx.font = `600 ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
-            ctx.fillText('BARALHO', cx, pileCenterY - pileCardH / 2 - s(15));
+            ctx.font = `600 ${r(mobile ? 8 : 10)}px ${theme.bodyFont}`;
+            ctx.fillText('BARALHO', cx, pileCenterY + pileCardH / 2 + s(12));
         }
 
         // ── Result / Status ──
-        const statusY = footerTop + FOOTER_ZONE * 0.35;
+        const statusY = height * 0.82;
         const msg = this.game.message.toUpperCase();
 
         ctx.fillStyle = theme.text;
         if (msg.includes('GANHOU')) ctx.fillStyle = '#4ade80';
         if (msg.includes('PERDEU')) ctx.fillStyle = '#f87171';
 
-        ctx.font = `bold ${r(mobile ? 16 : 22)}px ${theme.titleFont}`;
-        ctx.shadowBlur = s(15);
-        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.titleFont}`;
+        if (msg.length > 30) ctx.font = `bold ${r(mobile ? 12 : 16)}px ${theme.bodyFont}`;
+
         ctx.fillText(msg, cx, statusY);
-        ctx.shadowBlur = 0;
 
         let footerHint = '';
         if (this.game.phase === 'betting') {
@@ -133,13 +133,14 @@ export class RondaUI implements IMinigameUI {
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
         ctx.save();
+        ctx.translate(x, y);
 
         if (selected) {
             ctx.shadowBlur = s(30);
             ctx.shadowColor = theme.accent;
             ctx.fillStyle = theme.accent + '15';
             ctx.beginPath();
-            ctx.roundRect(x - w / 2 - s(10), y - h / 2 - s(10), w + s(20), h + s(20), s(14));
+            ctx.roundRect(-w / 2 - s(10), -h / 2 - s(10), w + s(20), h + s(20), s(14));
             ctx.fill();
         }
 
@@ -151,13 +152,13 @@ export class RondaUI implements IMinigameUI {
         // Card Face
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.roundRect(x - w / 2, y - h / 2, w, h, s(10));
+        ctx.roundRect(-w / 2, -h / 2, w, h, s(10));
         ctx.fill();
         ctx.shadowBlur = 0;
 
         // Border
         ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        ctx.lineWidth = s(1);
+        ctx.lineWidth = 1;
         ctx.stroke();
 
         const ranks = ['A', '2', '3', '4', '5', '6', '7', 'J', 'Q', 'K'];
@@ -165,23 +166,30 @@ export class RondaUI implements IMinigameUI {
         const isRed = card.suit === 'copas' || card.suit === 'ouros';
         ctx.fillStyle = isRed ? '#e11d48' : '#1e293b';
 
-        // Center Content
-        const fontSize = Math.floor(h * 0.35);
-        ctx.font = `bold ${fontSize}px ${theme.bodyFont}`;
-        ctx.textAlign = 'center';
-        ctx.fillText(ranks[card.rank - 1], x, y - h * 0.08);
+        const rankText = ranks[card.rank - 1];
+        const suitSymbol = suits[card.suit];
 
-        const suitSize = Math.floor(h * 0.32);
-        ctx.font = `${suitSize}px sans-serif`;
-        ctx.fillText(suits[card.suit], x, y + h * 0.32);
-
-        // Corner Indices
-        const cornerSize = r(Math.floor(fontSize * 0.4));
+        // 1. Corners (Indices)
+        const cornerSize = r(h * 0.15);
         ctx.font = `bold ${cornerSize}px ${theme.bodyFont}`;
         ctx.textAlign = 'left';
-        ctx.fillText(ranks[card.rank - 1], x - w / 2 + s(8), y - h / 2 + s(18));
-        ctx.textAlign = 'right';
-        ctx.fillText(ranks[card.rank - 1], x + w / 2 - s(8), y + h / 2 - s(8));
+        ctx.textBaseline = 'top';
+
+        // Top-Left
+        ctx.fillText(rankText, -w / 2 + s(6), -h / 2 + s(6));
+
+        // Bottom-Right (Rotated)
+        ctx.save();
+        ctx.rotate(Math.PI);
+        ctx.fillText(rankText, -w / 2 + s(6), -h / 2 + s(6));
+        ctx.restore();
+
+        // 2. Center (Large Suit Symbol)
+        const centerSuitSize = r(h * 0.5);
+        ctx.font = `${centerSuitSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(suitSymbol, 0, 0);
 
         ctx.restore();
     }

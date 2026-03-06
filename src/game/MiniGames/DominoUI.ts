@@ -100,6 +100,10 @@ export class DominoUI implements IMinigameUI {
             this.drawStatus(ctx, cx, height, theme);
             this.drawPlayerHand(ctx, cx, height, width, theme);
 
+            if (this.game.phase === 'playing' && this.game.turnIndex === 0 && this.game.board.length > 0) {
+                this.drawSideSelectionUI(ctx, cx, cy, width, theme);
+            }
+
             if (this.game.phase === 'result') {
                 this.drawResultUI(ctx, cx, cy, theme);
             }
@@ -128,7 +132,7 @@ export class DominoUI implements IMinigameUI {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
 
-        const boardW = screenW * 0.9;
+        const boardW = screenW * 0.95;
         const pW = s(mobile ? 32 : 42);
         const pH = pW * 1.8;
         const spacing = pW * 0.15;
@@ -136,7 +140,7 @@ export class DominoUI implements IMinigameUI {
         // Visual table surface
         ctx.fillStyle = 'rgba(0,0,0,0.15)';
         ctx.beginPath();
-        ctx.roundRect(s(20), cy - pH * 0.7, screenW - s(40), pH * 1.4, s(20));
+        ctx.roundRect(s(10), cy - pH * 0.8, screenW - s(20), pH * 1.6, s(20));
         ctx.fill();
 
         if (this.game.board.length === 0) {
@@ -184,24 +188,33 @@ export class DominoUI implements IMinigameUI {
         });
 
         // Opponents count
-        const sideGap = s(20);
+        const sideGap = s(30);
         this.game.players.forEach((p, i) => {
             if (i === 0) return;
             const isLeft = i === 1;
+            ctx.save();
             ctx.textAlign = isLeft ? 'left' : 'right';
             const px = isLeft ? sideGap : screenW - sideGap;
             const py = height * 0.65;
 
+            // Name
             ctx.fillStyle = theme.textMuted;
-            ctx.font = `bold ${r(10)}px ${theme.bodyFont}`;
+            ctx.font = `bold ${r(11)}px ${theme.bodyFont}`;
             ctx.fillText(p.name.toUpperCase(), px, py);
 
+            // Large Piece Count
             ctx.fillStyle = '#fff';
-            ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
-            ctx.fillText(`${p.hand.length}`, px, py + s(24));
+            ctx.font = `bold ${r(32)}px ${theme.titleFont}`;
+            ctx.shadowBlur = s(10);
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.fillText(`${p.hand.length}`, px, py + s(45)); // Corrected to 45
+            ctx.shadowBlur = 0;
 
-            ctx.font = `14px serif`;
-            ctx.fillText('🀰', px + (isLeft ? s(30) : -s(30)), py + s(20));
+            // Sub-label (optional icon/text)
+            ctx.fillStyle = theme.accent + '99';
+            ctx.font = `600 ${r(9)}px ${theme.bodyFont}`;
+            ctx.fillText('PEÇAS', px, py + s(65)); // Corrected to 65
+            ctx.restore();
         });
     }
 
@@ -234,6 +247,58 @@ export class DominoUI implements IMinigameUI {
         ctx.restore();
     }
 
+    private drawSideSelectionUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, screenW: number, theme: any) {
+        const s = UIScale.s.bind(UIScale);
+        const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
+
+        const pW = s(mobile ? 32 : 42);
+        const pH = pW * 1.8;
+        const spacing = pW * 0.15;
+        const boardW = screenW * 0.95;
+        const visibleCount = Math.floor(boardW / (pW + spacing));
+        const boardToDraw = this.game.board.slice(-visibleCount);
+        const totalW = boardToDraw.length * (pW + spacing);
+        const startX = cx - totalW / 2;
+
+        const leftX = startX;
+        const rightX = startX + (boardToDraw.length - 1) * (pW + spacing);
+
+        ctx.save();
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.font = `bold ${r(10)}px ${theme.bodyFont}`;
+
+        // Pulsating effect
+        const pulse = 0.6 + Math.sin(Date.now() / 200) * 0.4;
+        ctx.globalAlpha = pulse;
+
+        // Left Side
+        if (this.selectedSide === 'left') {
+            ctx.fillStyle = theme.accent;
+            ctx.shadowBlur = s(15);
+            ctx.shadowColor = theme.accent;
+            ctx.fillText('◄ AQUI', leftX - s(30), cy);
+        }
+
+        // Right Side
+        if (this.selectedSide === 'right') {
+            ctx.fillStyle = theme.accent;
+            ctx.shadowBlur = s(15);
+            ctx.shadowColor = theme.accent;
+            ctx.fillText('AQUI ►', rightX + pW + s(30), cy);
+        }
+
+        ctx.restore();
+
+        // Top hint
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(10)}px ${theme.bodyFont}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle'; // Fix text baseline for better centering
+        ctx.fillText('[Q/SHIFT] MUDAR LADO', cx, cy + pH * 0.9);
+    }
+
     private renderDots(ctx: CanvasRenderingContext2D, count: number, y: number, w: number) {
         const dotR = w * 0.08;
         const offset = w * 0.22;
@@ -254,17 +319,19 @@ export class DominoUI implements IMinigameUI {
     private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
 
         ctx.fillStyle = theme.textMuted;
-        ctx.font = `600 ${r(14)}px ${theme.bodyFont}`;
+        ctx.font = `600 ${r(mobile ? 11 : 14)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText('VALOR DA PARTIDA', cx, cy - s(40));
+        ctx.textBaseline = 'middle';
+        ctx.fillText('VALOR DA PARTIDA', cx, cy - s(60));
 
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(64)}px ${theme.titleFont}`;
+        ctx.font = `bold ${r(mobile ? 48 : 64)}px ${theme.titleFont}`;
         ctx.shadowBlur = s(20);
         ctx.shadowColor = theme.accent + '88';
-        ctx.fillText(`R$ ${this.game.betAmount}`, cx, cy + s(20));
+        ctx.fillText(`R$ ${this.game.betAmount}`, cx, cy + s(10));
         ctx.shadowBlur = 0;
     }
 

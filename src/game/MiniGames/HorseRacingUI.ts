@@ -248,33 +248,39 @@ export class HorseRacingUI implements IMinigameUI {
         const winner = this.game.winners[0];
         const isWin = winner.id === this.game.selectedHorse;
 
-        // Royal Label
+        // Result Title
         ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(16)}px ${theme.bodyFont}`;
+        ctx.font = `bold ${r(14)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText("RESULTADO OFICIAL", cx, cy - s(100));
+        ctx.fillText("RESULTADO DA CORRIDA", cx, cy - s(110));
 
-        // Result Status
-        ctx.fillStyle = isWin ? '#fff' : '#aaa';
-        ctx.font = `900 ${r(54)}px ${theme.titleFont}`;
-        ctx.shadowBlur = s(15);
-        ctx.shadowColor = theme.accent + '44';
-        ctx.fillText(isWin ? "VENCEDOR!" : "PERDEDOR", cx, cy - s(40));
+        // Result Status (Player Outcome)
+        ctx.fillStyle = isWin ? '#fff' : '#ff4444';
+        ctx.font = `900 ${r(isMobile() ? 48 : 58)}px ${theme.titleFont}`;
+        ctx.shadowBlur = s(20);
+        ctx.shadowColor = isWin ? theme.accent : '#ff0000';
+        ctx.fillText(isWin ? "VOCÊ GANHOU!" : "VOCÊ PERDEU", cx, cy - s(45));
         ctx.shadowBlur = 0;
 
-        // Winner Details
+        // Winning Horse Label
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `bold ${r(12)}px ${theme.titleFont}`;
+        ctx.fillText("CAVALO CAMPEÃO:", cx, cy + s(10));
+
+        // Winner Name
         ctx.fillStyle = '#fff';
-        ctx.font = `italic 700 ${r(22)}px ${theme.titleFont}`;
-        ctx.fillText(winner.name.toUpperCase(), cx, cy + s(20));
+        ctx.font = `italic 900 ${r(isMobile() ? 24 : 32)}px ${theme.titleFont}`;
+        ctx.fillText(winner.name.toUpperCase(), cx, cy + s(45));
 
         if (isWin) {
             ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(28)}px ${theme.bodyFont}`;
-            ctx.fillText(`+ R$ ${this.game.getPayout()}`, cx, cy + s(70));
+            ctx.font = `bold ${r(32)}px ${theme.bodyFont}`;
+            ctx.fillText(`+ R$ ${this.game.getPayout()}`, cx, cy + s(95));
         }
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-        ctx.fillText("ESPAÇO PARA NOVA PARTIDA", cx, h - s(80));
+        const footerHint = isMobile() ? "[OK] NOVA PARTIDA" : "[ESPAÇO] NOVA PARTIDA";
+        ctx.fillText(footerHint, cx, h - s(80));
     }
 }

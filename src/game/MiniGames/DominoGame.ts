@@ -67,6 +67,12 @@ export class DominoGame implements IMinigame {
         this.winner = null;
         this.message = 'Sorteando quem começa...';
 
+        // Randomize NPC Names
+        const possibleNames = ['Zeca', 'Beto', 'Tião', 'Zé', 'Dudu', 'Jão', 'Chico', 'Nico', 'Lico', 'Tico'];
+        const shuffledNames = possibleNames.sort(() => Math.random() - 0.5);
+        this.players[1].name = shuffledNames[0];
+        this.players[2].name = shuffledNames[1];
+
         // Create and shuffle pieces
         const allPieces: DominoPiece[] = [];
         for (let i = 0; i <= 6; i++) {

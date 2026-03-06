@@ -125,17 +125,25 @@ export class CasinoScene implements Scene {
         const totalItems = items.length;
         const rows = Math.ceil(totalItems / cols);
 
-        // Máquina proporcional à tela — um pouco maior para sensação "premium"
-        const machineW = Math.min(s(200), this.screenW / cols * 0.7);
-        const machineH = machineW * 1.25;
+        // Máquina proporcional à tela — escala melhor para ocupar o espaço disponível
+        let machineW = Math.min(s(280), (this.screenW / cols) * 0.82);
+        let machineH = machineW * 1.35;
 
         const spacingX = this.screenW / cols;
         // Espaço vertical seguro: abaixo do HUD (s(60)) e acima do rodapé (s(30))
-        const availH = this.screenH - s(110); // Margem um pouco maior para evitar HUD
-        const spacingY = Math.min(machineH + s(40), availH / rows);
+        // Melhoramos o uso do espaço vertical disponível
+        const availH = this.screenH - s(130);
 
+        // Garantia de que as máquinas não estourem o espaço vertical em telas pequenas
+        if (rows * machineH > availH) {
+            const scaleDown = availH / (rows * 1.15 * machineH);
+            machineW *= scaleDown;
+            machineH *= scaleDown;
+        }
+
+        const spacingY = Math.min(machineH + s(80), availH / rows);
         const gridH = (rows - 1) * spacingY + machineH;
-        const startY = s(70) + (availH - gridH) / 2;
+        const startY = s(85) + (availH - gridH) / 2;
 
         for (let r = 0; r < rows; r++) {
             const itemsInRow = Math.min(cols, totalItems - r * cols);

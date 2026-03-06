@@ -237,11 +237,13 @@ export class ExplorationScene implements Scene {
             return;
         }
 
+        const isNavigating = this.activeMinigame === 'none' && pm.phase === 'none';
+
         // Minimap Maximized Blocking
         const wasMaximized = this.minimap.getMaximized();
-        const toggleMap = this.input.wasPressed('KeyM') ||
+        const toggleMap = isNavigating && (this.input.wasPressed('KeyM') ||
             (isMobile() && !wasMaximized && this.input.wasPressed('MouseLeft') &&
-                this.minimap.isPointInMinimap(this.input.getMousePos().x, this.input.getMousePos().y, this.screenW, this.screenH));
+                this.minimap.isPointInMinimap(this.input.getMousePos().x, this.input.getMousePos().y, this.screenW, this.screenH)));
 
         if (toggleMap) {
             this.minimap.toggleMaximized();
@@ -409,7 +411,6 @@ export class ExplorationScene implements Scene {
         this.globalTimer += dt; // Keep a timer running for Bicho betting results
 
         // Dynamic Ambient Darkness (Soft Realistic Night)
-        const isNavigating = this.activeMinigame === 'none' && pm.phase === 'none';
         this.lighting.setAmbientDarkness(isNavigating ? 0.35 : 0.15);
 
         // PC-Only Cyclical Zoom with 'Z' key
@@ -994,7 +995,7 @@ export class ExplorationScene implements Scene {
         // Game options as decorative cards
         const options = [
             { name: 'VIDEO BINGO', icon: '🎰', desc: 'Bingo eletrônico com cartelas', color: '#7b2dff' },
-            { name: 'APOSTAS EM CAVALOS', icon: '🐎', desc: 'Corrida com apostas ao vivo', color: '#228b22' },
+            { name: 'CORRIDA CAVALOS', icon: '🐎', desc: 'Apostas em tempo real', color: '#228b22' },
             { name: 'CORRIDA DE CÃES', icon: '🐕', desc: 'Galgos em alta velocidade', color: '#ff6b00' },
         ];
 
@@ -1009,19 +1010,19 @@ export class ExplorationScene implements Scene {
             const y = startY + i * (cardH + spacing);
             const cardX = cx - cardW / 2;
 
-            // Card background
+            // Card background - Solid and opaque to prevent "faded" look
             ctx.save();
             if (isSelected) {
                 ctx.shadowBlur = s(18);
                 ctx.shadowColor = opt.color;
             }
-            ctx.fillStyle = isSelected ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)';
+            ctx.fillStyle = '#1a1a1a';
             ctx.beginPath();
             ctx.roundRect(cardX, y, cardW, cardH, s(10));
             ctx.fill();
 
-            ctx.strokeStyle = isSelected ? opt.color : 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = isSelected ? s(2.5) : s(1);
+            ctx.strokeStyle = isSelected ? opt.color : 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = isSelected ? s(2.5) : s(1.5);
             ctx.stroke();
             ctx.restore();
 
@@ -1033,16 +1034,16 @@ export class ExplorationScene implements Scene {
             ctx.fillText(opt.icon, cardX + s(35), y + cardH / 2);
             ctx.textBaseline = 'alphabetic';
 
-            // Name
-            ctx.fillStyle = isSelected ? '#fff' : '#999';
-            ctx.font = `bold ${UIScale.r(mobile ? 13 : 16)}px "Press Start 2P", monospace`;
+            // Name - Solid white for maximum clarity
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${UIScale.r(mobile ? 12 : 15)}px "Press Start 2P", monospace`;
             ctx.textAlign = 'left';
-            ctx.fillText(opt.name, cardX + s(65), y + cardH * 0.40);
+            ctx.fillText(opt.name, cardX + s(60), y + cardH * 0.40);
 
-            // Description
-            ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+            // Description - Solid white for maximum clarity
+            ctx.fillStyle = '#ffffff';
             ctx.font = `${UIScale.r(mobile ? 9 : 11)}px "Segoe UI", sans-serif`;
-            ctx.fillText(opt.desc, cardX + s(65), y + cardH * 0.72);
+            ctx.fillText(opt.desc, cardX + s(60), y + cardH * 0.72);
 
             // Selection arrow
             if (isSelected) {
@@ -1323,7 +1324,9 @@ export class ExplorationScene implements Scene {
 
         // 7. Global Notifications & Minimap
         this.hud.renderNotifications(ctx, this.screenW, BichoManager.getInstance().getNotifications());
-        this.minimap.render(ctx, this.screenW, this.screenH, this.player.x, this.player.y, this.camera, this.npcManager.npcs);
+        if (isNavigating || this.minimap.getMaximized()) {
+            this.minimap.render(ctx, this.screenW, this.screenH, this.player.x, this.player.y, this.camera, this.npcManager.npcs);
+        }
 
         // --- POLICE GIROFLEX ---
         const pmanager = PoliceManager.getInstance();
