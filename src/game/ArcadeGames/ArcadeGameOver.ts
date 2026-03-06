@@ -117,17 +117,17 @@ export function renderArcadeGameOver(
     ctx.shadowColor = '#ffcc00';
     ctx.fillStyle = '#ffcc00';
     ctx.font = `bold ${r(mobile ? 56 : 48)}px monospace`;
-    ctx.fillText(`${score}`, cx, boxY + s(165));
+    const scoreText = `${score}`;
+    const scoreWidth = ctx.measureText(scoreText).width;
+    ctx.fillText(scoreText, cx, boxY + s(165));
     ctx.shadowBlur = 0;
     ctx.restore();
 
     // Star decoration around score
     ctx.fillStyle = '#ffcc00';
     ctx.font = `${r(20)}px monospace`;
-    const scoreText = `${score}`;
-    const scoreWidth = ctx.measureText(scoreText).width;
     ctx.fillText('★', cx - scoreWidth / 2 - s(30), boxY + s(160));
-    ctx.fillText('★', cx + scoreWidth / 2 + s(20), boxY + s(160));
+    ctx.fillText('★', cx + scoreWidth / 2 + s(30), boxY + s(160));
 
     // Motivational phrase
     ctx.fillStyle = '#aaddff';

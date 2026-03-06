@@ -95,7 +95,8 @@ export class TankAttackGame {
     private spawnEnemy() {
         const side = Math.floor(Math.random() * 4);
         let x = 0, y = 0, vx = 0, vy = 0;
-        const speed = this.enemySpeed + this.waveCount * 3;
+        // Decrease how fast enemy speed scales up
+        const speed = this.enemySpeed + this.waveCount * 1.5;
 
         switch (side) {
             case 0: // top
@@ -198,9 +199,12 @@ export class TankAttackGame {
         // Spawn enemies
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0) {
-            const count = 1 + Math.floor(this.waveCount / 8);
+            // Require more waves before spawning multiples 
+            const count = 1 + Math.floor(this.waveCount / 15);
             for (let i = 0; i < count; i++) this.spawnEnemy();
-            this.spawnInterval = Math.max(0.5, this.spawnInterval - 0.05);
+            
+            // Interval now drops slower and doesn't get as crazily fast (minimum 0.8s)
+            this.spawnInterval = Math.max(0.8, this.spawnInterval - 0.02);
             this.spawnTimer = this.spawnInterval;
         }
 
@@ -221,8 +225,17 @@ export class TankAttackGame {
         // Update enemies
         for (const e of this.enemies) {
             if (!e.alive) continue;
-            e.x += e.vx * dt;
-            e.y += e.vy * dt;
+            
+            const nextX = e.x + e.vx * dt;
+            const nextY = e.y + e.vy * dt;
+
+            // Wall collision (independent axis to allow sliding)
+            if (!this.collidesWall(nextX, e.y, 6)) {
+                e.x = nextX;
+            }
+            if (!this.collidesWall(e.x, nextY, 6)) {
+                e.y = nextY;
+            }
 
             // Simple re-tracking towards player
             const dx = this.tankX - e.x;
@@ -254,13 +267,31 @@ export class TankAttackGame {
                 const pdx = this.tankX - e.x;
                 const pdy = this.tankY - e.y;
                 if (pdx * pdx + pdy * pdy < (this.tankSize + 8) * (this.tankSize + 8)) {
-                    e.alive = false;
                     this.lives--;
-                    this.explosions.push({ x: this.tankX, y: this.tankY, timer: 0.5 });
-                    this.invincibleTimer = 1.5;
+                    
+                    // Huge explosion on the player
+                    this.explosions.push({ x: this.tankX, y: this.tankY, timer: 0.8 });
+                    this.invincibleTimer = 2.0;
+                    
                     if (this.lives <= 0) {
+                        e.alive = false;
                         this.phase = 'game_over';
                         this.gameOverPhrase = getMotivationalPhrase();
+                    } else {
+                        // Player survived, but lost a life. Nuke the screen to give breathing room!
+                        for (const enemy of this.enemies) {
+                            if (enemy.alive) {
+                                enemy.alive = false;
+                                this.explosions.push({ x: enemy.x, y: enemy.y, timer: 0.4 + Math.random() * 0.4 });
+                            }
+                        }
+                        
+                        // Retrocede a dificuldade (breather)
+                        this.waveCount = Math.max(0, this.waveCount - 20);
+                        this.spawnInterval = Math.min(2.0, this.spawnInterval + 0.5);
+                        
+                        // Since all enemies just died, we can safely exit this enemy loop
+                        break;
                     }
                 }
             }
@@ -339,12 +370,15 @@ export class TankAttackGame {
 
         // Explosions
         for (const ex of this.explosions) {
-            const radius = (0.5 - ex.timer) * 40;
-            ctx.fillStyle = `rgba(255, 150, 0, ${ex.timer * 2})`;
+            // Guarantee radius is always positive (avoids IndexSizeError crash)
+            const radius = Math.max(0.1, (1.0 - ex.timer) * 50);
+            
+            ctx.fillStyle = `rgba(255, 150, 0, ${Math.max(0, ex.timer * 2)})`;
             ctx.beginPath();
             ctx.arc(ex.x, ex.y, radius, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = `rgba(255, 255, 100, ${ex.timer})`;
+            
+            ctx.fillStyle = `rgba(255, 255, 100, ${Math.max(0, ex.timer)})`;
             ctx.beginPath();
             ctx.arc(ex.x, ex.y, radius * 0.5, 0, Math.PI * 2);
             ctx.fill();

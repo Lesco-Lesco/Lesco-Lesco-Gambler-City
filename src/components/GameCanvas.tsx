@@ -54,6 +54,8 @@ const GameCanvas = () => {
                 // Create scenes attempt
                 let scene: ExplorationScene;
                 let gameOverScene: GameOverScene;
+                let casinoShopping: CasinoScene;
+                let casinoStation: CasinoScene;
 
                 try {
                     const { ExplorationScene } = await import('../game/Scenes/ExplorationScene');
@@ -61,8 +63,8 @@ const GameCanvas = () => {
                     const { GameOverScene } = await import('../game/Scenes/GameOverScene');
 
                     scene = new ExplorationScene(renderer, w, h);
-                    const casinoShopping = new CasinoScene(w, h, 'shopping');
-                    const casinoStation = new CasinoScene(w, h, 'station');
+                    casinoShopping = new CasinoScene(w, h, 'shopping');
+                    casinoStation = new CasinoScene(w, h, 'station');
                     gameOverScene = new GameOverScene();
 
                     // Link Scenes
@@ -126,6 +128,8 @@ const GameCanvas = () => {
 
                     renderer.resize(rw, rh);
                     if (scene) scene.resize(rw, rh);
+                    if (casinoShopping) casinoShopping.resize(rw, rh);
+                    if (casinoStation) casinoStation.resize(rw, rh);
                     if (gameOverScene) gameOverScene.resize(rw, rh);
                 };
 

@@ -320,7 +320,7 @@ export class ExplorationScene implements Scene {
             const pm = PoliceManager.getInstance();
             if (pm.phase === 'none') {
                 if (this.headsTailsUI) this.headsTailsUI.update(dt);
-                if (this.palitinhoUI) this.palitinhoUI.update();
+                if (this.palitinhoUI) this.palitinhoUI.update(dt);
                 if (this.fanTanUI) this.fanTanUI.update(dt);
                 if (this.jokenpoUI) this.jokenpoUI.update(dt);
             }
@@ -892,11 +892,27 @@ export class ExplorationScene implements Scene {
         const items = this.getArcadeMenuItems();
         const menuItems = items.length; // 1 (buy) + 3 games = 4
 
-        if (this.input.wasPressed('ArrowUp')) {
-            this.selectedArcadeMenuIndex = (this.selectedArcadeMenuIndex - 1 + menuItems) % menuItems;
+        const cols = isMobile() ? 2 : 3;
+
+        if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
+            this.selectedArcadeMenuIndex = Math.max(0, this.selectedArcadeMenuIndex - 1);
         }
-        if (this.input.wasPressed('ArrowDown')) {
-            this.selectedArcadeMenuIndex = (this.selectedArcadeMenuIndex + 1) % menuItems;
+        if (this.input.wasPressed('ArrowRight') || this.input.wasPressed('KeyD')) {
+            this.selectedArcadeMenuIndex = Math.min(menuItems - 1, this.selectedArcadeMenuIndex + 1);
+        }
+        if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
+            if (this.selectedArcadeMenuIndex >= cols) {
+                this.selectedArcadeMenuIndex -= cols;
+            } else {
+                this.selectedArcadeMenuIndex = 0;
+            }
+        }
+        if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
+            if (this.selectedArcadeMenuIndex + cols < menuItems) {
+                this.selectedArcadeMenuIndex += cols;
+            } else {
+                this.selectedArcadeMenuIndex = menuItems - 1;
+            }
         }
         if (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
             const selected = items[this.selectedArcadeMenuIndex];
@@ -1172,7 +1188,12 @@ export class ExplorationScene implements Scene {
 
             // Name
             ctx.fillStyle = isSelected ? '#fff' : '#888';
-            ctx.font = `bold ${UIScale.r(mobile ? 9 : 11)}px "Press Start 2P", monospace`;
+            let labelFontSize = mobile ? 9 : 11;
+            ctx.font = `bold ${UIScale.r(labelFontSize)}px "Press Start 2P", monospace`;
+            while (ctx.measureText(opt.label).width > cardW - s(12) && labelFontSize > 5) {
+                labelFontSize -= 0.5;
+                ctx.font = `bold ${UIScale.r(labelFontSize)}px "Press Start 2P", monospace`;
+            }
             ctx.textAlign = 'center';
             ctx.fillText(opt.label, x + cardW / 2, y + cardH * 0.72);
 

@@ -7,6 +7,7 @@ import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
 import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 
 export class FaroesteGame {
     public lives = 3;
@@ -135,6 +136,7 @@ export class FaroesteGame {
     }
 
     public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+        const theme = MINIGAME_THEMES.faroeste;
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
         const cx = screenW / 2;
@@ -171,78 +173,100 @@ export class FaroesteGame {
 
         // Title
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(28)}px serif`;
-        ctx.shadowBlur = 5;
+        ctx.fillStyle = theme.accent;
+        ctx.font = `${r(28)}px ${theme.titleFont}`;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = '#000';
-        ctx.fillText('FAROESTE', cx, s(40));
+        ctx.fillText(theme.name, cx, s(40));
         ctx.shadowBlur = 0;
 
         // Duelists
         const mobile = isMobile();
         const playerX = cx - s(mobile ? 90 : 120);
         const aiX = cx + s(mobile ? 90 : 120);
-        const bodyY = cy + s(mobile ? 50 : 40);
+        // Place duelists' feet exactly on the horizon line
+        const bodyY = (screenH * 0.65) - s(20);
 
-        // Player silhouette (left)
-        this.drawCowboy(ctx, playerX, bodyY, s, '#44aa44', this.phase === 'result' && this.roundWon);
+        // Player silhouette (left) - faces right (1)
+        this.drawCowboy(ctx, playerX, bodyY, s, theme.accent, this.phase === 'result' && this.roundWon, 1);
 
-        // AI silhouette (right)
-        this.drawCowboy(ctx, aiX, bodyY, s, '#aa4444', this.phase === 'result' && !this.roundWon);
+        // AI silhouette (right) - faces left (-1)
+        this.drawCowboy(ctx, aiX, bodyY, s, theme.accentAlt, this.phase === 'result' && !this.roundWon, -1);
 
-        // Enemy name
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(16)}px serif`;
-        ctx.fillText(this.currentEnemy, aiX, bodyY - s(70));
-
-        ctx.fillText('VOCÊ', playerX, bodyY - s(70));
+        // Names above characters
+        ctx.fillStyle = theme.text;
+        ctx.font = `bold ${r(16)}px ${theme.bodyFont}`;
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#000000';
+        ctx.fillText('VOCÊ', playerX, bodyY - s(90));
+        ctx.fillText(this.currentEnemy, aiX, bodyY - s(90));
+        ctx.shadowBlur = 0;
 
         // Phase-specific UI
         ctx.textAlign = 'center';
 
         if (this.phase === 'waiting') {
-            ctx.fillStyle = '#ffcc00';
-            ctx.font = `bold ${r(30)}px serif`;
-            ctx.fillText('ESPERE...', cx, cy - s(60));
-            ctx.fillStyle = '#aaa';
-            ctx.font = `${r(14)}px monospace`;
-            ctx.fillText('NÃO aperte antes da hora!', cx, cy - s(30));
-        } else if (this.phase === 'draw') {
-            ctx.fillStyle = '#ff0000';
-            ctx.font = `bold ${r(mobile ? 56 : 50)}px serif`;
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#ff0000';
-            ctx.fillText('SAQUE!', cx, cy - s(mobile ? 60 : 50));
+            ctx.fillStyle = theme.accent;
+            ctx.font = `${r(36)}px ${theme.titleFont}`;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#000000';
+            ctx.fillText('ESPERE...', cx, cy - s(100));
             ctx.shadowBlur = 0;
-            ctx.fillStyle = '#fff';
-            ctx.font = `bold ${r(16)}px monospace`;
+            
+            ctx.fillStyle = '#ff4444';
+            ctx.font = `bold ${r(22)}px ${theme.bodyFont}`;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#000000';
+            ctx.fillText('NÃO aperte antes da hora!', cx, cy - s(50));
+            ctx.shadowBlur = 0;
+        } else if (this.phase === 'draw') {
+            ctx.fillStyle = '#ff3b3b';
+            ctx.font = `${r(mobile ? 42 : 54)}px ${theme.titleFont}`;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#000000';
+            ctx.fillText('SAQUE!', cx, cy - s(100));
+            ctx.shadowBlur = 0;
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${r(20)}px ${theme.bodyFont}`;
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = '#000000';
             const drawHint = isMobile() ? 'TOQUE NO OK!' : '[ESPAÇO] AGORA!';
-            ctx.fillText(drawHint, cx, cy - s(15));
+            ctx.fillText(drawHint, cx, cy - s(50));
+            ctx.shadowBlur = 0;
         } else if (this.phase === 'result') {
             const msg = this.roundWon ? 'ACERTOU!' : (this.playerDrawTime < 0 ? 'SACOU CEDO DEMAIS!' : 'LEVOU TIRO!');
-            ctx.fillStyle = this.roundWon ? '#44ff44' : '#ff4444';
-            ctx.font = `bold ${r(36)}px serif`;
-            ctx.fillText(msg, cx, cy - s(60));
+            ctx.fillStyle = this.roundWon ? '#44ff88' : '#ff3b3b';
+            ctx.font = `${r(36)}px ${theme.titleFont}`;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#000000';
+            ctx.fillText(msg, cx, cy - s(100));
+            ctx.shadowBlur = 0;
 
             if (this.playerDrawTime > 0 && this.playerDrawTime < 100) {
-                ctx.fillStyle = '#ffcc00';
-                ctx.font = `${r(16)}px monospace`;
-                ctx.fillText(`Seu tempo: ${this.playerDrawTime.toFixed(3)}s | Inimigo: ${this.aiDrawTime.toFixed(3)}s`, cx, cy - s(25));
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${r(18)}px ${theme.bodyFont}`;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#000000';
+                ctx.fillText(`Seu tempo: ${this.playerDrawTime.toFixed(3)}s  |  Inimigo: ${this.aiDrawTime.toFixed(3)}s`, cx, cy - s(50));
+                ctx.shadowBlur = 0;
             }
         }
 
         // HUD
-        ctx.fillStyle = '#ff4444';
-        ctx.font = `${r(16)}px monospace`;
+        ctx.fillStyle = '#ff3b3b';
+        ctx.font = `${r(16)}px ${theme.titleFont}`;
         ctx.textAlign = 'left';
-        ctx.fillText(`VIDAS: ${'♥'.repeat(this.lives)}`, s(20), s(25));
+        ctx.fillText(`VIDAS:${'♥'.repeat(this.lives)}`, s(20), s(30));
+        
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#ffcc00';
-        ctx.fillText(`PONTOS: ${this.score}`, screenW - s(20), s(25));
+        ctx.fillStyle = theme.accent;
+        ctx.fillText(`PONTOS:${this.score}`, screenW - s(20), s(30));
+        
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#888';
-        ctx.font = `${r(12)}px monospace`;
-        ctx.fillText(`ROUND ${this.round + 1}`, cx, s(25));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `${r(12)}px ${theme.bodyFont}`;
+        ctx.fillText(`ROUND ${this.round + 1}`, cx, s(70));
 
         // Game Over
         if (this.phase === 'game_over') {
@@ -251,50 +275,60 @@ export class FaroesteGame {
 
         // Controls
         if (this.phase !== 'game_over' && !isMobile()) {
-            ctx.fillStyle = '#555';
-            ctx.font = `${r(11)}px monospace`;
+            ctx.fillStyle = theme.textMuted;
+            ctx.font = `${r(11)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
             ctx.fillText('[ESPAÇO] Sacar  |  [ESC] Sair', cx, screenH - s(15));
         }
     }
 
-    private drawCowboy(ctx: CanvasRenderingContext2D, x: number, y: number, s: (v: number) => number, color: string, shooting: boolean) {
+    private drawCowboy(ctx: CanvasRenderingContext2D, x: number, y: number, s: (v: number) => number, color: string, shooting: boolean, dir: 1 | -1) {
         ctx.save();
+        ctx.translate(x, y);
+        
+        // Shadow on the ground
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.beginPath();
+        // Since feet end at y + s(20), draw shadow horizontally centered below feet
+        ctx.ellipse(0, s(20), s(16), s(5), 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.scale(dir, 1);
         ctx.fillStyle = color;
 
         // Hat
-        ctx.fillRect(x - s(15), y - s(55), s(30), s(8));
-        ctx.fillRect(x - s(10), y - s(63), s(20), s(10));
+        ctx.fillRect(-s(15), -s(55), s(30), s(8));
+        ctx.fillRect(-s(10), -s(63), s(20), s(10));
 
         // Head
         ctx.beginPath();
-        ctx.arc(x, y - s(40), s(8), 0, Math.PI * 2);
+        ctx.arc(0, -s(40), s(8), 0, Math.PI * 2);
         ctx.fill();
 
         // Body
-        ctx.fillRect(x - s(8), y - s(30), s(16), s(30));
+        ctx.fillRect(-s(8), -s(30), s(16), s(30));
 
         // Legs
-        ctx.fillRect(x - s(7), y, s(5), s(20));
-        ctx.fillRect(x + s(2), y, s(5), s(20));
+        ctx.fillRect(-s(7), 0, s(5), s(20));
+        ctx.fillRect(s(2), 0, s(5), s(20));
 
         // Arm/Gun
         if (shooting) {
             // Arm extended with gun
             ctx.fillStyle = '#333';
-            ctx.fillRect(x + s(8), y - s(25), s(20), s(4));
+            ctx.fillRect(s(8), -s(25), s(20), s(4));
             // Gun flash
             ctx.fillStyle = '#ffff00';
             ctx.shadowBlur = 10;
             ctx.shadowColor = '#ffff00';
             ctx.beginPath();
-            ctx.arc(x + s(30), y - s(23), s(5), 0, Math.PI * 2);
+            ctx.arc(s(30), -s(23), s(5), 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
         } else {
             // Arm at side
             ctx.fillStyle = color;
-            ctx.fillRect(x + s(8), y - s(25), s(4), s(18));
+            ctx.fillRect(s(8), -s(25), s(4), s(18));
         }
 
         ctx.restore();

@@ -20,7 +20,8 @@ export class PalitinhoUI implements IMinigameUI {
         this.onPlayAgain = onPlayAgain;
     }
 
-    public update() {
+    public update(dt: number) {
+        this.game.update(dt);
         const phase = this.game.phase;
 
         if (phase === 'betting') {
@@ -150,7 +151,13 @@ export class PalitinhoUI implements IMinigameUI {
             ctx.fillStyle = theme.text;
             ctx.font = `600 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
             ctx.fillText(p.name.toUpperCase(), x, cy + s(65));
-            this.drawSingleDice(ctx, x, cy, p.diceValue);
+            
+            let displayValue = p.diceValue;
+            if (this.game.phase === 'dice_roll' && this.game.diceTimer < 1.5) {
+                displayValue = ((Math.floor(Date.now() / 80) + i * 2) % 6) + 1;
+            }
+            
+            this.drawSingleDice(ctx, x, cy, displayValue);
         });
     }
 

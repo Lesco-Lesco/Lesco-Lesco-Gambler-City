@@ -48,7 +48,7 @@ export class BlackjackUI implements IMinigameUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
                 const payout = this.game.betAmount + profit;
-                this.onExit(payout);
+                if (payout > 0) bmanager.playerMoney += payout;
                 this.game.reset();
             }
         }
@@ -72,17 +72,17 @@ export class BlackjackUI implements IMinigameUI {
         drawMinigameTitle(ctx, screenW, screenH, theme);
 
         // ── Proportional Table ──
-        const tableW = Math.min(screenW * 0.9, s(mobile ? 320 : 450));
-        const tableH = Math.min(screenH * 0.5, s(mobile ? 200 : 320));
-        const tableY = screenH * 0.6;
+        const tableW = Math.min(screenW * 0.95, s(mobile ? 560 : 700));
+        const tableH = Math.min(screenH * 0.45, s(mobile ? 240 : 340));
+        const tableY = screenH * 0.5;
 
-        const tableGrad = ctx.createRadialGradient(cx, tableY, s(50), cx, tableY, tableW);
+        const tableGrad = ctx.createRadialGradient(cx, tableY, s(50), cx, tableY, tableW / 2);
         tableGrad.addColorStop(0, theme.accentAlt);
         tableGrad.addColorStop(1, '#064e3b'); // Dark forest green
 
         ctx.fillStyle = tableGrad;
         ctx.beginPath();
-        ctx.ellipse(cx, tableY, tableW, tableH, 0, 0, Math.PI * 2);
+        ctx.roundRect(cx - tableW / 2, tableY - tableH / 2, tableW, tableH, s(mobile ? 110 : 160));
         ctx.fill();
 
         ctx.strokeStyle = theme.accent;
@@ -90,11 +90,11 @@ export class BlackjackUI implements IMinigameUI {
         ctx.stroke();
 
         // ── Dealer Hand ──
-        const dealerY = screenH * 0.35;
+        const dealerY = screenH * 0.28;
         this.drawHand(ctx, cx, dealerY, this.game.dealerHand, this.game.phase === 'playing', theme);
 
         // ── Player Hand ──
-        const playerY = screenH * 0.75;
+        const playerY = screenH * 0.78;
         this.drawHand(ctx, cx, playerY, this.game.playerHand, false, theme);
 
         // ── Score Display ──
@@ -103,14 +103,14 @@ export class BlackjackUI implements IMinigameUI {
             ctx.fillStyle = '#fff';
             ctx.font = `800 ${r(mobile ? 12 : 14)}px ${theme.titleFont}`;
 
-            // Player Points
+            // Player Points (below hand)
             const pPoints = this.game.calculatePoints(this.game.playerHand);
-            ctx.fillText(`PONTOS: ${pPoints}`, cx, playerY - s(mobile ? 75 : 100));
+            ctx.fillText(`PONTOS: ${pPoints}`, cx, playerY + s(mobile ? 65 : 80));
 
             if (this.game.phase !== 'playing') {
-                // Dealer Points
+                // Dealer Points (above hand)
                 const dPoints = this.game.calculatePoints(this.game.dealerHand);
-                ctx.fillText(`DEALER: ${dPoints}`, cx, dealerY + s(mobile ? 75 : 100));
+                ctx.fillText(`DEALER: ${dPoints}`, cx, dealerY - s(mobile ? 55 : 70));
             }
         }
 

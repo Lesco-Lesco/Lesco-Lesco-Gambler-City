@@ -40,7 +40,7 @@ export class PokerUI implements IMinigameUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
                 const payout = humanCurrentBet() + profit;
-                this.onExit(payout);
+                if (payout > 0) bmanager.playerMoney += payout;
                 this.game.reset();
             }
         } else {
@@ -147,6 +147,17 @@ export class PokerUI implements IMinigameUI {
             ctx.fillStyle = theme.accent;
             ctx.font = `bold ${r(mobile ? 12 : 16)}px ${theme.titleFont}`;
             ctx.fillText(`AUMENTAR: R$ ${this.pendingRaise}`, cx, tableY + tableH * 0.3);
+        } else if (this.game.phase === 'result' && this.game.resultMessage) {
+            ctx.fillStyle = this.game.winner?.isHuman ? '#4ade80' : '#ef4444';
+            ctx.font = `bold ${r(mobile ? 18 : 24)}px ${theme.titleFont}`;
+            ctx.shadowBlur = s(10);
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.fillText(this.game.resultMessage.toUpperCase(), cx, tableY + tableH * 0.3);
+            ctx.shadowBlur = 0;
+            
+            ctx.fillStyle = theme.text;
+            ctx.font = `600 ${r(mobile ? 11 : 13)}px ${theme.bodyFont}`;
+            ctx.fillText(mobile ? '[OK] JOGAR NOVAMENTE' : '[ENTER] NOVA PARTIDA', cx, tableY + tableH * 0.42);
         }
 
         // ── Footer Instructions ──
@@ -174,23 +185,23 @@ export class PokerUI implements IMinigameUI {
         ctx.fillStyle = isMain ? '#fff' : theme.textMuted;
         ctx.font = `bold ${r(isMain ? 14 : 12)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText(player.name.toUpperCase(), 0, 0);
+        ctx.fillText(player.name.toUpperCase(), 0, -s(25));
 
         // Stake/Bet
         if (player.currentBet > 0) {
             ctx.fillStyle = '#4ade80';
             ctx.font = `800 ${r(11)}px ${theme.bodyFont}`;
-            ctx.fillText(`APOSTA: R$ ${player.currentBet}`, 0, s(15));
+            ctx.fillText(`APOSTA: R$ ${player.currentBet}`, 0, -s(10));
         }
 
         // Cards
-        const cardW = s(isMain ? 45 : 35);
-        const cardH = s(isMain ? 65 : 50);
-        const spacing = cardW * 0.7;
+        const cardW = s(isMain ? 60 : 45);
+        const cardH = s(isMain ? 85 : 65);
+        const spacing = cardW * 1.1;
 
         player.hand.forEach((card: any, i: number) => {
             const cardX = (i - 0.5) * spacing;
-            const cardY = isMain ? s(30) : s(25);
+            const cardY = isMain ? s(35) : s(25);
 
             if (isMain || this.game.phase === 'result') {
                 this.drawCard(ctx, cardX, cardY, cardW, cardH, card, theme);
@@ -254,14 +265,14 @@ export class PokerUI implements IMinigameUI {
         const cornerSize = r(Math.floor(h * 0.18));
         ctx.font = `bold ${cornerSize}px ${theme.bodyFont}`;
         ctx.textAlign = 'left';
-        ctx.fillText(card.value, -w / 2 + s(4), -h / 2 + s(14));
+        ctx.fillText(card.value, -w / 2 + s(6), -h / 2 + cornerSize + s(4));
 
         // Center Suit
         const suitIcon = { 'H': '♥', 'D': '♦', 'C': '♣', 'S': '♠' }[card.suit as 'H' | 'D' | 'C' | 'S'];
         const suitSize = r(Math.floor(h * 0.45));
         ctx.font = `${suitSize}px sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(suitIcon || '', 0, h * 0.15);
+        ctx.fillText(suitIcon || '', 0, h * 0.20);
 
         ctx.restore();
     }

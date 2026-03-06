@@ -8,7 +8,7 @@ import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
 import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
-
+import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 export class RiscaFacaGame {
     public lives = 3;
     public score = 0;
@@ -119,6 +119,7 @@ export class RiscaFacaGame {
     }
 
     public draw(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
+        const theme = MINIGAME_THEMES.riscafaca;
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
         const cx = screenW / 2;
@@ -152,33 +153,36 @@ export class RiscaFacaGame {
 
         // Title
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#ff6644';
-        ctx.font = `bold ${r(28)}px serif`;
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = '#000';
-        ctx.fillText('RISCA FACA', cx, s(40));
+        ctx.fillStyle = theme.accent;
+        ctx.font = `${r(28)}px ${theme.titleFont}`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#000000';
+        ctx.fillText(theme.name, cx, s(40));
         ctx.shadowBlur = 0;
 
         const mobile = isMobile();
         const playerX = cx - s(mobile ? 80 : 100);
         const aiX = cx + s(mobile ? 80 : 100);
-        const bodyY = cy + s(mobile ? 40 : 30);
+        const bodyY = (screenH * 0.65) - s(20); // Feet on the horizon
 
-        this.drawNordestino(ctx, playerX, bodyY, s, '#44aa44', this.phase === 'result' && this.roundWon);
-        this.drawNordestino(ctx, aiX, bodyY, s, '#aa4444', this.phase === 'result' && !this.roundWon);
+        this.drawNordestino(ctx, playerX, bodyY, s, theme.accent, this.phase === 'result' && this.roundWon, 1);
+        this.drawNordestino(ctx, aiX, bodyY, s, theme.accentAlt, this.phase === 'result' && !this.roundWon, -1);
 
         // Names
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(14)}px serif`;
-        ctx.fillText('VOCÊ', playerX, bodyY - s(65));
-        ctx.fillText(this.currentEnemy, aiX, bodyY - s(65));
+        ctx.fillStyle = theme.text;
+        ctx.font = `bold ${r(16)}px ${theme.bodyFont}`;
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#000000';
+        ctx.fillText('VOCÊ', playerX, bodyY - s(90));
+        ctx.fillText(this.currentEnemy, aiX, bodyY - s(90));
+        ctx.shadowBlur = 0;
 
         // Timing Bar
         if (this.phase === 'timing' || this.phase === 'result') {
             const barW = s(350);
             const barH = s(30);
             const barX = cx - barW / 2;
-            const barY = cy - s(80);
+            const barY = cy - s(130); // Raised up higher to stop overlapping characters
 
             // Background
             ctx.fillStyle = '#222';
@@ -210,39 +214,53 @@ export class RiscaFacaGame {
 
             // Labels
             ctx.fillStyle = '#44ff44';
-            ctx.font = `${r(10)}px monospace`;
-            ctx.fillText('ZONA CERTA', cx, barY - s(8));
+            ctx.font = `bold ${r(12)}px ${theme.bodyFont}`;
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = '#000000';
+            ctx.fillText('ZONA CERTA', cx, barY - s(10));
+            ctx.shadowBlur = 0;
         }
 
         // Phase messages
         if (this.phase === 'ready') {
-            ctx.fillStyle = '#ffcc00';
-            ctx.font = `bold ${r(26)}px serif`;
-            ctx.fillText('PREPARE-SE...', cx, cy - s(70));
+            ctx.fillStyle = theme.accent;
+            ctx.font = `${r(36)}px ${theme.titleFont}`;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#000000';
+            ctx.fillText('PREPARE-SE...', cx, cy - s(100));
+            ctx.shadowBlur = 0;
         } else if (this.phase === 'timing') {
-            ctx.fillStyle = '#ff0000';
-            ctx.font = `bold ${r(mobile ? 28 : 22)}px monospace`;
+            ctx.fillStyle = '#ff3b3b';
+            ctx.font = `bold ${r(mobile ? 32 : 28)}px ${theme.titleFont}`;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#000000';
             const timingHint = isMobile() ? 'TOQUE NO OK!' : '[ESPAÇO] NA HORA CERTA!';
-            ctx.fillText(timingHint, cx, cy - s(40));
+            ctx.fillText(timingHint, cx, cy - s(50));
+            ctx.shadowBlur = 0;
         } else if (this.phase === 'result') {
             const msg = this.roundWon ? 'ACERTOU A FACADA!' : 'LEVOU UMA FACADA!';
-            ctx.fillStyle = this.roundWon ? '#44ff44' : '#ff4444';
-            ctx.font = `bold ${r(30)}px serif`;
-            ctx.fillText(msg, cx, cy - s(70));
+            ctx.fillStyle = this.roundWon ? '#44ff88' : '#ff3b3b';
+            ctx.font = `${r(36)}px ${theme.titleFont}`;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#000000';
+            ctx.fillText(msg, cx, cy - s(100));
+            ctx.shadowBlur = 0;
         }
 
         // HUD
-        ctx.fillStyle = '#ff4444';
-        ctx.font = `${r(16)}px monospace`;
+        ctx.fillStyle = '#ff3b3b';
+        ctx.font = `${r(16)}px ${theme.titleFont}`;
         ctx.textAlign = 'left';
-        ctx.fillText(`VIDAS: ${'♥'.repeat(this.lives)}`, s(20), s(25));
+        ctx.fillText(`VIDAS:${'♥'.repeat(this.lives)}`, s(20), s(30));
+        
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#ffcc00';
-        ctx.fillText(`PONTOS: ${this.score}`, screenW - s(20), s(25));
+        ctx.fillStyle = theme.accent;
+        ctx.fillText(`PONTOS:${this.score}`, screenW - s(20), s(30));
+        
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#888';
-        ctx.font = `${r(12)}px monospace`;
-        ctx.fillText(`ROUND ${this.round + 1}`, cx, s(25));
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `${r(12)}px ${theme.bodyFont}`;
+        ctx.fillText(`ROUND ${this.round + 1}`, cx, s(70));
 
         ctx.restore();
 
@@ -253,60 +271,109 @@ export class RiscaFacaGame {
 
         // Controls
         if (this.phase !== 'game_over' && !isMobile()) {
-            ctx.fillStyle = '#555';
-            ctx.font = `${r(11)}px monospace`;
+            ctx.fillStyle = theme.textMuted;
+            ctx.font = `${r(11)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
             ctx.fillText('[ESPAÇO] Atacar  |  [ESC] Sair', cx, screenH - s(15));
         }
     }
 
-    private drawNordestino(ctx: CanvasRenderingContext2D, x: number, y: number, s: (v: number) => number, color: string, attacking: boolean) {
+    private drawNordestino(ctx: CanvasRenderingContext2D, x: number, y: number, s: (v: number) => number, color: string, attacking: boolean, dir: 1 | -1) {
         ctx.save();
+        ctx.translate(x, y);
+
+        // Shadow on the ground
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.beginPath();
+        ctx.ellipse(0, s(20), s(16), s(5), 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.scale(dir, 1);
         ctx.fillStyle = color;
 
         // Chapéu de cangaceiro (half-moon hat)
         ctx.beginPath();
-        ctx.arc(x, y - s(50), s(12), Math.PI, 0);
+        ctx.arc(0, -s(50), s(12), Math.PI, 0);
         ctx.fill();
-        ctx.fillRect(x - s(14), y - s(50), s(28), s(5));
+        ctx.fillRect(-s(14), -s(50), s(28), s(5));
 
         // Head
         ctx.beginPath();
-        ctx.arc(x, y - s(38), s(7), 0, Math.PI * 2);
+        ctx.arc(0, -s(38), s(7), 0, Math.PI * 2);
         ctx.fill();
 
         // Body
-        ctx.fillRect(x - s(7), y - s(30), s(14), s(28));
+        ctx.fillRect(-s(7), -s(30), s(14), s(28));
 
         // Legs
-        ctx.fillRect(x - s(6), y - s(2), s(4), s(18));
-        ctx.fillRect(x + s(2), y - s(2), s(4), s(18));
+        ctx.fillRect(-s(6), -s(2), s(4), s(18));
+        ctx.fillRect(s(2), -s(2), s(4), s(18));
 
         // Arm with knife (facão)
         if (attacking) {
             // Extended attack
             ctx.save();
-            ctx.translate(x + s(7), y - s(22));
-            ctx.rotate(-0.3);
-            ctx.fillStyle = '#888';
-            ctx.fillRect(0, 0, s(25), s(3));
-            ctx.fillStyle = '#aa8844';
-            ctx.fillRect(-s(3), -s(1), s(5), s(5));
+            ctx.translate(s(5), -s(22));
+            ctx.rotate(-0.2);
+            
+            // Arm
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, s(12), s(4));
+            
+            // Handle
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(s(12), -s(1), s(6), s(6));
+            
+            // Blade
+            ctx.fillStyle = '#dcdcdc';
+            ctx.beginPath();
+            ctx.moveTo(s(18), 0);
+            ctx.lineTo(s(32), -s(2)); // curved back
+            ctx.lineTo(s(36), s(2));  // pointy tip
+            ctx.lineTo(s(32), s(4));  // sharp edge
+            ctx.lineTo(s(18), s(4));  // base of blade
+            ctx.fill();
+
             // Slash effect
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
             ctx.globalAlpha = 0.6;
             ctx.beginPath();
-            ctx.arc(0, 0, s(20), -0.5, 0.5);
+            // Since we scaled by dir, the arc also needs to work correctly.
+            // Using standard arc drawn outward works fine because scale maps it.
+            ctx.arc(0, 0, s(32), -0.6, 0.4);
             ctx.stroke();
             ctx.globalAlpha = 1;
+
             ctx.restore();
         } else {
-            // Knife at rest
-            ctx.fillStyle = '#888';
-            ctx.fillRect(x + s(7), y - s(25), s(3), s(15));
-            ctx.fillStyle = '#aa8844';
-            ctx.fillRect(x + s(6), y - s(12), s(5), s(4));
+            // At rest (holding facão angled up)
+            ctx.save();
+            ctx.translate(s(5), -s(20));
+            
+            // Arm segment extending forward
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, s(8), s(4)); 
+            
+            // Rotate at the hand to point weapon up and forward
+            ctx.translate(s(8), s(2));
+            ctx.rotate(-1.0); 
+            
+            // Handle
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(-s(3), -s(3), s(6), s(6));
+            
+            // Blade
+            ctx.fillStyle = '#dcdcdc';
+            ctx.beginPath();
+            ctx.moveTo(s(3), -s(2));
+            ctx.lineTo(s(16), -s(4)); // back of blade
+            ctx.lineTo(s(22), 0);     // tip
+            ctx.lineTo(s(16), s(2));  // sharp edge
+            ctx.lineTo(s(3), s(2));   // base
+            ctx.fill();
+            
+            ctx.restore();
         }
 
         ctx.restore();

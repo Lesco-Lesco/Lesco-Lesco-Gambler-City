@@ -118,45 +118,63 @@ export class CasinoScene implements Scene {
         }
 
         const mobile = isMobile();
-        const maxCols = mobile ? 2 : (this.screenW > s(1100) ? 5 : (this.screenW > s(800) ? 4 : 3));
-        const cols = items.length <= maxCols ? items.length : maxCols;
-        this.currentCols = cols;
-
+        const isStation = this.type === 'station';
         const totalItems = items.length;
+
+        // Determinar colunas de forma equilibrada (preenche melhor que o automático anterior)
+        let cols = 3;
+        if (totalItems <= 3) cols = totalItems;
+        else if (totalItems === 4) cols = 2; // 2x2 preenche mais o centro
+        else if (totalItems <= 6) cols = 3; // 3x2
+        else if (totalItems === 7 || totalItems === 8) cols = 4; // 4x2
+        else cols = mobile ? 2 : (this.screenW > s(1100) ? 5 : 4);
+
+        this.currentCols = cols;
         const rows = Math.ceil(totalItems / cols);
 
-        // Máquina proporcional à tela — escala melhor para ocupar o espaço disponível
-        let machineW = Math.min(s(280), (this.screenW / cols) * 0.82);
-        let machineH = machineW * 1.35;
+        // Margens e áreas seguras
+        const marginX = s(mobile ? 20 : 60);
+        const availW = this.screenW - marginX * 2;
+        const availH = this.screenH - s(mobile ? 110 : 150); // Espaço para título e rodapé
 
-        const spacingX = this.screenW / cols;
-        // Espaço vertical seguro: abaixo do HUD (s(60)) e acima do rodapé (s(30))
-        // Melhoramos o uso do espaço vertical disponível
-        const availH = this.screenH - s(130);
+        // Espaçamento e colunas fixas
+        const gapX = s(mobile ? 15 : 30);
+        const gapY = s(mobile ? 30 : 50);
 
-        // Garantia de que as máquinas não estourem o espaço vertical em telas pequenas
-        if (rows * machineH > availH) {
-            const scaleDown = availH / (rows * 1.15 * machineH);
-            machineW *= scaleDown;
-            machineH *= scaleDown;
+        // Tamanho proporcional à largura disponível
+        let machineW = (availW - gapX * (cols - 1)) / cols;
+
+        // Limites de tamanho generosos
+        const maxW = isStation ? s(mobile ? 180 : 260) : s(mobile ? 140 : 220); // 220-260 fits arcade style well
+        machineW = Math.min(machineW, maxW);
+
+        // Aspect ratio fixo para organização
+        let machineH = machineW * (isStation ? 1.2 : 1.35);
+
+        let totalGridH = rows * machineH + (rows - 1) * gapY;
+
+        // Ajuste vertical final se necessário
+        if (totalGridH > availH) {
+            const scale = availH / (totalGridH + s(10));
+            machineW *= scale;
+            machineH *= scale;
+            totalGridH = rows * machineH + (rows - 1) * gapY;
         }
 
-        const spacingY = Math.min(machineH + s(80), availH / rows);
-        const gridH = (rows - 1) * spacingY + machineH;
-        const startY = s(85) + (availH - gridH) / 2;
+        // Ponto inicial Y centrado na área segura
+        const startY = s(mobile ? 85 : 105) + (availH - totalGridH) / 2;
 
         for (let r = 0; r < rows; r++) {
             const itemsInRow = Math.min(cols, totalItems - r * cols);
-            const rowW = (itemsInRow - 1) * spacingX + machineW;
+            const rowW = itemsInRow * machineW + (itemsInRow - 1) * gapX;
             const startX = (this.screenW - rowW) / 2;
 
             for (let c = 0; c < itemsInRow; c++) {
                 const idx = r * cols + c;
-                const mX = startX + c * spacingX;
-                const mY = startY + r * spacingY;
+                const mX = startX + c * (machineW + gapX);
+                const mY = startY + r * (machineH + gapY);
 
                 if (items[idx] === 'slot') {
-                    // Máquina caça-níquel
                     this.machines.push({
                         x: mX, y: mY,
                         width: machineW, height: machineH,
@@ -177,18 +195,19 @@ export class CasinoScene implements Scene {
                 } else if (items[idx] === 'blackjack') {
                     this.machines.push({
                         x: mX, y: mY,
-                        width: machineW * 1.8, height: machineH,
+                        width: machineW, height: machineH,
                         color: '#1a4a1a', glowColor: '#daa520', glowPhase: 0, type: 'blackjack'
                     });
                 } else if (items[idx] === 'poker') {
                     this.machines.push({
                         x: mX, y: mY,
-                        width: machineW * 1.8, height: machineH,
+                        width: machineW, height: machineH,
                         color: '#0a3a0a', glowColor: '#ffee44', glowPhase: 0, type: 'poker'
                     });
                 }
             }
         }
+
 
         // Luzes de teto — suaves, menos saturadas, ritmos variados
         const lightColors: [number, number, number][] = [
@@ -581,10 +600,10 @@ export class CasinoScene implements Scene {
         ctx.shadowBlur = s(20);
         ctx.shadowColor = '#cc44ff';
         ctx.fillStyle = '#ee99ff';
-        ctx.font = `bold ${UIScale.r(mobile ? 14 : 20)}px "Press Start 2P", monospace`;
+        ctx.font = `bold ${UIScale.r(mobile ? 18 : 28)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
         const title = this.type === 'station' ? 'CASSINO DA ESTAÇÃO' : 'CASSINO CLANDESTINO';
-        ctx.fillText(title, cx, s(mobile ? 36 : 48));
+        ctx.fillText(title, cx, s(mobile ? 40 : 65));
         ctx.shadowBlur = 0;
 
         // Máquinas
@@ -687,30 +706,58 @@ export class CasinoScene implements Scene {
                 ctx.fillText(m.theme?.toUpperCase() || '', m.x + m.width / 2, m.y + m.height - s(8));
                 ctx.shadowBlur = 0;
 
-            } else if (m.type === 'blackjack') {
-                // Mesa de Blackjack
-                ctx.fillStyle = '#1a4a1a';
-                ctx.fillRect(m.x, m.y, m.width, m.height);
-                ctx.strokeStyle = m.glowColor;
-                ctx.strokeRect(m.x, m.y, m.width, m.height);
+            } else if (m.type === 'blackjack' || m.type === 'poker') {
+                // ── Mesa de Cartas (Blackjack / Poker) ──
+                const isBlackjack = m.type === 'blackjack';
+                const cardLabel = isBlackjack ? 'BLACKJACK' : 'TEXAS HOLDEM';
+                const cardEmoji = isBlackjack ? '🃏' : '🎴';
 
-                ctx.fillStyle = '#fff';
-                ctx.font = `bold ${UIScale.r(mobile ? 10 : 12)}px "Press Start 2P"`;
-                ctx.fillText('BLACKJACK', m.x + m.width / 2, m.y + s(30));
-                ctx.font = `32px Arial`;
-                ctx.fillText('🃏', m.x + m.width / 2, m.y + m.height * 0.7);
-            } else if (m.type === 'poker') {
-                // Mesa de Poker
-                ctx.fillStyle = '#0a3a0a';
-                ctx.fillRect(m.x, m.y, m.width, m.height);
-                ctx.strokeStyle = m.glowColor;
-                ctx.strokeRect(m.x, m.y, m.width, m.height);
+                // Painel interno escuro (como slots)
+                const scrX = m.x + s(6);
+                const scrY = m.y + s(14);
+                const scrW = m.width - s(12);
+                const scrH = m.height * 0.50;
 
-                ctx.fillStyle = '#fff';
-                ctx.font = `bold ${UIScale.r(10)}px "Press Start 2P"`;
-                ctx.fillText('TEXAS HOLDEM', m.x + m.width / 2, m.y + s(30));
-                ctx.font = `32px Arial`;
-                ctx.fillText('🎴', m.x + m.width / 2, m.y + m.height * 0.7);
+                ctx.fillStyle = '#0a0a1e';
+                ctx.fillRect(scrX, scrY, scrW, scrH);
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = s(1);
+                ctx.strokeRect(scrX, scrY, scrW, scrH);
+
+                // Emoji temático escalado dinamicamente
+                const emojiSize = Math.floor(Math.min(scrH * 0.75, scrW * 0.55));
+                ctx.font = `${emojiSize}px "Segoe UI Emoji", Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 1;
+                ctx.fillText(cardEmoji, scrX + scrW / 2, scrY + scrH / 2);
+                ctx.textBaseline = 'alphabetic';
+
+                // Bolinhas laterais pulsantes
+                for (let side = 0; side < 2; side++) {
+                    const lx = side === 0 ? m.x + s(3) : m.x + m.width - s(3);
+                    for (let b = 0; b < 5; b++) {
+                        const ly = m.y + s(18) + b * (m.height * 0.10);
+                        const bPhase = Math.sin(this.time * 4 + b * 1.2 + side * 1.8 + idx * 0.4) * 0.5 + 0.5;
+                        ctx.fillStyle = bPhase > 0.5 ? m.glowColor : 'rgba(255,255,255,0.2)';
+                        ctx.shadowBlur = bPhase > 0.5 ? s(6) : 0;
+                        ctx.shadowColor = m.glowColor;
+                        ctx.beginPath();
+                        ctx.arc(lx, ly, s(2.5), 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                // Nome do jogo
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowBlur = s(6);
+                ctx.shadowColor = m.glowColor;
+                ctx.font = `bold ${UIScale.r(mobile ? 7 : 9)}px "Press Start 2P", monospace`;
+                ctx.textAlign = 'center';
+                ctx.fillText(cardLabel, m.x + m.width / 2, m.y + m.height - s(8));
+                ctx.shadowBlur = 0;
             } else {
                 // ── Banca do Bicho ──
                 ctx.shadowBlur = s(10);
