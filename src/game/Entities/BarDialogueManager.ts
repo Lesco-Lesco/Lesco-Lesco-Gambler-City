@@ -1,5 +1,6 @@
 import { Camera } from '../Core/Camera';
 import { BARS } from '../World/MapData';
+import { SoundManager } from '../Core/SoundManager';
 
 interface BarState {
     x: number;
@@ -63,6 +64,7 @@ export class BarDialogueManager {
         const randomGeneric = genericMessages[Math.floor(Math.random() * genericMessages.length)];
         bar.activeDialogue = `${randomGeneric}\n"${bar.propaganda}"\nVote ${bar.owner}!`;
         bar.activeTimer = 4.0;
+        SoundManager.getInstance().play('dialogue_bip');
     }
 
     public draw(ctx: CanvasRenderingContext2D, camera: Camera) {

@@ -7,6 +7,7 @@ import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import { SoundManager } from '../Core/SoundManager';
 
 export class RondaUI implements IMinigameUI {
     private game: RondaGame;
@@ -235,12 +236,14 @@ export class RondaUI implements IMinigameUI {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.chooseCard(0);
+                    SoundManager.getInstance().play('card_deal');
                 }
             }
             if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.chooseCard(1);
+                    SoundManager.getInstance().play('card_deal');
                 }
             }
         } else if (this.game.phase === 'result') {
@@ -248,6 +251,7 @@ export class RondaUI implements IMinigameUI {
                 this.hasSettled = true;
             }
             if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+                SoundManager.getInstance().play(this.game.winAmount > 0 ? 'win_small' : 'lose');
                 this.onPlayAgain(this.game.winAmount);
                 this.game.reset();
             }

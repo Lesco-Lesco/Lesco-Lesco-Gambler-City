@@ -4,6 +4,7 @@ import { isMobile } from '../Core/MobileDetect';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
+import { SoundManager } from '../Core/SoundManager';
 
 
 export class DogRacingUI implements IMinigameUI {
@@ -42,13 +43,16 @@ export class DogRacingUI implements IMinigameUI {
                 if (bmanager && bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startRace(this.game.selectedDog, this.game.betAmount);
+                    SoundManager.getInstance().play('bet_place');
                 }
             }
         } else if (this.game.phase === 'racing') {
             this.game.update(dt);
         } else if (this.game.phase === 'result') {
             if (input.wasPressed('Space') || input.wasPressed('Enter')) {
-                this.onPlayAgain(this.game.getPayout());
+                const payout = this.game.getPayout();
+                SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                this.onPlayAgain(payout);
             }
         }
 

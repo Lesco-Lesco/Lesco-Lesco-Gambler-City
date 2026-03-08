@@ -6,6 +6,7 @@ import type { CasinoScene } from '../game/Scenes/CasinoScene';
 import type { GameOverScene } from '../game/Scenes/GameOverScene';
 import { EconomyManager } from '../game/Core/EconomyManager';
 import { UIScale } from '../game/Core/UIScale';
+import { SoundManager } from '../game/Core/SoundManager';
 import MobileControls from './MobileControls';
 import { useState } from 'react';
 
@@ -106,6 +107,21 @@ const GameCanvas = () => {
                     engineRef.current = { loop, renderer, scene, casinoScene: casinoShopping, gameOverScene };
 
                     console.log("Scenes initialized successfully");
+
+                    // Initialize sound system
+                    const sound = SoundManager.getInstance();
+                    sound.init();
+
+                    // Resume AudioContext on first user interaction (browser autoplay policy)
+                    const resumeAudio = () => {
+                        sound.resumeContext();
+                        document.removeEventListener('click', resumeAudio);
+                        document.removeEventListener('keydown', resumeAudio);
+                        document.removeEventListener('touchstart', resumeAudio);
+                    };
+                    document.addEventListener('click', resumeAudio);
+                    document.addEventListener('keydown', resumeAudio);
+                    document.addEventListener('touchstart', resumeAudio);
                 } catch (sceneErr: any) {
                     console.error("Scene Load Error:", sceneErr);
                     throw new Error("Scene Constructor/Module Failed: " + sceneErr.message);

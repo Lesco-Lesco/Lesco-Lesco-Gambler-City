@@ -10,6 +10,7 @@ import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
+import { SoundManager } from '../Core/SoundManager';
 
 export class PurrinhaUI implements IMinigameUI {
     private game: PurrinhaGame;
@@ -36,6 +37,7 @@ export class PurrinhaUI implements IMinigameUI {
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
+                SoundManager.getInstance().play('bet_place');
             }
         } else if (phase === 'choosing') {
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
@@ -46,6 +48,7 @@ export class PurrinhaUI implements IMinigameUI {
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.chooseStones(this.game.selectedStones);
+                SoundManager.getInstance().play('dice_roll');
             }
         } else if (phase === 'guessing') {
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
@@ -62,6 +65,7 @@ export class PurrinhaUI implements IMinigameUI {
         } else if (phase === 'result') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
                 const moneyChange = this.game.settle();
+                SoundManager.getInstance().play(moneyChange > 0 ? 'win_small' : 'lose');
                 this.onPlayAgain(moneyChange);
             }
         }

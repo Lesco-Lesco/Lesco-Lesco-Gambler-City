@@ -11,6 +11,7 @@ import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
+import { SoundManager } from '../Core/SoundManager';
 
 export class DiceUI implements IMinigameUI {
     private game: DiceGame;
@@ -266,7 +267,11 @@ export class DiceUI implements IMinigameUI {
                 if (bmanager.playerMoney >= this.betAmount) {
                     bmanager.playerMoney -= this.betAmount;
                     this.game.startRound(this.humanChoices, this.betAmount);
-                    setTimeout(() => { this.game.resolve(); }, 1500);
+                    SoundManager.getInstance().play('dice_roll');
+                    setTimeout(() => {
+                        this.game.resolve();
+                        SoundManager.getInstance().play(this.game.winner?.isHuman ? 'win_small' : 'lose');
+                    }, 1500);
                 }
             }
         } else if (this.game.phase === 'result') {

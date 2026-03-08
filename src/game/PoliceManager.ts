@@ -1,3 +1,4 @@
+import { SoundManager } from './Core/SoundManager';
 export type PoliceRaidPhase = 'none' | 'interruption' | 'bribed_interruption' | 'gamble_check' | 'double_or_nothing' | 'dice_battle' | 'dice_battle_result' | 'consequence';
 
 export class PoliceManager {
@@ -98,6 +99,7 @@ export class PoliceManager {
             this.currentJoke = this.jokes[Math.floor(Math.random() * this.jokes.length)];
         }
 
+        SoundManager.getInstance().play('police_siren');
         this.raidCooldown = isBribed ? 180 : 60; // 3 minutes for bribed bars (even rarer)
     }
 

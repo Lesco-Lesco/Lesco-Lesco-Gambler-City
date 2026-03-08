@@ -4,6 +4,7 @@ import { isMobile } from '../Core/MobileDetect';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
+import { SoundManager } from '../Core/SoundManager';
 
 export class VideoBingoUI implements IMinigameUI {
     private game: VideoBingoGame;
@@ -30,6 +31,7 @@ export class VideoBingoUI implements IMinigameUI {
                 if (bmanager && bmanager.playerMoney >= 10) {
                     bmanager.playerMoney -= 10;
                     this.game.start();
+                    SoundManager.getInstance().play('bet_place');
                 }
             }
         } else if (this.game.phase === 'picking') {
@@ -44,9 +46,11 @@ export class VideoBingoUI implements IMinigameUI {
             if (input.wasPressed('Space') || input.wasPressed('Enter')) {
                 this.game.selectCard(this.game.selectedCardIndex, 10);
                 this.startDrawing();
+                SoundManager.getInstance().play('bet_place');
             }
         } else if (this.game.phase === 'result') {
             if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+                SoundManager.getInstance().play(this.game.totalPayout > 0 ? 'win_small' : 'lose');
                 this.onPlayAgain(this.game.totalPayout);
             }
         }
@@ -63,7 +67,9 @@ export class VideoBingoUI implements IMinigameUI {
         if (this.drawInterval) clearInterval(this.drawInterval);
         this.drawInterval = setInterval(() => {
             const num = this.game.drawNext();
-            if (num === null) {
+            if (num !== null) {
+                SoundManager.getInstance().play('dice_roll');
+            } else {
                 if (this.drawInterval) clearInterval(this.drawInterval);
             }
         }, 300); // 300ms for a better "revision" experience

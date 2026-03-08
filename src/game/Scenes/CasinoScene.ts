@@ -18,6 +18,7 @@ import { PokerGame } from '../MiniGames/PokerGame';
 import { PokerUI } from '../MiniGames/PokerUI';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import { SoundManager } from '../Core/SoundManager';
 
 /** Objeto visual de uma máquina no cassino (slot ou bicho) */
 interface CasinoMachine {
@@ -241,6 +242,12 @@ export class CasinoScene implements Scene {
         this.slotResult = null;
         this.bichoMessage = '';
 
+        // Sound: casino ambient
+        const sm = SoundManager.getInstance();
+        sm.fadeOutLoop('ambient_night', 500);
+        sm.playLoop('ambient_casino');
+        sm.play('door_enter');
+
         // Reset minigames on re-entry to avoid stale state (like mid-game bets from previous lives)
         if (this.blackjack) this.blackjack.game.reset();
         if (this.poker) this.poker.game.reset();
@@ -248,6 +255,9 @@ export class CasinoScene implements Scene {
 
     public onExit() {
         this.input.popContext();
+        const sm = SoundManager.getInstance();
+        sm.fadeOutLoop('ambient_casino', 500);
+        sm.play('door_exit');
     }
 
     public update(dt: number) {
@@ -358,17 +368,22 @@ export class CasinoScene implements Scene {
         const cols = this.currentCols;
         if (this.input.wasPressed('ArrowRight') || this.input.wasPressed('KeyD')) {
             this.selectedMachine = Math.min(this.selectedMachine + 1, this.machines.length - 1);
+            SoundManager.getInstance().play('menu_select');
         }
         if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
             this.selectedMachine = Math.max(this.selectedMachine - 1, 0);
+            SoundManager.getInstance().play('menu_select');
         }
         if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
             this.selectedMachine = Math.min(this.selectedMachine + cols, this.machines.length - 1);
+            SoundManager.getInstance().play('menu_select');
         }
         if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
             this.selectedMachine = Math.max(this.selectedMachine - cols, 0);
+            SoundManager.getInstance().play('menu_select');
         }
         if (this.input.wasPressed('KeyE') || this.input.wasPressed('Enter')) {
+            SoundManager.getInstance().play('menu_confirm');
             const m = this.machines[this.selectedMachine];
             if (m.type === 'bicho') {
                 this.state = 'bicho';
@@ -402,8 +417,16 @@ export class CasinoScene implements Scene {
                 this.slotResult = this.slotMachine.spin(this.slotBet, theme);
                 this.slotReels = this.slotResult.reels;
                 bmanager.playerMoney += this.slotResult.payout;
+                SoundManager.getInstance().play('slot_stop');
                 if (this.slotResult.payout > 0) {
                     this.spawnWinParticles(this.screenW / 2, this.screenH / 2);
+                    if (this.slotResult.isJackpot) {
+                        SoundManager.getInstance().play('slot_jackpot');
+                    } else {
+                        SoundManager.getInstance().play('win_small');
+                    }
+                } else {
+                    SoundManager.getInstance().play('lose');
                 }
             }
         } else {
@@ -423,6 +446,7 @@ export class CasinoScene implements Scene {
                 this.slotSpinning = true;
                 this.slotSpinTimer = 1.5;
                 this.slotResult = null;
+                SoundManager.getInstance().play('slot_spin');
             }
         }
 
@@ -451,6 +475,7 @@ export class CasinoScene implements Scene {
                 const animalName = JogoDoBicho.ANIMALS[this.bichoSelectedAnimal].name;
                 this.bichoMessage = `Apostou R$${this.bichoBet} no ${animalName}!`;
                 this.bichoPendingBets.push({ animal: this.bichoSelectedAnimal, amount: this.bichoBet });
+                SoundManager.getInstance().play('bet_place');
             } else {
                 this.bichoMessage = 'Dinheiro insuficiente!';
             }

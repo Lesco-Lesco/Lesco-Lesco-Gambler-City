@@ -6,6 +6,7 @@ import { BichoManager } from '../BichoManager';
 import { isMobile } from '../Core/MobileDetect';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import { SoundManager } from '../Core/SoundManager';
 
 export class BlackjackUI implements IMinigameUI {
     private game: BlackjackGame;
@@ -35,6 +36,7 @@ export class BlackjackUI implements IMinigameUI {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.deal();
+                    SoundManager.getInstance().play('card_deal');
                 } else {
                     bmanager.addNotification("Saldo insuficiente!", 2);
                 }
@@ -42,13 +44,18 @@ export class BlackjackUI implements IMinigameUI {
         } else if (this.game.phase === 'playing') {
             const hit = this.input.wasPressed('KeyH') || (mobile && this.input.wasPressed('Space'));
             const stand = this.input.wasPressed('KeyS') || (mobile && this.input.wasPressed('ArrowUp')); // Using D-pad Up for Stand
-            if (hit) this.game.hit();
+            if (hit) { this.game.hit(); SoundManager.getInstance().play('card_flip'); }
             if (stand) this.game.stand();
         } else if (this.game.phase === 'result') {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
                 const payout = this.game.betAmount + profit;
-                if (payout > 0) bmanager.playerMoney += payout;
+                if (payout > 0) {
+                    bmanager.playerMoney += payout;
+                    SoundManager.getInstance().play(this.game.winner === 'push' ? 'draw' : 'win_small');
+                } else {
+                    SoundManager.getInstance().play('lose');
+                }
                 this.game.reset();
             }
         }

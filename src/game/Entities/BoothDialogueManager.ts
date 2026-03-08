@@ -1,4 +1,5 @@
 import { Camera } from '../Core/Camera';
+import { SoundManager } from '../Core/SoundManager';
 
 interface Booth {
     x: number;
@@ -67,6 +68,7 @@ export class BoothDialogueManager {
                     const readTime = 2.5 + (line.length * 0.05);
                     b.activeTimer = readTime;
                     b.scriptDelayCallback = readTime + 1.0;
+                    SoundManager.getInstance().play('dialogue_bip');
                 }
             }
             return;

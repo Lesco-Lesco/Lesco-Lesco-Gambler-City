@@ -8,6 +8,7 @@ import { UIScale } from '../Core/UIScale';
 import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { SoundManager } from '../Core/SoundManager';
 
 export class FaroesteGame {
     public lives = 3;
@@ -71,6 +72,7 @@ export class FaroesteGame {
                 this.phase = 'result';
                 this.resultTimer = 2.0;
                 this.gameOverPhrase = getMotivationalPhrase();
+                SoundManager.getInstance().play('lose');
                 return;
             }
             if (this.waitTimer <= 0) {
@@ -85,6 +87,7 @@ export class FaroesteGame {
             if (!this.playerDrew && (input.wasPressed('Space') || input.wasPressed('KeyE'))) {
                 this.playerDrew = true;
                 this.playerDrawTime = this.drawTimer;
+                SoundManager.getInstance().play('arcade_shoot');
             }
 
             // Check if draw window expired
@@ -120,9 +123,13 @@ export class FaroesteGame {
             this.roundWon = false;
             this.lives--;
             this.gameOverPhrase = getMotivationalPhrase();
+            SoundManager.getInstance().play('lose');
         }
         this.phase = 'result';
         this.resultTimer = 2.5;
+        if (this.roundWon) {
+            SoundManager.getInstance().play('win_small');
+        }
     }
 
     public reset() {

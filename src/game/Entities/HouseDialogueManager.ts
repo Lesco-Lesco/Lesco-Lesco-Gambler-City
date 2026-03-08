@@ -2,6 +2,7 @@
 import { TileMap } from '../World/TileMap';
 import { Camera } from '../Core/Camera';
 import { MAP_WIDTH, MAP_HEIGHT, TILE_TYPES } from '../World/MapData';
+import { SoundManager } from '../Core/SoundManager';
 
 interface House {
     x: number;
@@ -159,6 +160,9 @@ export class HouseDialogueManager {
                         // Time to read: 2s base + 0.1s per character
                         const readTime = 2.0 + (line.length * 0.05);
                         house.activeTimer = readTime;
+
+                        // Sound trigger: Play bip when a new line appears
+                        SoundManager.getInstance().play('dialogue_bip');
 
                         // Delay before NEXT line: readTime + small pause
                         house.scriptDelayCallback = readTime + 0.5 + Math.random() * 1.0;

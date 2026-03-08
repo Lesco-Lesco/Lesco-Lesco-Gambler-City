@@ -55,6 +55,7 @@ import { RiscaFacaGame } from '../ArcadeGames/RiscaFacaGame';
 import { SinucaGame } from '../ArcadeGames/SinucaGame';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import { SoundManager } from '../Core/SoundManager';
 
 export class ExplorationScene implements Scene {
     public name = 'exploration';
@@ -119,6 +120,11 @@ export class ExplorationScene implements Scene {
     private policeBattleRolls: { player: number, police: number } | null = null;
     private policeBattleTimer: number = 0;
     private wasInHighRiskArea: boolean = false;
+    private footstepTimer: number = 0;
+    private musicCooldown: number = 60; // Start with 1 min cooldown
+    private distanceSinceLastMusic: number = 0;
+    private lastPlayerTileX: number = 0;
+    private lastPlayerTileY: number = 0;
 
     // Zoom Stages (6 stages: 0.5x to 3.0x)
     private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
@@ -220,9 +226,13 @@ export class ExplorationScene implements Scene {
 
     public onEnter() {
         // Called when switching to this scene
+        const sm = SoundManager.getInstance();
+        sm.stopLoop('ambient_casino');
+        sm.playLoop('ambient_night');
     }
 
     public update(dt: number) {
+        this.updateMusic(dt);
         BichoManager.getInstance().update(dt);
         const bmanager = BichoManager.getInstance();
         const pm = PoliceManager.getInstance();
@@ -422,6 +432,17 @@ export class ExplorationScene implements Scene {
         // Player
         this.player.update(dt, this.tileMap);
         this.camera.follow(this.player.x, this.player.y, dt);
+
+        // Footstep sounds when walking
+        if (this.player.isMoving) {
+            this.footstepTimer -= dt;
+            if (this.footstepTimer <= 0) {
+                SoundManager.getInstance().play('footstep');
+                this.footstepTimer = this.player.isRunning ? 0.22 : 0.35;
+            }
+        } else {
+            this.footstepTimer = 0;
+        }
         this.camera.update(dt);
 
         // NPCs
@@ -489,6 +510,46 @@ export class ExplorationScene implements Scene {
         }
     }
 
+    private updateMusic(dt: number) {
+        if (this.musicCooldown > 0) {
+            this.musicCooldown -= dt;
+        }
+
+        const tx = Math.floor(this.player.x);
+        const ty = Math.floor(this.player.y);
+
+        // Distance tracking for "Long Walk" trigger
+        if (tx !== this.lastPlayerTileX || ty !== this.lastPlayerTileY) {
+            const dist = Math.sqrt((tx - this.lastPlayerTileX) ** 2 + (ty - this.lastPlayerTileY) ** 2);
+            this.distanceSinceLastMusic += dist;
+            this.lastPlayerTileX = tx;
+            this.lastPlayerTileY = ty;
+
+            // Trigger music after ~150-200 tiles of walking (clinical feel)
+            if (this.musicCooldown <= 0 && this.distanceSinceLastMusic > 150 + Math.random() * 100) {
+                this.playRandomMusicMotif();
+            }
+        }
+    }
+
+    private playRandomMusicMotif() {
+        if (this.musicCooldown > 0) return;
+
+        const trackNum = Math.floor(Math.random() * 9) + 1;
+        const trackName = `music_${trackNum}` as any;
+        
+        // Periphery check for volume boost
+        const isPeriphery = PoliceManager.getInstance().isPeriphery(this.player.x, this.player.y);
+        const volume = isPeriphery ? 0.4 : 0.22;
+
+        console.log(`🎵 Playing clinical music motif: ${trackName} (Volume: ${volume})`);
+        SoundManager.getInstance().play(trackName, { volume });
+
+        // Cooldown: 3 to 6 minutes of silence (classic Sim City feel)
+        this.musicCooldown = 180 + Math.random() * 180;
+        this.distanceSinceLastMusic = 0;
+    }
+
     private updatePoliceRaid(dt: number) {
         const pm = PoliceManager.getInstance();
         const bmanager = BichoManager.getInstance();
@@ -499,11 +560,13 @@ export class ExplorationScene implements Scene {
 
         if (pm.phase === 'interruption' || pm.phase === 'bribed_interruption') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
+                SoundManager.getInstance().play('menu_confirm');
                 if (pm.phase === 'bribed_interruption') {
                     pm.phase = 'none';
                     this.exitMinigame();
                 } else {
                     pm.phase = 'gamble_check';
+                    SoundManager.getInstance().play('police_whistle');
                 }
             }
         } else if (pm.phase === 'gamble_check') {
@@ -515,6 +578,7 @@ export class ExplorationScene implements Scene {
                     bmanager.playerMoney -= 150;
                     pm.phase = 'dice_battle';
                     this.policeBattleTimer = 2.0; // 2 seconds of "rolling"
+                    SoundManager.getInstance().play('dice_roll');
                     this.policeBattleRolls = {
                         player: Math.floor(Math.random() * 6) + 1,
                         police: Math.floor(Math.random() * 6) + 1
@@ -528,6 +592,7 @@ export class ExplorationScene implements Scene {
                     bmanager.playerMoney -= cost;
                     pm.currentJoke = pm.getRandomSarcasticComment();
                     pm.phase = 'consequence';
+                    SoundManager.getInstance().play('coin_loss');
                 } else {
                     bmanager.addNotification("Você está quebrado demais até para propina!", 3);
                     pm.phase = 'interruption'; // Go back or just stay there? Let's just stay or maybe police gets angry?
@@ -543,8 +608,10 @@ export class ExplorationScene implements Scene {
                 if (win) {
                     bmanager.playerMoney += 300; // 150 bet + 150 reward
                     pm.currentJoke = "Sorte de principiante... Pega esse dinheiro e some da minha frente!";
+                    SoundManager.getInstance().play('win_small');
                 } else {
                     pm.currentJoke = "Eu avisei que a banca do Estado nunca perde. Agora tchau!";
+                    SoundManager.getInstance().play('lose');
                 }
             }
         } else if (pm.phase === 'dice_battle_result') {
@@ -562,6 +629,7 @@ export class ExplorationScene implements Scene {
 
     private handleMinigameExit(game?: any, payout: number = 0) {
         const bmanager = BichoManager.getInstance();
+        const sm = SoundManager.getInstance();
         if (game) {
             // Se saiu no meio da partida (já tinha apostado e não terminou)
             // No Bingo, 'picking' também conta como partida iniciada após pagar
@@ -577,8 +645,15 @@ export class ExplorationScene implements Scene {
                     bmanager.playerMoney -= game.betAmount;
                 }
                 bmanager.addNotification(`Partida abandonada! Perdeu R$${game.betAmount}.`, 4);
+                sm.play('coin_loss');
             }
-            if (payout !== 0) bmanager.playerMoney += payout;
+            if (payout > 0) {
+                bmanager.playerMoney += payout;
+                sm.play('coin_gain');
+            } else if (payout < 0) {
+                bmanager.playerMoney += payout;
+                sm.play('coin_loss');
+            }
         }
         this.exitMinigame();
     }
@@ -629,6 +704,7 @@ export class ExplorationScene implements Scene {
         if (isAtEntrance) {
             this.player.nearbyInteraction = '▶ E - Entrar no Subsolo';
             if (this.input.wasPressed('KeyE')) {
+                SoundManager.getInstance().play('door_enter');
                 const isStation = this.player.x > 200; // Station is roughly at x=242
                 if (this.onEnterCasino) this.onEnterCasino(isStation ? 'station' : 'shopping');
                 return;
@@ -649,6 +725,7 @@ export class ExplorationScene implements Scene {
         if (nearBar) {
             this.player.nearbyInteraction = `▶ E - Entrar no ${nearBar.name}`;
             if (this.input.wasPressed('KeyE')) {
+                SoundManager.getInstance().play('door_enter');
                 this.startBarActivities(nearBar);
                 return;
             }
@@ -668,6 +745,7 @@ export class ExplorationScene implements Scene {
         if (nearArcade) {
             this.player.nearbyInteraction = `▶ E - Entrar no ${nearArcade.name}`;
             if (this.input.wasPressed('KeyE')) {
+                SoundManager.getInstance().play('door_enter');
                 this.startArcadeActivities(nearArcade);
                 return;
             }
@@ -685,6 +763,7 @@ export class ExplorationScene implements Scene {
                 this.player.nearbyInteraction = `▶ E - Jogar ${gameDisplay}`;
 
                 if (this.input.wasPressed('KeyE')) {
+                    SoundManager.getInstance().play('menu_confirm');
                     if (type === 'purrinha') this.startPurrinha();
                     else if (type === 'dice') this.startDice();
                     else if (type === 'ronda') this.startRonda();
@@ -935,17 +1014,30 @@ export class ExplorationScene implements Scene {
             this.activeMinigame = 'none';
             this.arcadeCredits = 0;
             this.input.popContext();
+            if (this.musicCooldown <= 0 && Math.random() < 0.3) {
+                this.playRandomMusicMotif();
+            }
         }
     }
 
     private startHorseRacing() {
         this.activeMinigame = 'horse_racing';
         this.input.pushContext('minigame');
+        const bmanager = BichoManager.getInstance();
         this.horseRacingUI = new HorseRacingUI(
             this.horseRacingGame,
-            (p) => this.handleMinigameExit(this.horseRacingGame, p),
             (p) => {
-                if (p > 0) BichoManager.getInstance().playerMoney += p;
+                const hadChange = this.activeMinigame !== 'none';
+                this.handleMinigameExit(this.horseRacingGame, p);
+                if (hadChange && this.activeMinigame === 'none' && this.musicCooldown <= 0 && Math.random() < 0.3) {
+                    this.playRandomMusicMotif();
+                }
+            },
+            (payout) => {
+                if (payout > 0) {
+                    bmanager.playerMoney += payout;
+                    SoundManager.getInstance().play('coin_gain');
+                }
                 this.horseRacingGame.reset();
             }
         );
@@ -954,11 +1046,21 @@ export class ExplorationScene implements Scene {
     private startDogRacing() {
         this.activeMinigame = 'dog_racing';
         this.input.pushContext('minigame');
+        const bmanager = BichoManager.getInstance();
         this.dogRacingUI = new DogRacingUI(
             this.dogRacingGame,
-            (p) => this.handleMinigameExit(this.dogRacingGame, p),
             (p) => {
-                if (p > 0) BichoManager.getInstance().playerMoney += p;
+                const hadChange = this.activeMinigame !== 'none';
+                this.handleMinigameExit(this.dogRacingGame, p);
+                if (hadChange && this.activeMinigame === 'none' && this.musicCooldown <= 0 && Math.random() < 0.3) {
+                    this.playRandomMusicMotif();
+                }
+            },
+            (payout) => {
+                if (payout > 0) {
+                    bmanager.playerMoney += payout;
+                    SoundManager.getInstance().play('coin_gain');
+                }
                 this.dogRacingGame.reset();
             }
         );
@@ -967,11 +1069,21 @@ export class ExplorationScene implements Scene {
     private startVideoBingo() {
         this.activeMinigame = 'video_bingo';
         this.input.pushContext('minigame');
+        const bmanager = BichoManager.getInstance();
         this.videoBingoUI = new VideoBingoUI(
             this.videoBingoGame,
-            (p) => this.handleMinigameExit(this.videoBingoGame, p),
             (p) => {
-                if (p > 0) BichoManager.getInstance().playerMoney += p;
+                const hadChange = this.activeMinigame !== 'none';
+                this.handleMinigameExit(this.videoBingoGame, p);
+                if (hadChange && this.activeMinigame === 'none' && this.musicCooldown <= 0 && Math.random() < 0.3) {
+                    this.playRandomMusicMotif();
+                }
+            },
+            (payout) => {
+                if (payout > 0) {
+                    bmanager.playerMoney += payout;
+                    SoundManager.getInstance().play('coin_gain');
+                }
                 this.videoBingoGame.reset();
             }
         );

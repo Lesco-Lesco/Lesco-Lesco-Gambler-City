@@ -6,6 +6,7 @@ import { UIScale } from '../Core/UIScale';
 import { BichoManager } from '../BichoManager';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import { SoundManager } from '../Core/SoundManager';
 import type { IMinigameUI } from './BaseMinigame';
 
 export class JokenpoUI implements IMinigameUI {
@@ -34,6 +35,7 @@ export class JokenpoUI implements IMinigameUI {
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
+                SoundManager.getInstance().play('bet_place');
             }
         } else if (phase === 'choosing') {
             if (this.input.wasPressed('Digit1') || (this.game.playerChoice === 'rock' && (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')))) {
@@ -62,7 +64,9 @@ export class JokenpoUI implements IMinigameUI {
         } else if (phase === 'result') {
             const canPlayAgain = BichoManager.getInstance().playerMoney + this.game.settle() >= this.game.minBet;
             if (canPlayAgain && (this.input.wasPressed('Space') || this.input.wasPressed('KeyR'))) {
-                this.onPlayAgain(this.game.settle());
+                const payout = this.game.settle();
+                SoundManager.getInstance().play(payout > 0 ? 'win_small' : (payout < 0 ? 'lose' : 'draw'));
+                this.onPlayAgain(payout);
                 this.showdownTimer = 0;
             } else if (!canPlayAgain && (this.input.wasPressed('Space') || this.input.wasPressed('KeyR'))) {
                 // Flash money or show notification? ExplorationScene handles notifications.

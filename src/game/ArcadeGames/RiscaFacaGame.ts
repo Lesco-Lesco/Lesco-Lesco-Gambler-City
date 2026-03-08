@@ -9,6 +9,7 @@ import { UIScale } from '../Core/UIScale';
 import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
+import { SoundManager } from '../Core/SoundManager';
 export class RiscaFacaGame {
     public lives = 3;
     public score = 0;
@@ -78,6 +79,7 @@ export class RiscaFacaGame {
             if (input.wasPressed('Space') || input.wasPressed('KeyE')) {
                 this.playerTiming = this.markerPos;
                 this.resolveRound();
+                SoundManager.getInstance().play('arcade_hit');
             }
         } else if (this.phase === 'result') {
             this.resultTimer -= dt;
@@ -104,9 +106,13 @@ export class RiscaFacaGame {
             this.lives--;
             this.shakeTimer = 0.5;
             this.gameOverPhrase = getMotivationalPhrase();
+            SoundManager.getInstance().play('lose');
         }
         this.phase = 'result';
         this.resultTimer = 2.0;
+        if (this.roundWon) {
+            SoundManager.getInstance().play('win_small');
+        }
     }
 
     public reset() {

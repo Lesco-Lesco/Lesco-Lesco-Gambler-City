@@ -6,6 +6,7 @@ import { BichoManager } from '../BichoManager';
 import { isMobile } from '../Core/MobileDetect';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import { SoundManager } from '../Core/SoundManager';
 
 export class PokerUI implements IMinigameUI {
     private game: PokerGame;
@@ -32,6 +33,8 @@ export class PokerUI implements IMinigameUI {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startMatch();
                     this.pendingRaise = 0;
+                    SoundManager.getInstance().play('bet_place');
+                    SoundManager.getInstance().play('card_deal');
                 } else {
                     bmanager.addNotification("Saldo insuficiente para aposta mínima!", 2);
                 }
@@ -40,7 +43,12 @@ export class PokerUI implements IMinigameUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
                 const payout = humanCurrentBet() + profit;
-                if (payout > 0) bmanager.playerMoney += payout;
+                if (payout > 0) {
+                    bmanager.playerMoney += payout;
+                    SoundManager.getInstance().play('win_small');
+                } else if (payout < 0 || profit < 0) {
+                    SoundManager.getInstance().play('lose');
+                }
                 this.game.reset();
             }
         } else {
@@ -69,10 +77,12 @@ export class PokerUI implements IMinigameUI {
                         }
                     }
                     this.game.nextPhase();
+                    SoundManager.getInstance().play('card_deal');
                 }
             } else {
                 if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                     this.game.nextPhase();
+                    SoundManager.getInstance().play('card_deal');
                 }
             }
         }

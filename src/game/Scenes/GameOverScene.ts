@@ -1,6 +1,7 @@
 import type { Scene } from '../Core/Loop';
 import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
+import { SoundManager } from '../Core/SoundManager';
 
 export class GameOverScene implements Scene {
     public name = 'gameover';
@@ -35,11 +36,15 @@ export class GameOverScene implements Scene {
     public onEnter() {
         this.pickRandomPhrase();
         this.time = 0;
+        const sm = SoundManager.getInstance();
+        sm.stopAll();
+        sm.play('game_over');
     }
 
     public update(dt: number) {
         this.time += dt;
         if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
+            SoundManager.getInstance().play('game_start');
             if (this.onRestart) this.onRestart();
         }
     }

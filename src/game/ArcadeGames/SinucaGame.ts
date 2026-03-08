@@ -15,6 +15,7 @@ import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
 import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
+import { SoundManager } from '../Core/SoundManager';
 
 interface Ball {
     x: number;
@@ -196,6 +197,7 @@ export class SinucaGame {
         this.phase = 'moving';
         this.pocketedThisShot = [];
         this.cueBallSunk = false;
+        SoundManager.getInstance().play('arcade_bounce');
     }
 
     private resolveShot() {
@@ -297,12 +299,14 @@ export class SinucaGame {
             this.score += 500;
             this.phase = 'game_over';
             this.gameOverPhrase = 'Campeão da mesa! Mandou muito bem!';
+            SoundManager.getInstance().play('win_small');
             return true;
         }
         if (playerAlive === 0) {
             // All player balls pocketed → AI wins
             this.phase = 'game_over';
             this.gameOverPhrase = getMotivationalPhrase();
+            SoundManager.getInstance().play('lose');
             return true;
         }
         return false;
@@ -322,10 +326,10 @@ export class SinucaGame {
                 b.vy *= this.friction;
 
                 // Wall bounce
-                if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.9; }
-                if (b.x + b.r > this.tableW) { b.x = this.tableW - b.r; b.vx = -Math.abs(b.vx) * 0.9; }
-                if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy) * 0.9; }
-                if (b.y + b.r > this.tableH) { b.y = this.tableH - b.r; b.vy = -Math.abs(b.vy) * 0.9; }
+                if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.9; SoundManager.getInstance().play('arcade_bounce', { volume: 0.3 }); }
+                if (b.x + b.r > this.tableW) { b.x = this.tableW - b.r; b.vx = -Math.abs(b.vx) * 0.9; SoundManager.getInstance().play('arcade_bounce', { volume: 0.3 }); }
+                if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy) * 0.9; SoundManager.getInstance().play('arcade_bounce', { volume: 0.3 }); }
+                if (b.y + b.r > this.tableH) { b.y = this.tableH - b.r; b.vy = -Math.abs(b.vy) * 0.9; SoundManager.getInstance().play('arcade_bounce', { volume: 0.3 }); }
             }
 
             // Ball-ball collisions
@@ -359,6 +363,7 @@ export class SinucaGame {
                             a.vy -= dot * ny;
                             b.vx += dot * nx;
                             b.vy += dot * ny;
+                            SoundManager.getInstance().play('arcade_bounce', { volume: 0.4 });
                         }
                     }
                 }
@@ -380,6 +385,7 @@ export class SinucaGame {
                         } else {
                             this.pocketedThisShot.push(b);
                         }
+                        SoundManager.getInstance().play('arcade_hit');
                     }
                 }
             }

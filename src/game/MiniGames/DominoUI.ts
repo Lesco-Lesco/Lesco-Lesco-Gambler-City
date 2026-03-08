@@ -6,6 +6,7 @@ import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
+import { SoundManager } from '../Core/SoundManager';
 
 export class DominoUI implements IMinigameUI {
     private game: DominoGame;
@@ -38,6 +39,7 @@ export class DominoUI implements IMinigameUI {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startRound(this.game.betAmount);
+                    SoundManager.getInstance().play('bet_place');
                 }
             }
         } else if (this.game.phase === 'playing') {
@@ -57,7 +59,10 @@ export class DominoUI implements IMinigameUI {
                 if (input.wasPressed('Space') || input.wasPressed('Enter')) {
                     if (player.hand.length > 0) {
                         const success = this.game.playPiece(humanIndex, this.selectedPieceIndex, this.selectedSide);
-                        if (success) this.selectedPieceIndex = 0;
+                        if (success) {
+                            this.selectedPieceIndex = 0;
+                            SoundManager.getInstance().play('dice_roll');
+                        }
                     }
                 }
                 if (input.wasPressed('KeyC')) {
@@ -73,6 +78,7 @@ export class DominoUI implements IMinigameUI {
             }
             if (input.wasPressed('Space') || input.wasPressed('Enter')) {
                 const win = this.game.winner?.isHuman ? this.game.betAmount * 3 : 0;
+                SoundManager.getInstance().play(win > 0 ? 'win_small' : 'lose');
                 this.onPlayAgain(win);
                 this.game.reset();
             }

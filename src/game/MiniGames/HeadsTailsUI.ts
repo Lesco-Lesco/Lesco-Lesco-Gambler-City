@@ -5,6 +5,7 @@ import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
+import { SoundManager } from '../Core/SoundManager';
 
 
 export class HeadsTailsUI implements IMinigameUI {
@@ -42,12 +43,15 @@ export class HeadsTailsUI implements IMinigameUI {
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.chooseSide(this.game.humanChoice);
+                SoundManager.getInstance().play('coin_flip');
             }
         } else if (phase === 'flipping') {
             this.game.update(dt);
         } else if (phase === 'result') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
-                this.onPlayAgain(this.game.settle());
+                const payout = this.game.settle();
+                SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                this.onPlayAgain(payout);
             }
         }
 

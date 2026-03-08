@@ -7,6 +7,7 @@ import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
 import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
+import { SoundManager } from '../Core/SoundManager';
 
 interface Enemy {
     x: number;
@@ -194,6 +195,7 @@ export class TankAttackGame {
             }
             this.bullets.push({ x: this.tankX, y: this.tankY, vx: bvx, vy: bvy, alive: true });
             this.shootCooldown = 0.2;
+            SoundManager.getInstance().play('arcade_shoot');
         }
 
         // Spawn enemies
@@ -255,10 +257,10 @@ export class TankAttackGame {
                 const bdx = b.x - e.x;
                 const bdy = b.y - e.y;
                 if (bdx * bdx + bdy * bdy < 15 * 15) {
-                    e.alive = false;
                     b.alive = false;
                     this.score += 50;
                     this.explosions.push({ x: e.x, y: e.y, timer: 0.4 });
+                    SoundManager.getInstance().play('arcade_explosion', { volume: 0.5 });
                 }
             }
 
@@ -277,8 +279,10 @@ export class TankAttackGame {
                         e.alive = false;
                         this.phase = 'game_over';
                         this.gameOverPhrase = getMotivationalPhrase();
+                        SoundManager.getInstance().play('lose');
                     } else {
                         // Player survived, but lost a life. Nuke the screen to give breathing room!
+                        SoundManager.getInstance().play('arcade_explosion', { volume: 1.0 });
                         for (const enemy of this.enemies) {
                             if (enemy.alive) {
                                 enemy.alive = false;

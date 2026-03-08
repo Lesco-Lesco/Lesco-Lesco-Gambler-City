@@ -8,6 +8,7 @@ import { InputManager } from '../Core/InputManager';
 import { UIScale } from '../Core/UIScale';
 import { isMobile } from '../Core/MobileDetect';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
+import { SoundManager } from '../Core/SoundManager';
 
 export class AirPongGame {
     // Field
@@ -74,6 +75,7 @@ export class AirPongGame {
                 if (this.aiGoals >= 5) {
                     this.phase = 'game_over';
                     this.gameOverPhrase = getMotivationalPhrase();
+                    SoundManager.getInstance().play('lose');
                 } else {
                     this.phase = 'playing';
                     this.resetDisc();
@@ -123,11 +125,13 @@ export class AirPongGame {
             this.discY = this.discR;
             this.discVY = Math.abs(this.discVY);
             this.applyBounceSpeedup(0.005); // very subtle on walls
+            SoundManager.getInstance().play('arcade_bounce');
         }
         if (this.discY + this.discR > this.fieldH) {
             this.discY = this.fieldH - this.discR;
             this.discVY = -Math.abs(this.discVY);
             this.applyBounceSpeedup(0.005);
+            SoundManager.getInstance().play('arcade_bounce');
         }
 
         // Paddle collision (left - player)
@@ -142,6 +146,7 @@ export class AirPongGame {
             this.applyBounceSpeedup(0.02); // noticeable on paddle hits
             this.discVX = Math.cos(angle) * this.discSpeed;
             this.discVY = Math.sin(angle) * this.discSpeed;
+            SoundManager.getInstance().play('arcade_hit');
         }
 
         // Paddle collision (right - AI)
@@ -156,6 +161,7 @@ export class AirPongGame {
             this.applyBounceSpeedup(0.02);
             this.discVX = Math.cos(angle) * this.discSpeed;
             this.discVY = Math.sin(angle) * this.discSpeed;
+            SoundManager.getInstance().play('arcade_hit');
         }
 
         // Goals
@@ -164,6 +170,7 @@ export class AirPongGame {
             this.lastScorer = 'ai';
             this.phase = 'goal';
             this.goalTimer = 1.5;
+            SoundManager.getInstance().play('arcade_hit');
         }
         if (this.discX > this.fieldW) {
             this.playerGoals++;
@@ -171,6 +178,7 @@ export class AirPongGame {
             this.lastScorer = 'player';
             this.phase = 'goal';
             this.goalTimer = 1.5;
+            SoundManager.getInstance().play('win_small');
             // AI gets harder with each player goal
             this.aiSpeed = Math.min(this.aiBaseSpeed + this.playerGoals * 30, this.aiMaxSpeed);
             this.aiReactionDelay = Math.max(0.15 - this.playerGoals * 0.015, 0.03);

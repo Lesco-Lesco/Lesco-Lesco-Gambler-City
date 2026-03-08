@@ -1,5 +1,6 @@
 import { Camera } from '../Core/Camera';
 import { ARCADES } from '../World/MapData';
+import { SoundManager } from '../Core/SoundManager';
 
 interface ArcadeState {
     x: number;
@@ -58,6 +59,7 @@ export class ArcadeDialogueManager {
         const phrase = arcade.phrases[Math.floor(Math.random() * arcade.phrases.length)];
         arcade.activeDialogue = phrase;
         arcade.activeTimer = 3.5;
+        SoundManager.getInstance().play('dialogue_bip');
     }
 
     public draw(ctx: CanvasRenderingContext2D, camera: Camera) {

@@ -4,6 +4,7 @@ import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
+import { SoundManager } from '../Core/SoundManager';
 import type { IMinigameUI } from './BaseMinigame';
 
 export class PalitinhoUI implements IMinigameUI {
@@ -33,6 +34,7 @@ export class PalitinhoUI implements IMinigameUI {
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
+                SoundManager.getInstance().play('bet_place');
             }
         } else if (phase === 'choosing') {
             if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
@@ -43,10 +45,13 @@ export class PalitinhoUI implements IMinigameUI {
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
                 this.game.chooseMatchstick(this.selectedIdx);
+                SoundManager.getInstance().play('dice_roll'); // "Pick" sound
             }
         } else if (phase === 'result') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
-                this.onPlayAgain(this.game.settle());
+                const payout = this.game.settle();
+                SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                this.onPlayAgain(payout);
             }
         }
 
