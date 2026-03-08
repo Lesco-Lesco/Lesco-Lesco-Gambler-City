@@ -179,12 +179,22 @@ export class PurrinhaUI implements IMinigameUI {
 
             // Visual State: Stones or Hidden
             if (isRevealed || isResult) {
-                ctx.fillStyle = '#fff';
-                ctx.font = `${Math.floor(cardH * 0.28)}px Arial`;
-                ctx.fillText('🪨'.repeat(p.stones) || '✕', 0, cardH * 0.72);
+                const stoneSize = cardH * 0.18;
+                const totalW = p.stones * stoneSize + (p.stones - 1) * s(4);
+                let startX = -totalW / 2 + stoneSize / 2;
+                
+                if (p.stones === 0) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.font = `${r(14)}px ${theme.bodyFont}`;
+                    ctx.fillText('NADA', 0, cardH * 0.72);
+                } else {
+                    for (let j = 0; j < p.stones; j++) {
+                        this.drawStone(ctx, startX + j * (stoneSize + s(4)), cardH * 0.70, stoneSize);
+                    }
+                }
             } else if (this.game.phase !== 'betting') {
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                ctx.font = `${Math.floor(cardH * 0.32)}px Arial`;
+                ctx.font = `${Math.floor(cardH * 0.35)}px sans-serif`;
                 ctx.fillText('✊', 0, cardH * 0.75);
             }
 
@@ -231,9 +241,19 @@ export class PurrinhaUI implements IMinigameUI {
         ctx.textAlign = 'center';
         ctx.fillText('QUANTAS PEDRAS NA MÃO?', cx, cy - s(mobile ? 70 : 90));
 
-        const emojiScale = mobile ? 45 : 60;
-        ctx.font = `${r(emojiScale)}px Arial`;
-        ctx.fillText(this.game.selectedStones > 0 ? '🪨'.repeat(this.game.selectedStones) : '∅', cx, cy - s(10));
+        const stoneSize = s(mobile ? 35 : 45);
+        const stones = this.game.selectedStones;
+        if (stones === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.font = `bold ${r(40)}px ${theme.titleFont}`;
+            ctx.fillText('VAZIA', cx, cy - s(10));
+        } else {
+            const spacing = stoneSize + s(15);
+            const startX = cx - (stones - 1) * spacing / 2;
+            for (let i = 0; i < stones; i++) {
+                this.drawStone(ctx, startX + i * spacing, cy - s(15), stoneSize);
+            }
+        }
 
         // Selector dots
         const dotSize = s(mobile ? 12 : 16);
@@ -321,5 +341,43 @@ export class PurrinhaUI implements IMinigameUI {
         ctx.font = `600 ${r(mobile ? 10 : 13)}px ${theme.bodyFont}`;
         const finalHint = mobile ? 'Pressione [ENTER] para Continuar' : 'ENTRE CONTINUAR • ESPAÇO REPLAY';
         ctx.fillText(finalHint, cx, cy + s(mobile ? 55 : 75));
+    }
+
+    private drawStone(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+        ctx.save();
+        ctx.translate(x, y);
+        
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(0, size * 0.35, size * 0.45, size * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Stone Body (Realistic Darkened Gradient)
+        const grad = ctx.createRadialGradient(-size * 0.2, -size * 0.2, size * 0.1, 0, 0, size * 0.6);
+        grad.addColorStop(0, '#6b7280'); // Muted Grey
+        grad.addColorStop(0.5, '#374151'); // Dark Grey
+        grad.addColorStop(1, '#111827'); // Charcoal Black
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        // Slightly irregular shape for a "stone" feel
+        ctx.moveTo(size * 0.45, -size * 0.1);
+        ctx.bezierCurveTo(size * 0.5, size * 0.3, -size * 0.5, size * 0.4, -size * 0.45, 0);
+        ctx.bezierCurveTo(-size * 0.4, -size * 0.4, size * 0.3, -size * 0.5, size * 0.45, -size * 0.1);
+        ctx.fill();
+
+        // Add a subtle rocky texture/stroke
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Muted Highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.beginPath();
+        ctx.ellipse(-size * 0.15, -size * 0.15, size * 0.2, size * 0.1, Math.PI * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
     }
 }
