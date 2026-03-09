@@ -53,7 +53,7 @@ export class PokerUI implements IMinigameUI {
             }
         } else {
             // Mid-game phases
-            if (this.game.phase === 'pre_flop') {
+            if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
                 const step = 10;
                 const up = this.input.wasPressed('ArrowUp') || (mobile && this.input.wasPressed('KeyW'));
                 const down = this.input.wasPressed('ArrowDown') || (mobile && this.input.wasPressed('KeyS'));
@@ -153,7 +153,7 @@ export class PokerUI implements IMinigameUI {
         this.drawPlayer(ctx, cx + npcXOff, npcY, this.game.players[2], false, theme);
 
         // ── Phase / Pending Raise Overlay ──
-        if (this.game.phase === 'pre_flop' && this.pendingRaise > 0) {
+        if ((this.game.phase === 'pre_flop' || this.game.phase === 'flop') && this.pendingRaise > 0) {
             ctx.fillStyle = theme.accent;
             ctx.font = `bold ${r(mobile ? 12 : 16)}px ${theme.titleFont}`;
             ctx.fillText(`AUMENTAR: R$ ${this.pendingRaise}`, cx, tableY + tableH * 0.3);
@@ -176,7 +176,7 @@ export class PokerUI implements IMinigameUI {
             footerHint = mobile ? '[OK] INICIAR PARTIDA' : 'ENTER INICIAR PARTIDA • ESC SAIR';
         } else if (this.game.phase === 'result') {
             footerHint = mobile ? '[OK] CONTINUAR' : 'ENTER CONTINUAR • ESC SAIR';
-        } else if (this.game.phase === 'pre_flop') {
+        } else if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
             footerHint = mobile ? '[↑↓] Ajustar Aumento • [OK] OK' : '↑↓ AJUSTAR AUMENTO • ENTER CONFIRMAR';
         } else {
             footerHint = mobile ? '[OK] PRÓXIMA FASE' : 'ENTER PRÓXIMA FASE • ESC SAIR';

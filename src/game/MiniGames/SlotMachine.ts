@@ -70,8 +70,8 @@ export class SlotMachine {
             // Last symbol in list is the jackpot
             if (s0 === symbolsList[symbolsList.length - 1]) isJackpot = true;
         } else if (s0 === s1 || s1 === s2 || s0 === s2) {
-            // Two of a kind — devolver a aposta (empata)
-            payout = bet;
+            // Two of a kind — pagar o dobro da aposta
+            payout = bet * 2;
         }
 
         return {

@@ -288,7 +288,12 @@ export class ExplorationScene implements Scene {
         if (pm.phase !== 'none') {
             // If a raid just started (phase is interruption but we were in a minigame)
             if (this.activeMinigame !== 'none') {
-                this.exitMinigame();
+                const game = this.getCurrentMinigameObject();
+                const bet = game?.betAmount || 0;
+                pm.confiscatedAmount = bet; // Tell police how much was taken
+                
+                // Use handleMinigameExit to process the loss
+                this.handleMinigameExit(game);
             }
             this.updatePoliceRaid(dt);
             return; // Block world and minigame update during raid
@@ -636,16 +641,19 @@ export class ExplorationScene implements Scene {
             const inProgress = game.phase !== 'betting' && game.phase !== 'result';
 
             if (inProgress) {
-                // Jogos que não descontam no ato da aposta, descontamos no abandono
+                // Jogos que não descontam no ato da aposta, descontamos no abandono
                 const needsDeduction = [
-                    'purrinha', 'heads_tails', 'palitinho', 'fantan', 'jokenpo'
-                ].includes(this.activeMinigame);
+                    'purrinha', 'heads_tails', 'palitinho', 'fan_tan', 'jokenpo',
+                    'dice', 'ronda'
+                ].includes(this.activeMinigame as string);
 
-                if (needsDeduction) {
+                if (needsDeduction && game && game.betAmount) {
                     bmanager.playerMoney -= game.betAmount;
+                    bmanager.addNotification(`Partida interrompida! Perdeu R$${game.betAmount}.`, 4);
+                    sm.play('coin_loss');
+                } else if (inProgress) {
+                    bmanager.addNotification(`Partida encerrada.`, 4);
                 }
-                bmanager.addNotification(`Partida abandonada! Perdeu R$${game.betAmount}.`, 4);
-                sm.play('coin_loss');
             }
             if (payout > 0) {
                 bmanager.playerMoney += payout;
@@ -682,6 +690,21 @@ export class ExplorationScene implements Scene {
 
         this.input.popContext();
         this.player.nearbyInteraction = null;
+    }
+
+    private getCurrentMinigameObject(): any {
+        if (this.activeMinigame === 'purrinha') return (this.purrinhaUI as any)?.game;
+        if (this.activeMinigame === 'dice') return this.diceGame;
+        if (this.activeMinigame === 'ronda') return this.rondaGame;
+        if (this.activeMinigame === 'domino') return this.dominoGame;
+        if (this.activeMinigame === 'heads_tails') return (this.headsTailsUI as any)?.game;
+        if (this.activeMinigame === 'palitinho') return (this.palitinhoUI as any)?.game;
+        if (this.activeMinigame === 'fan_tan') return (this.fanTanUI as any)?.game;
+        if (this.activeMinigame === 'jokenpo') return (this.jokenpoUI as any)?.game;
+        if (this.activeMinigame === 'horse_racing') return this.horseRacingGame;
+        if (this.activeMinigame === 'dog_racing') return this.dogRacingGame;
+        if (this.activeMinigame === 'video_bingo') return this.videoBingoGame;
+        return null;
     }
 
 
@@ -1523,9 +1546,13 @@ export class ExplorationScene implements Scene {
             this.drawTextWrapped(ctx, `"${pm.currentJoke}"`, cx, cy - s(20), w - s(60), UIScale.r(25));
 
             ctx.font = `bold ${UIScale.r(14)}px monospace`;
-            const expl = isBribed
+            let expl = isBribed
                 ? "A POLÍCIA APARECEU PARA DAR UMA OLHADA... HÁ UM ACORDO, MAS O JOGO PRECISA PARAR."
                 : "ACONTECEU UMA BATIDA! ELES ESTÃO DE OLHO NO SEU DINHEIRO...";
+            
+            if (pm.confiscatedAmount > 0) {
+                expl += ` (R$ ${pm.confiscatedAmount} CONFISCADO DA MESA)`;
+            }
             this.drawTextWrapped(ctx, expl, cx, cy + s(40), w - s(40), UIScale.r(18));
 
             ctx.fillStyle = 'rgba(255,255,255,0.6)';

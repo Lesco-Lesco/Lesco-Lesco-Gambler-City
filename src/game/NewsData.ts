@@ -27,6 +27,7 @@ export const LATEST_NEWS_BASE: NewsItem = {
         "• CENTROS DE LAZER: Fliperamas espalhados pela cidade agora contam com Air Pong, Faroeste, Tanques e o duelo Risca Faca.",
         "• SUBSOLO DISCRETO: Visitantes da Estação e do Shopping podem encontrar áreas reservadas para máquinas de sorte e precisão.",
         "• DESAFIOS URBANOS: Pelas calçadas, cidadãos testam hability em Purrinha, Palitinho, Ronda, Dados e o exótico Fan-Tan.",
+        "• AMBIENTE: Lesco Lesco Gambler City ganha nova vida sonora neste primeiro protótipo para PC, trazendo mais imersão às ruas.",
         "",
     ]
 };

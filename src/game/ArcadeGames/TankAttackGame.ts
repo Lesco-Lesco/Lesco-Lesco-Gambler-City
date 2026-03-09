@@ -258,9 +258,11 @@ export class TankAttackGame {
                 const bdy = b.y - e.y;
                 if (bdx * bdx + bdy * bdy < 15 * 15) {
                     b.alive = false;
+                    e.alive = false;
                     this.score += 50;
                     this.explosions.push({ x: e.x, y: e.y, timer: 0.4 });
                     SoundManager.getInstance().play('arcade_explosion', { volume: 0.5 });
+                    break; // Good practice to break bullet loop if enemy is dead
                 }
             }
 
