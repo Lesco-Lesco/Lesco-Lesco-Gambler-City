@@ -810,7 +810,7 @@ export class CasinoScene implements Scene {
         ctx.font = `${UIScale.r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
         const hint = mobile
-            ? '[D-Pad] Navegar  [OK] Entrar'
+            ? '[D-Pad] Navegar  [E] Entrar'
             : '[WASD/Setas] Navegar  [E/Enter] Entrar';
         ctx.fillText(hint, cx, this.screenH - s(12));
     }
@@ -854,7 +854,7 @@ export class CasinoScene implements Scene {
         // Reels
         const colW = reelW / 3;
         const reelCenterY = reelTop + reelH / 2;
-        const symSize = r(mobile ? 58 : 84);
+        const symSize = r(mobile ? 78 : 84);
 
         for (let i = 0; i < 3; i++) {
             const rx = cx - reelW / 2 + i * colW;
@@ -917,7 +917,7 @@ export class CasinoScene implements Scene {
         ctx.font = `bold ${r(44)}px ${theme.titleFont}`;
         ctx.fillText(`R$ ${this.slotBet}`, cx, controlY + s(mobile ? 40 : 50));
 
-        const hint = mobile ? '[↑↓] Aposta • [OK] Girar' : 'SETAS ↑↓ AJUSTAR • ENTER GIRAR • ESC SAIR';
+        const hint = mobile ? '[↑↓] Aposta • [OK] GIRA' : 'SETAS ↑↓ AJUSTAR • ENTER GIRAR • ESC SAIR';
         drawMinigameFooter(ctx, this.screenW, this.screenH, theme, hint);
 
         // Result Overlay
@@ -938,7 +938,7 @@ export class CasinoScene implements Scene {
         ctx.fillRect(0, 0, this.screenW, this.screenH);
 
         ctx.fillStyle = color;
-        ctx.font = `800 ${r(mobile ? 32 : 48)}px ${theme.titleFont}`;
+        ctx.font = `800 ${r(mobile ? 42 : 48)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
 
         let msg = "TENTE NOVAMENTE";
@@ -958,7 +958,7 @@ export class CasinoScene implements Scene {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-        ctx.fillText(mobile ? '[OK] CONTINUAR' : 'ENTER JOGAR NOVAMENTE • ESC SAIR', cx, cy + s(100));
+        ctx.fillText(mobile ? '[OK] CONTINUAR' : 'ENTER JOGAR NOVAMENTE • ESC SAIR', cx, cy + s(mobile ? 80 : 100));
     }
 
     private renderBichoUI(ctx: CanvasRenderingContext2D) {
@@ -1006,7 +1006,7 @@ export class CasinoScene implements Scene {
             ctx.shadowBlur = 0;
 
             // Content
-            ctx.font = `${r(mobile ? 20 : 32)}px "Segoe UI Emoji", Arial`;
+            ctx.font = `${r(mobile ? 38 : 32)}px "Segoe UI Emoji", Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#ffffff';
@@ -1014,11 +1014,11 @@ export class CasinoScene implements Scene {
             ctx.fillText(animal.emoji, 0, -cellH * 0.1);
 
             ctx.fillStyle = isSelected ? '#fff' : theme.textMuted;
-            ctx.font = `bold ${r(mobile ? 7 : 9)}px ${theme.bodyFont}`;
+            ctx.font = `bold ${r(mobile ? 10 : 9)}px ${theme.bodyFont}`;
             ctx.fillText(animal.name.toUpperCase(), 0, cellH * 0.3);
 
             ctx.fillStyle = theme.accent;
-            ctx.font = `800 ${r(8)}px ${theme.bodyFont}`;
+            ctx.font = `800 ${r(mobile ? 11 : 8)}px ${theme.bodyFont}`;
             ctx.textAlign = 'left';
             ctx.fillText(`${i + 1}`, -cellW / 2 + s(8), -cellH / 2 + s(14));
 
@@ -1033,10 +1033,10 @@ export class CasinoScene implements Scene {
         ctx.fillText('APOSTA', cx, footerY);
 
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(36)}px ${theme.titleFont}`;
-        ctx.fillText(`R$ ${this.bichoBet}`, cx, footerY + s(mobile ? 35 : 45));
+        ctx.font = `bold ${r(mobile ? 46 : 36)}px ${theme.titleFont}`;
+        ctx.fillText(`R$ ${this.bichoBet}`, cx, footerY + s(mobile ? 32 : 45));
 
-        const hint = mobile ? '[+/-] Aposta • [OK] Apostar' : '[SETAS] ESCOLHER • [+/-] APOSTA • ENTER CONFIRMAR';
+        const hint = mobile ? '[DPAD] Mover • [+/-] Aposta • [OK] Apostar' : '[SETAS] ESCOLHER • [+/-] APOSTA • ENTER CONFIRMAR';
         drawMinigameFooter(ctx, this.screenW, this.screenH, theme, hint);
 
         if (this.bichoMessage) {

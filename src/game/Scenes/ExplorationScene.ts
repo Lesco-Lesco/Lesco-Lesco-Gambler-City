@@ -379,10 +379,12 @@ export class ExplorationScene implements Scene {
             if (this.tankAttackGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
                 this.tankAttackGame = null;
                 this.activeMinigame = 'arcade_menu';
+                InputManager.getInstance().setActiveMinigame(null);
             }
             if (this.input.wasPressed('Escape')) {
                 this.tankAttackGame = null;
                 this.activeMinigame = 'arcade_menu';
+                InputManager.getInstance().setActiveMinigame(null);
             }
             return;
         }
@@ -983,7 +985,11 @@ export class ExplorationScene implements Scene {
 
         switch (gameType) {
             case 'air_pong': this.airPongGame = new AirPongGame(); this.activeMinigame = 'arcade_air_pong'; break;
-            case 'tank_attack': this.tankAttackGame = new TankAttackGame(); this.activeMinigame = 'arcade_tank_attack'; break;
+            case 'tank_attack': 
+                this.tankAttackGame = new TankAttackGame(); 
+                this.activeMinigame = 'arcade_tank_attack'; 
+                InputManager.getInstance().setActiveMinigame('tank_attack');
+                break;
             case 'faroeste': this.faroesteGame = new FaroesteGame(); this.activeMinigame = 'arcade_faroeste'; break;
             case 'risca_faca': this.riscaFacaGame = new RiscaFacaGame(); this.activeMinigame = 'arcade_risca_faca'; break;
             case 'sinuca': this.sinucaGame = new SinucaGame(); this.activeMinigame = 'arcade_sinuca'; break;
@@ -1127,11 +1133,10 @@ export class ExplorationScene implements Scene {
         drawMinigameBackground(ctx, w, h, theme);
 
         // Bar name title
-        ctx.save();
         ctx.shadowBlur = s(20);
         ctx.shadowColor = theme.accent;
         ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${UIScale.r(mobile ? 20 : 28)}px ${theme.titleFont}`;
+        ctx.font = `bold ${UIScale.r(mobile ? 24 : 28)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
         ctx.fillText(this.currentBar?.name.toUpperCase() || 'BAR', cx, h * 0.10);
         ctx.shadowBlur = 0;
@@ -1139,7 +1144,7 @@ export class ExplorationScene implements Scene {
 
         // Subtitle
         ctx.fillStyle = theme.textMuted;
-        ctx.font = `${UIScale.r(mobile ? 9 : 11)}px ${theme.titleFont}`;
+        ctx.font = `${UIScale.r(mobile ? 11 : 11)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
         ctx.fillText('ESCOLHA SUA DIVERSÃO', cx, h * 0.16);
 
@@ -1208,7 +1213,7 @@ export class ExplorationScene implements Scene {
 
         // Footer
         const hint = mobile
-            ? '[↑↓] SELECIONAR  |  [OK] ENTRAR  |  [✕] SAIR'
+            ? '[↑↓] SELECIONAR  |  [E] ENTRAR  |  [✕] SAIR'
             : '[↑↓] SELECIONAR  |  [ESPAÇO/E] ENTRAR  |  [ESC] SAIR';
         drawMinigameFooter(ctx, w, h, theme, hint);
     }
@@ -1353,7 +1358,7 @@ export class ExplorationScene implements Scene {
 
         // Footer
         const hint = mobile
-            ? '[↑↓] SELECIONAR  |  [OK] JOGAR  |  [✕] SAIR'
+            ? '[D-Pad] SELECIONAR  |  [E] JOGAR  |  [✕] SAIR'
             : '[↑↓ ←→] SELECIONAR  |  [ESPAÇO/E] JOGAR  |  [ESC] SAIR';
         drawMinigameFooter(ctx, w, h, theme, hint);
     }

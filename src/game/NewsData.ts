@@ -19,15 +19,15 @@ export const LATEST_NEWS_BASE: NewsItem = {
     title: "SANTA CRUZ EM FOCO",
     date: "Março, 2026",
     description: [
-        "Confira o guia atualizado de lazer e cultura em nosso bairro:",
+        "Confira as novidades do nosso bairro:",
         "",
-        "--- ATRAÇÕES LOCAIS ---",
-        "• TRADIÇÃO: O Marco Imperial e a Praça Herval seguem como pontos de encontro para o clássico Dominó entre veteranos.",
-        "• DIVERSÃO NOS BARES: Desfrute de simulações de Corridas de Galgos, Equinos e o novo Vídeo-Entretenimento premiado.",
-        "• CENTROS DE LAZER: Fliperamas espalhados pela cidade agora contam com Air Pong, Faroeste, Tanques e o duelo Risca Faca.",
-        "• SUBSOLO DISCRETO: Visitantes da Estação e do Shopping podem encontrar áreas reservadas para máquinas de sorte e precisão.",
-        "• DESAFIOS URBANOS: Pelas calçadas, cidadãos testam hability em Purrinha, Palitinho, Ronda, Dados e o exótico Fan-Tan.",
-        "• AMBIENTE: Lesco Lesco Gambler City ganha nova vida sonora neste primeiro protótipo para PC, trazendo mais imersão às ruas.",
+        "• TRADIÇÃO: A Praça Herval e o Marco Imperial seguem como o coração do Dominó e da Purrinha.",
+        "• JOGOS: Bares e Fliperamas agora contam com Galgos, Poker, Tank Attack e o intenso Risca Faca.",
+        "• EXPLORAÇÃO: Máquinas de sorte estão escondidas no subsolo da Estação e do Shopping.",
+        "• AMBIENTE: O protótipo ganha vida sonora, trazendo a imersão das ruas para o PC e Mobile.",
+        "",
+        "--- COMUNICADO ESPECIAL ---",
+        "• NOTÁVEL: Saudamos a Madame M (renomada Dra. em Maricá). Que o Dominó na palma da mão traga as melhores lembranças e muita sorte!",
         "",
     ]
 };

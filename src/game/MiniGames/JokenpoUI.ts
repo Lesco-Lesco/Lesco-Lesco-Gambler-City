@@ -155,7 +155,7 @@ export class JokenpoUI implements IMinigameUI {
             ctx.save();
             ctx.translate(x, cy);
 
-            const size = s(mobile ? 40 : 55);
+            const size = s(mobile ? 48 : 55);
 
             // Background Circle
             if (selected) {
@@ -178,7 +178,7 @@ export class JokenpoUI implements IMinigameUI {
             ctx.shadowBlur = 0;
 
             // Icon
-            ctx.font = `${s(mobile ? 40 : 55)}px sans-serif`;
+            ctx.font = `${s(mobile ? 50 : 55)}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#ffffff';
@@ -208,7 +208,7 @@ export class JokenpoUI implements IMinigameUI {
         if (this.showdownTimer < 0.6) animText = 'PO!';
 
         ctx.fillStyle = theme.accent;
-        ctx.font = `900 ${r(mobile ? 42 : 64)}px ${theme.titleFont}`;
+        ctx.font = `900 ${r(mobile ? 54 : 64)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
         ctx.fillText(animText, cx, cy - s(120));
 
@@ -228,7 +228,7 @@ export class JokenpoUI implements IMinigameUI {
     private drawLargeHand(ctx: CanvasRenderingContext2D, x: number, y: number, icon: string, label: string, color: string, theme: any) {
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
-        const size = s(isMobile() ? 50 : 70);
+        const size = s(isMobile() ? 65 : 70);
 
         ctx.save();
         ctx.translate(x, y);
@@ -276,13 +276,12 @@ export class JokenpoUI implements IMinigameUI {
 
         // Result Message
         ctx.fillStyle = '#fff';
-        ctx.font = `900 ${r(mobile ? 32 : 48)}px ${theme.titleFont}`;
+        ctx.font = `900 ${r(mobile ? 38 : 48)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
         ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(110));
 
         const canPlayAgain = BichoManager.getInstance().playerMoney + this.game.settle() >= this.game.minBet;
-        ctx.fillStyle = theme.textMuted;
-        ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText(canPlayAgain ? 'ESPAÇO PARA NOVA PARTIDA' : 'SALDO INSUFICIENTE - ESC PARA SAIR', cx, cy + s(150));
+        const playNextHint = mobile ? '[OK] Nova Partida' : 'ESPAÇO PARA NOVA PARTIDA';
+        ctx.fillText(canPlayAgain ? playNextHint : 'SALDO INSUFICIENTE - ESC PARA SAIR', cx, cy + s(150));
     }
 }

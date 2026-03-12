@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { InputManager } from '../game/Core/InputManager';
+import type { InputContext } from '../game/Core/InputManager';
 import Joystick from './Joystick';
+import DPad from './DPad';
 
 const MobileControls: React.FC = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [isPortrait, setIsPortrait] = useState(false);
+    const [context, setContext] = useState<InputContext>('exploration');
+    const [activeMini, setActiveMini] = useState<string | null>(null);
 
     useEffect(() => {
         const check = () => {
@@ -17,9 +21,21 @@ const MobileControls: React.FC = () => {
         check();
         window.addEventListener('resize', check);
         window.addEventListener('orientationchange', check);
+        
+        // Poll for context or active minigame changes (InputManager is not a React state)
+        const interval = setInterval(() => {
+            const input = InputManager.getInstance();
+            const currentContext = input.getContext();
+            const currentMinigame = input.getActiveMinigame();
+
+            setContext(prev => prev !== currentContext ? currentContext : prev);
+            setActiveMini(prev => prev !== currentMinigame ? currentMinigame : prev);
+        }, 100);
+
         return () => {
             window.removeEventListener('resize', check);
             window.removeEventListener('orientationchange', check);
+            clearInterval(interval);
         };
     }, []);
 
@@ -42,10 +58,24 @@ const MobileControls: React.FC = () => {
         input.setKeyState(code, isPressed);
     };
 
+    // Determine glow color based on context
+    const getGlowColor = () => {
+        if (context === 'casino') return '#44ff88'; // Bicho Green
+        if (context === 'exploration') return '#00bbff'; // Night Blue
+        return '#ff2d95'; // Minigame Pink
+    };
+
     return (
-        <div className="mobile-controls">
-            {/* LEFT SIDE — Joystick */}
-            <Joystick size={Math.min(window.innerWidth * 0.22, window.innerHeight * 0.35)} />
+        <div className="mobile-controls" style={{ '--glow-color': getGlowColor() } as React.CSSProperties}>
+            {/* LEFT SIDE — Switch between Joystick (Exploration/Tank) and DPad (Minigames/Casino) */}
+            {context === 'exploration' || activeMini === 'tank_attack' ? (
+                <Joystick 
+                    size={Math.min(window.innerWidth * 0.22, window.innerHeight * 0.35)} 
+                    variant={activeMini === 'tank_attack' ? 'tank' : 'default'}
+                />
+            ) : (
+                <DPad size={Math.min(window.innerWidth * 0.22, window.innerHeight * 0.35)} />
+            )}
 
             {/* RIGHT SIDE — Action Buttons (Ergonomic Curve) */}
             <div className="action-buttons">

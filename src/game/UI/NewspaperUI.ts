@@ -34,6 +34,7 @@ export class NewspaperUI {
 
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
 
         ctx.save();
         ctx.globalAlpha = this.opacity;
@@ -68,7 +69,7 @@ export class NewspaperUI {
         ctx.clip();
 
         // Inner padding
-        const pad = s(30);
+        const pad = s(mobile ? 20 : 30);
         const contentX = px + pad;
         const contentY = py + pad;
         const contentW = paperW - pad * 2;
@@ -79,27 +80,27 @@ export class NewspaperUI {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#1a1a1a';
         ctx.font = `bold ${r(36)}px serif`;
-        ctx.fillText(this.title, px + paperW / 2, contentY + s(10));
+        ctx.fillText(this.title, px + paperW / 2, contentY + s(mobile ? 2 : 5));
 
         // Header - Edition Info
         ctx.font = r(12) + 'px serif';
-        ctx.fillText(`${this.activeNews.date} — Santa Cruz Neighborhood`, px + paperW / 2, contentY + s(55));
+        ctx.fillText(`${this.activeNews.date} — Santa Cruz Neighborhood`, px + paperW / 2, contentY + s(mobile ? 42 : 48));
 
         // Divider
         ctx.beginPath();
-        ctx.moveTo(contentX, contentY + s(75));
-        ctx.lineTo(contentX + contentW, contentY + s(75));
+        ctx.moveTo(contentX, contentY + s(mobile ? 60 : 65));
+        ctx.lineTo(contentX + contentW, contentY + s(mobile ? 60 : 65));
         ctx.lineWidth = s(2);
         ctx.strokeStyle = '#1a1a1a';
         ctx.stroke();
 
         // Headline
         ctx.font = `bold ${r(24)}px serif`;
-        const headlineY = contentY + s(100);
+        const headlineY = contentY + s(mobile ? 80 : 85);
         this.drawTextWrapped(ctx, this.activeNews.title, px + paperW / 2, headlineY, contentW, s(30));
 
         // News Content (Static, no scroll)
-        const newsStartYSchool = headlineY + s(70);
+        const newsStartYSchool = headlineY + s(mobile ? 60 : 70);
         ctx.textAlign = 'left';
         ctx.font = r(16) + 'px serif';
         ctx.fillStyle = '#222';

@@ -16,6 +16,7 @@ export class InputManager {
     private mouseDown: boolean = false;
     private joystickX: number = 0;
     private joystickY: number = 0;
+    private activeMinigame: string | null = null;
     private contextStack: InputContext[] = ['exploration'];
 
     private constructor() {
@@ -94,13 +95,28 @@ export class InputManager {
         this.joystickX = x;
         this.joystickY = y;
 
-        const threshold = 0.3;
+        const threshold = 0.4; // Aumentado de 0.3 para 0.4 para evitar toques acidentais perto do centro
+        const absX = Math.abs(x);
+        const absY = Math.abs(y);
 
-        // Use setKeyState to ensure justPressed/justReleased are triggered correctly
-        this.setKeyState('ArrowUp', y < -threshold);
-        this.setKeyState('ArrowDown', y > threshold);
-        this.setKeyState('ArrowLeft', x < -threshold);
-        this.setKeyState('ArrowRight', x > threshold);
+        // Se o movimento não for forte o suficiente, limpa as direções
+        if (absX < threshold && absY < threshold) {
+            this.setKeyState('ArrowUp', false);
+            this.setKeyState('ArrowDown', false);
+            this.setKeyState('ArrowLeft', false);
+            this.setKeyState('ArrowRight', false);
+            return;
+        }
+
+        // Para minijogos e menus, o "eixo dominante" parece mais natural
+        // Se X for muito maior que Y, ignoramos Y (e vice-versa)
+        const isHorizontal = absX > absY * 1.2;
+        const isVertical = absY > absX * 1.2;
+
+        this.setKeyState('ArrowUp', isVertical && y < -threshold);
+        this.setKeyState('ArrowDown', isVertical && y > threshold);
+        this.setKeyState('ArrowLeft', isHorizontal && x < -threshold);
+        this.setKeyState('ArrowRight', isHorizontal && x > threshold);
     }
 
     public getJoystickVector(): { x: number; y: number } {
@@ -185,6 +201,14 @@ export class InputManager {
 
     public getContext(): InputContext {
         return this.contextStack[this.contextStack.length - 1];
+    }
+
+    public setActiveMinigame(name: string | null) {
+        this.activeMinigame = name;
+    }
+
+    public getActiveMinigame(): string | null {
+        return this.activeMinigame;
     }
 
     public destroy() {

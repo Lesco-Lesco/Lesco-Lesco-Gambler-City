@@ -97,7 +97,7 @@ export class PalitinhoUI implements IMinigameUI {
                 ctx.fillText(this.game.resultMessage, cx, footerTop + FOOTER_H * 0.55);
 
                 const resultHint = mobile
-                    ? 'Toque para CONTINUAR'
+                    ? '[OK] Continuar'
                     : 'ESPAÇO NOVAMENTE | ENTER SAIR';
                 drawMinigameFooter(ctx, screenW, screenH, theme, resultHint);
             }
@@ -106,7 +106,7 @@ export class PalitinhoUI implements IMinigameUI {
         // Action Hints
         if (phase !== 'result') {
             const helpHint = mobile
-                ? 'Arraste para ESCOLHER • Tap Central CONFIRMAR'
+                ? '[DPAD] Escolher • [OK] Confirmar'
                 : '[←→] ESCOLHER  [ENTER] CONFIRMAR  [ESC] SAIR';
             drawMinigameFooter(ctx, screenW, screenH, theme, helpHint);
         }
@@ -123,7 +123,7 @@ export class PalitinhoUI implements IMinigameUI {
         ctx.fillText('VALOR DA APOSTA', cx, cy - s(60));
 
         ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(mobile ? 50 : 64)}px ${theme.titleFont}`;
+        ctx.font = `bold ${r(mobile ? 60 : 64)}px ${theme.titleFont}`;
         ctx.shadowBlur = s(20);
         ctx.shadowColor = theme.accent + '66';
         ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(10));
@@ -211,7 +211,7 @@ export class PalitinhoUI implements IMinigameUI {
             const isTurn = this.game.currentPlayerIdx === p.order && this.game.phase === 'choosing';
 
             ctx.fillStyle = isTurn ? theme.accent : (p.isLoser ? '#ff4444' : theme.textMuted);
-            ctx.font = (isTurn ? 'bold ' : '600 ') + `${r(mobile ? 11 : 14)}px ${theme.bodyFont}`;
+            ctx.font = (isTurn ? 'bold ' : '600 ') + `${r(mobile ? 13 : 14)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
             ctx.fillText(p.name.toUpperCase(), px, y);
 
@@ -314,7 +314,7 @@ export class PalitinhoUI implements IMinigameUI {
                 ctx.fillText(m.pickedBy?.toUpperCase() || '', x, cy + stickH * 0.65);
             } else {
                 ctx.fillStyle = theme.textMuted;
-                ctx.font = `bold ${r(mobile ? 36 : 48)}px ${theme.titleFont}`;
+                ctx.font = `bold ${r(mobile ? 48 : 48)}px ${theme.titleFont}`;
                 ctx.textAlign = 'center';
                 ctx.fillText('?', x, cy + s(15));
             }

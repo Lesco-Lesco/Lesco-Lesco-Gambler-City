@@ -65,7 +65,7 @@ export class DominoUI implements IMinigameUI {
                         }
                     }
                 }
-                if (input.wasPressed('KeyC')) {
+                if (input.wasPressed('KeyC') || (isMobile() && input.wasPressed('KeyE'))) {
                     this.game.drawFromPool(humanIndex);
                 }
             }
@@ -115,7 +115,7 @@ export class DominoUI implements IMinigameUI {
             }
         }
 
-        const hint = isMobile() ? 'DPAD Selecionar • [OK] Jogar • [C] Cavar' : '←→ PEÇAS • ESPAÇO JOGAR • [C] CAVAR • ESC SAIR';
+        const hint = isMobile() ? '[DPAD] Mover • [OK] Jogar • [E] Cavar' : '←→ PEÇAS • ESPAÇO JOGAR • [C] CAVAR • ESC SAIR';
         drawMinigameFooter(ctx, width, height, theme, hint);
     }
 
@@ -302,7 +302,8 @@ export class DominoUI implements IMinigameUI {
         ctx.font = `600 ${r(10)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle'; // Fix text baseline for better centering
-        ctx.fillText('[Q/SHIFT] MUDAR LADO', cx, cy + pH * 0.9);
+        const sideHint = isMobile() ? '[RUN] Mudar Lado' : '[Q/SHIFT] MUDAR LADO';
+        ctx.fillText(sideHint, cx, cy + pH * 0.9);
     }
 
     private renderDots(ctx: CanvasRenderingContext2D, count: number, y: number, w: number) {
@@ -362,6 +363,6 @@ export class DominoUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText('ESPAÇO PARA CONTINUAR', cx, cy + s(100));
+        ctx.fillText(isMobile() ? '[OK] Continuar' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
     }
 }

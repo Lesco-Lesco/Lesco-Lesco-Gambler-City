@@ -4,20 +4,22 @@ import { InputManager } from '../game/Core/InputManager';
 interface JoystickProps {
     onMove?: (x: number, y: number) => void;
     size?: number;
+    variant?: 'default' | 'tank';
 }
 
-const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
+const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120, variant = 'default' }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [pos, setPos] = useState({ x: 0, y: 0 });
     const input = InputManager.getInstance();
 
-    const handleStart = () => {
+    const handleStart = (clientX: number, clientY: number) => {
         setIsDragging(true);
+        processInput(clientX, clientY);
     };
 
-    const handleMove = (clientX: number, clientY: number) => {
-        if (!isDragging || !containerRef.current) return;
+    const processInput = (clientX: number, clientY: number) => {
+        if (!containerRef.current) return;
 
         const rect = containerRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
@@ -42,6 +44,11 @@ const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
         if (onMove) onMove(normalizedX, normalizedY);
     };
 
+    const handleMove = (clientX: number, clientY: number) => {
+        if (!isDragging) return;
+        processInput(clientX, clientY);
+    };
+
     const handleEnd = () => {
         setIsDragging(false);
         setPos({ x: 0, y: 0 });
@@ -51,7 +58,7 @@ const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
 
     useEffect(() => {
         const onTouchMove = (e: TouchEvent) => {
-            if (isDragging) {
+            if (isDragging && e.touches.length > 0) {
                 handleMove(e.touches[0].clientX, e.touches[0].clientY);
             }
         };
@@ -82,10 +89,14 @@ const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
     return (
         <div
             ref={containerRef}
-            className="joystick-container"
+            className={`joystick-container variant-${variant}`}
             style={{ width: size, height: size }}
-            onTouchStart={handleStart}
-            onMouseDown={handleStart}
+            onTouchStart={(e) => {
+                if (e.touches.length > 0) {
+                    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }}
+            onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
         >
             <div
                 className="joystick-ring"

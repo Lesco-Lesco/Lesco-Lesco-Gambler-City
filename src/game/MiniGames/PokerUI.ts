@@ -132,7 +132,7 @@ export class PokerUI implements IMinigameUI {
         // ── Pot and Information ──
         const potY = tableY - tableH * 0.18;
         ctx.fillStyle = '#fde047';
-        ctx.font = `bold ${r(mobile ? 18 : 24)}px ${theme.titleFont}`;
+        ctx.font = `bold ${r(mobile ? 22 : 24)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
         ctx.shadowBlur = s(10);
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
@@ -155,31 +155,31 @@ export class PokerUI implements IMinigameUI {
         // ── Phase / Pending Raise Overlay ──
         if ((this.game.phase === 'pre_flop' || this.game.phase === 'flop') && this.pendingRaise > 0) {
             ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(mobile ? 12 : 16)}px ${theme.titleFont}`;
+            ctx.font = `bold ${r(mobile ? 16 : 16)}px ${theme.titleFont}`;
             ctx.fillText(`AUMENTAR: R$ ${this.pendingRaise}`, cx, tableY + tableH * 0.3);
         } else if (this.game.phase === 'result' && this.game.resultMessage) {
             ctx.fillStyle = this.game.winner?.isHuman ? '#4ade80' : '#ef4444';
-            ctx.font = `bold ${r(mobile ? 18 : 24)}px ${theme.titleFont}`;
+            ctx.font = `bold ${r(mobile ? 24 : 24)}px ${theme.titleFont}`;
             ctx.shadowBlur = s(10);
             ctx.shadowColor = 'rgba(0,0,0,0.8)';
             ctx.fillText(this.game.resultMessage.toUpperCase(), cx, tableY + tableH * 0.3);
             ctx.shadowBlur = 0;
             
             ctx.fillStyle = theme.text;
-            ctx.font = `600 ${r(mobile ? 11 : 13)}px ${theme.bodyFont}`;
-            ctx.fillText(mobile ? '[OK] JOGAR NOVAMENTE' : '[ENTER] NOVA PARTIDA', cx, tableY + tableH * 0.42);
+            ctx.font = `600 ${r(mobile ? 14 : 13)}px ${theme.bodyFont}`;
+            ctx.fillText(mobile ? '[OK] Próxima' : '[ENTER] Nova Partida', cx, tableY + tableH * 0.42);
         }
 
         // ── Footer Instructions ──
         let footerHint = '';
         if (this.game.phase === 'betting') {
-            footerHint = mobile ? '[OK] INICIAR PARTIDA' : 'ENTER INICIAR PARTIDA • ESC SAIR';
+            footerHint = mobile ? '[OK] Iniciar' : 'ENTER Iniciar Partida • ESC Sair';
         } else if (this.game.phase === 'result') {
-            footerHint = mobile ? '[OK] CONTINUAR' : 'ENTER CONTINUAR • ESC SAIR';
+            footerHint = mobile ? '[OK] Continuar' : 'ENTER Continuar • ESC Sair';
         } else if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
-            footerHint = mobile ? '[↑↓] Ajustar Aumento • [OK] OK' : '↑↓ AJUSTAR AUMENTO • ENTER CONFIRMAR';
+            footerHint = mobile ? '[DPAD ↑↓] Ajustar • [OK] Confirmar' : '↑↓ Ajustar Aumento • ENTER Confirmar';
         } else {
-            footerHint = mobile ? '[OK] PRÓXIMA FASE' : 'ENTER PRÓXIMA FASE • ESC SAIR';
+            footerHint = mobile ? '[OK] Próxima Fase' : 'ENTER Próxima Fase • ESC Sair';
         }
         drawMinigameFooter(ctx, screenW, screenH, theme, footerHint);
     }
@@ -187,6 +187,7 @@ export class PokerUI implements IMinigameUI {
     private drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, player: any, isMain: boolean, theme: any) {
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
+        const mobile = isMobile();
 
         ctx.save();
         ctx.translate(x, y);
@@ -205,8 +206,8 @@ export class PokerUI implements IMinigameUI {
         }
 
         // Cards
-        const cardW = s(isMain ? 60 : 45);
-        const cardH = s(isMain ? 85 : 65);
+        const cardW = s(isMain ? (mobile ? 72 : 60) : (mobile ? 54 : 45));
+        const cardH = s(isMain ? (mobile ? 102 : 85) : (mobile ? 78 : 65));
         const spacing = cardW * 1.1;
 
         player.hand.forEach((card: any, i: number) => {
@@ -231,8 +232,9 @@ export class PokerUI implements IMinigameUI {
 
     private drawCommunityCards(ctx: CanvasRenderingContext2D, x: number, y: number, cards: any[], theme: any) {
         const s = UIScale.s.bind(UIScale);
-        const cardW = s(isMobile() ? 50 : 65);
-        const cardH = s(isMobile() ? 75 : 95);
+        const mobile = isMobile();
+        const cardW = s(mobile ? 62 : 65);
+        const cardH = s(mobile ? 90 : 95);
         const spacing = cardW * 1.15;
         const startX = x - (2 * spacing);
 

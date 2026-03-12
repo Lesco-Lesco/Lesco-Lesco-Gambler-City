@@ -1,3 +1,5 @@
+import { isMobile } from './MobileDetect';
+
 /**
  * UIScale — Centralized responsive UI scaling utility.
  * Computes a scale factor based on the canvas resolution relative to
@@ -14,7 +16,9 @@ export class UIScale {
 
     /** Update scale factor — call on every resize */
     public static update(canvasW: number, canvasH: number) {
-        this._scale = Math.min(canvasW / REF_WIDTH, canvasH / REF_HEIGHT);
+        const baseScale = Math.min(canvasW / REF_WIDTH, canvasH / REF_HEIGHT);
+        const mobile = isMobile();
+        this._scale = mobile ? baseScale * 1.1 : baseScale;
     }
 
     /** Current scale factor */

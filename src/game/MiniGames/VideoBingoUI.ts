@@ -26,7 +26,7 @@ export class VideoBingoUI implements IMinigameUI {
         if (!input) return;
 
         if (this.game.phase === 'betting') {
-            if (input.wasPressed('Space')) {
+            if (input.wasPressed('Space') || input.wasPressed('KeyE')) {
                 const bmanager = (window as any).bmanager;
                 if (bmanager && bmanager.playerMoney >= 10) {
                     bmanager.playerMoney -= 10;
@@ -90,10 +90,10 @@ export class VideoBingoUI implements IMinigameUI {
         if (this.game.phase === 'result') {
             this.drawResult(ctx, w, h, theme);
         } else if (this.game.phase === 'betting') {
-            const hint = mobile ? 'TAP COMPRAR ENTRADA (R$10)' : 'ESPAÇO COMPRAR ENTRADA (R$10)';
+            const hint = mobile ? '[E] Comprar Entrada (R$10)' : 'ESPAÇO COMPRAR ENTRADA (R$10)';
             drawMinigameFooter(ctx, w, h, theme, hint);
         } else if (this.game.phase === 'picking') {
-            const hint = mobile ? 'DPAD SELECIONAR • [OK] ESCOLHER' : 'SETAS SELECIONAR • ESPAÇO ESCOLHER';
+            const hint = mobile ? '[DPAD] Selecionar • [OK] Escolher' : 'SETAS SELECIONAR • ESPAÇO ESCOLHER';
             drawMinigameFooter(ctx, w, h, theme, hint);
         }
     }
@@ -273,6 +273,7 @@ export class VideoBingoUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText('ESPAÇO PARA REINICIAR', w / 2, h * 0.8);
+        const mobile = isMobile();
+        ctx.fillText(mobile ? '[OK] Reiniciar' : 'ESPAÇO PARA REINICIAR', w / 2, h * 0.8);
     }
 }

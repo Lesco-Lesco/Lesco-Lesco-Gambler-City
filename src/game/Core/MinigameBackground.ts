@@ -177,7 +177,7 @@ export function drawMinigameFooter(
     const mobile = isMobile();
 
     ctx.fillStyle = theme.textMuted;
-    ctx.font = `${UIScale.r(mobile ? 8 : 10)}px ${theme.titleFont}`;
+    ctx.font = `${UIScale.r(mobile ? 12 : 10)}px ${theme.titleFont}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(hint, screenW / 2, screenH - UIScale.s(16));

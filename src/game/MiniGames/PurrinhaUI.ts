@@ -124,7 +124,7 @@ export class PurrinhaUI implements IMinigameUI {
 
         // Shared footer hint
         const helpHint = mobile
-            ? 'Use D-PAD para VARIAR • [OK] CONFIRMA'
+            ? '[DPAD] Variar • [OK] Confirmar'
             : '↑↓ VARIAR  •  ENTER CONFIRMAR  •  ESC SAIR';
         drawMinigameFooter(ctx, screenW, screenH, theme, helpHint);
     }
@@ -343,7 +343,7 @@ export class PurrinhaUI implements IMinigameUI {
 
         ctx.fillStyle = theme.text;
         ctx.font = `600 ${r(mobile ? 10 : 13)}px ${theme.bodyFont}`;
-        const finalHint = mobile ? 'Pressione [ENTER] para Continuar' : 'ENTRE CONTINUAR • ESPAÇO REPLAY';
+        const finalHint = mobile ? '[OK] Continuar' : 'ENTRE CONTINUAR • ESPAÇO REPLAY';
         ctx.fillText(finalHint, cx, cy + s(mobile ? 55 : 75));
     }
 

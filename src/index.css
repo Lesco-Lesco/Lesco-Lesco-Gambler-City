@@ -139,6 +139,57 @@ canvas {
   transition: transform 0.05s linear;
 }
 
+/* Tank Variant Skin */
+.joystick-container.variant-tank {
+  opacity: 0.9;
+}
+
+.joystick-container.variant-tank .joystick-ring {
+  border: 4px solid #3d4a35;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 60%),
+    linear-gradient(135deg, #1a1f16 0%, #2c3526 100%);
+  box-shadow: 
+    0 0 0 4px #1a1f16,
+    0 8px 16px rgba(0,0,0,0.6),
+    inset 0 0 15px rgba(0,0,0,0.8);
+}
+
+/* Decorative bolts for the tank wheel */
+.joystick-container.variant-tank .joystick-ring::before {
+  content: "•  •  •  •";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #1a1f16;
+  font-size: 24px;
+  letter-spacing: 40px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.joystick-container.variant-tank .joystick-knob {
+  background: 
+    radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2) 0%, transparent 50%),
+    linear-gradient(135deg, #445533 0%, #223311 100%);
+  border: 2px solid #1a1f16;
+  box-shadow: 
+    0 6px 12px rgba(0,0,0,0.8),
+    inset 0 2px 4px rgba(255,255,255,0.1);
+}
+
+.joystick-container.variant-tank .joystick-knob::after {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border: 1.5px solid rgba(255,255,255,0.05);
+  border-radius: 50%;
+  background: rgba(0,0,0,0.1);
+}
+
+
 /* Action Buttons — bottom-right, ergonomic circular layout */
 .action-buttons {
   display: grid;
@@ -154,30 +205,31 @@ canvas {
 .mobile-btn {
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  /* Rounded for better thumb ergonomics */
   display: flex;
   justify-content: center;
   align-items: center;
-  color: white;
+  color: rgba(255, 255, 255, 0.5);
   font-family: 'Press Start 2P', cursive, monospace;
   font-weight: bold;
   font-size: min(3.2vw, 3.2vh);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  transition: all 0.1s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4), 0 8px 15px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0.6;
 }
 
 .mobile-btn:active {
+  opacity: 1;
   transform: scale(0.9) translateY(2px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
-  border-color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+  color: #fff;
 }
 
 /* --- Action button specific colors --- */
@@ -224,7 +276,67 @@ canvas {
   transform: scale(0.9) translateY(-8px);
 }
 
-/* Selection color */
+/* ============================
+   Digital D-Pad (Minigames)
+   ============================ */
+.dpad-container {
+  position: relative;
+  pointer-events: auto;
+  margin-left: 10px;
+  margin-bottom: 10px;
+  user-select: none;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.dpad-container:active {
+  opacity: 1;
+}
+
+.dpad-btn {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.1s;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.dpad-btn:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0.92);
+  border-color: var(--glow-color, #fff);
+  box-shadow: 0 0 15px var(--glow-color, #00ff88);
+}
+
+.dpad-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+.dpad-btn:active .dpad-arrow {
+  color: #fff;
+  text-shadow: 0 0 8px #fff;
+}
+
+.dpad-center {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
+.dpad-up { border-bottom: none; border-radius: 8px 8px 0 0; }
+.dpad-down { border-top: none; border-radius: 0 0 8px 8px; }
+.dpad-left { border-right: none; border-radius: 8px 0 0 8px; }
+.dpad-right { border-left: none; border-radius: 0 8px 8px 0; }
+
 ::selection {
   background: #ff336688;
   color: #fff;

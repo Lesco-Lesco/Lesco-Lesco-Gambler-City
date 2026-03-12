@@ -43,7 +43,7 @@ export class BlackjackUI implements IMinigameUI {
             }
         } else if (this.game.phase === 'playing') {
             const hit = this.input.wasPressed('KeyH') || (mobile && this.input.wasPressed('Space'));
-            const stand = this.input.wasPressed('KeyS') || (mobile && this.input.wasPressed('ArrowUp')); // Using D-pad Up for Stand
+            const stand = this.input.wasPressed('KeyS') || (mobile && this.input.wasPressed('KeyE'));
             if (hit) { this.game.hit(); SoundManager.getInstance().play('card_flip'); }
             if (stand) this.game.stand();
         } else if (this.game.phase === 'result') {
@@ -125,7 +125,7 @@ export class BlackjackUI implements IMinigameUI {
         if (this.game.phase === 'betting') {
             this.drawBettingUI(ctx, cx, screenH * 0.55, theme);
         } else if (this.game.phase === 'playing') {
-            this.drawControlsUI(ctx, cx, screenH * 0.55, theme);
+            this.drawInstructions(ctx, cx, screenH * 0.55, theme);
         } else if (this.game.phase === 'result') {
             this.drawResultUI(ctx, cx, screenH * 0.55, theme);
         }
@@ -141,7 +141,7 @@ export class BlackjackUI implements IMinigameUI {
         const mobile = isMobile();
 
         ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(mobile ? 32 : 48)}px ${theme.titleFont}`;
+        ctx.font = `bold ${r(mobile ? 42 : 48)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
         ctx.shadowBlur = s(15);
         ctx.shadowColor = theme.accent + '66';
@@ -152,22 +152,23 @@ export class BlackjackUI implements IMinigameUI {
         ctx.font = `600 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
         ctx.fillText('DEFINA SUA APOSTA', cx, cy - s(40));
 
-        const hint = mobile ? 'DPAD AJUSTAR • [OK] APOSTAR' : '↑↓ AJUSTAR • ENTER CONFIRMAR';
+        const hint = mobile ? '[DPAD] Ajustar • [OK] Apostar' : '↑↓ Ajustar • Enter Confirmar';
         ctx.font = `600 ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
         ctx.fillText(hint, cx, cy + s(40));
     }
 
-    private drawControlsUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
+    private drawInstructions(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
-
-        ctx.fillStyle = '#fde047';
-        ctx.font = `bold ${r(mobile ? 14 : 18)}px ${theme.titleFont}`;
+        ctx.fillStyle = '#fde047'; // Added this line from original drawControlsUI
+        ctx.font = `bold ${r(mobile ? 16 : 18)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
 
-        const hint = mobile ? '[OK] HIT (PEDIR) • [↑] STAND (PARAR)' : '[H] HIT • [S] STAND';
+        const hint = mobile ? '[OK] Pedir (Hit) • [E] Parar (Stand)' : '[H] Hit • [S] Stand';
         ctx.fillText(hint, cx, cy);
     }
+
+
 
     private drawResultUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
         const r = UIScale.r.bind(UIScale);
@@ -178,7 +179,7 @@ export class BlackjackUI implements IMinigameUI {
         const push = this.game.winner === 'push';
 
         ctx.fillStyle = win ? '#4ade80' : (push ? '#fde047' : '#f87171');
-        ctx.font = `bold ${r(mobile ? 20 : 32)}px ${theme.titleFont}`;
+        ctx.font = `bold ${r(mobile ? 28 : 32)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
 
         ctx.shadowBlur = s(20);
@@ -188,7 +189,7 @@ export class BlackjackUI implements IMinigameUI {
 
         ctx.fillStyle = theme.text;
         ctx.font = `600 ${r(mobile ? 11 : 13)}px ${theme.bodyFont}`;
-        ctx.fillText(mobile ? '[OK] JOGAR NOVAMENTE' : '[ENTER] NOVA PARTIDA', cx, cy + s(40));
+        ctx.fillText(mobile ? '[OK] Rejogar' : '[ENTER] Nova Partida', cx, cy + s(40));
     }
 
     private drawHand(ctx: CanvasRenderingContext2D, x: number, y: number, hand: any[], hideFirst: boolean, theme: any) {
@@ -196,8 +197,8 @@ export class BlackjackUI implements IMinigameUI {
         const r = UIScale.r.bind(UIScale);
         const mobile = isMobile();
 
-        const cardW = s(mobile ? 55 : 70);
-        const cardH = s(mobile ? 80 : 100);
+        const cardW = s(mobile ? 68 : 70);
+        const cardH = s(mobile ? 95 : 100);
         const spacing = cardW * 1.1;
 
         const startX = x - ((hand.length - 1) * spacing) / 2;

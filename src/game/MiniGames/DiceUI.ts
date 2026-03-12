@@ -59,7 +59,7 @@ export class DiceUI implements IMinigameUI {
 
         // ── Message ──
         ctx.fillStyle = this.game.winner?.isHuman ? '#4ade80' : theme.text;
-        ctx.font = `600 ${r(mobile ? 14 : 16)}px ${theme.bodyFont}`;
+        ctx.font = `600 ${r(mobile ? 16 : 16)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
         ctx.fillText(this.game.message.toUpperCase(), cx, msgY);
 
@@ -71,7 +71,7 @@ export class DiceUI implements IMinigameUI {
             this.drawBettingInterface(ctx, cx, footerY, FOOTER_H, theme);
         } else if (this.game.phase === 'result') {
             const resultHint = mobile
-                ? 'TAP CENTRAL para Reiniciar • TAP LADO para Sair'
+                ? '[OK] Jogar Novamente • [EXIT] Sair'
                 : 'ESPAÇO JOGAR NOVAMENTE • ESC SAIR';
             drawMinigameFooter(ctx, width, height, theme, resultHint);
         }
@@ -178,7 +178,7 @@ export class DiceUI implements IMinigameUI {
 
             // Name
             ctx.fillStyle = p.isHuman ? '#fff' : theme.textMuted;
-            ctx.font = `bold ${r(mobile ? 11 : 14)}px ${theme.bodyFont}`;
+            ctx.font = `bold ${r(mobile ? 13 : 14)}px ${theme.bodyFont}`;
             ctx.textAlign = 'center';
             ctx.fillText(p.name, 0, cardH * 0.28);
 
@@ -226,7 +226,7 @@ export class DiceUI implements IMinigameUI {
         const mobile = isMobile();
 
         ctx.fillStyle = theme.textMuted;
-        ctx.font = `600 ${r(mobile ? 14 : 16)}px ${theme.bodyFont}`;
+        ctx.font = `600 ${r(mobile ? 16 : 16)}px ${theme.bodyFont}`;
         ctx.textAlign = 'center';
         ctx.fillText('VALOR DA APOSTA', cx, zoneTop + zoneH * 0.2);
 
@@ -238,7 +238,7 @@ export class DiceUI implements IMinigameUI {
         ctx.shadowBlur = 0;
 
         const helpHint = mobile
-            ? 'TAP CORPO para Iniciar • [OK] JOGAR'
+            ? '[DPAD] Ajustar • [RUN] Trocar • [OK] Jogar'
             : '[SETAS] AJUSTAR • [Q] TROCA DADO • [SPACE] JOGAR';
         drawMinigameFooter(ctx, cx * 2, zoneTop + zoneH * 4.5, theme, helpHint);
     }
