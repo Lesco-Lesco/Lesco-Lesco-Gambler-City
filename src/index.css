@@ -365,6 +365,18 @@ canvas {
   transform: translateZ(0);
 }
 
+.splash-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .splash-overlay.visible {
   opacity: 1;
   pointer-events: auto;
@@ -374,6 +386,6 @@ canvas {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 0%;
-  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+  object-position: center center;
+  filter: contrast(1.05) brightness(1.02); /* Crispness for "HD" */
 }
