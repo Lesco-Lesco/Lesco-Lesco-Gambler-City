@@ -31,6 +31,8 @@ export type SoundName =
     // Arcade
     | 'arcade_insert' | 'arcade_hit' | 'arcade_shoot'
     | 'arcade_bounce' | 'arcade_explosion'
+    // Achievements
+    | 'achievement_unlock'
     // Police
     | 'police_siren' | 'police_whistle'
     // Exploration
@@ -83,6 +85,8 @@ const VOLUME_MAP: Partial<Record<SoundName, number>> = {
     arcade_shoot: 0.35,
     arcade_bounce: 0.3,
     arcade_explosion: 0.45,
+    // Achievement
+    achievement_unlock: 0.6,
     // Doors
     door_enter: 0.4,
     door_exit: 0.35,
@@ -145,6 +149,7 @@ export class SoundManager {
             'win_small', 'win_big', 'lose', 'draw',
             'arcade_insert', 'arcade_hit', 'arcade_shoot',
             'arcade_bounce', 'arcade_explosion',
+            'achievement_unlock',
             'police_siren', 'police_whistle',
             'footstep', 'door_enter', 'door_exit',
             'game_over', 'game_start',

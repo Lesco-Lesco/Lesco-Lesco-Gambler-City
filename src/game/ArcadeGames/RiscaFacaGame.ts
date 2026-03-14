@@ -100,7 +100,7 @@ export class RiscaFacaGame {
         if (dist <= this.sweetSpotSize) {
             this.roundWon = true;
             const accuracy = 1 - (dist / this.sweetSpotSize);
-            this.score += 150 + Math.floor(accuracy * 350);
+            this.score += 20 + Math.floor(accuracy * 60);
         } else {
             this.roundWon = false;
             this.lives--;

@@ -28,12 +28,18 @@ const ARGUMENTS_PERIPHERAL = [
     ["Quem é essa aí no zap?", "É minha prima, doida.", "Prima de quem?!", "Da sua mãe!"],
     ["Abaixa esse som!", "Tô curtindo, pô!", "TÁ TREMENDO A JANELA!", "Foda-se!"],
     ["Você bebeu de novo?", "Só uma latinha...", "TÁ CHEIRANDO A CACHAÇA!", "Me deixa em paz."],
+    ["Onde você tava até agora?!", "No Bar do Luiz, ué.", "COM QUE DINHEIRO?!", "Ganhei na Ronda... ou quase isso."],
+    ["Cala a boca e come!", "Essa comida tá sem sal.", "ENTÃO COZINHA VOCÊ!", "Grossa..."],
+    ["A vizinha disse que te viu com outra.", "Vizinha fofoqueira, você acredita?", "ELA TIROU FOTO!", "Apaga isso agora!"],
+    ["Mãe, cadê meu tênis?", "Onde você deixou, ué.", "TÔ ATRASADO!", "Problema seu, não sou sua empregada!"],
 ];
 
 const GOSSIP_PERIPHERAL = [
     ["Viu o vizinho novo?", "Aquele do carro vermelho?", "Dizem que é bicheiro.", "Misericórdia!"],
     ["A polícia passou aqui...", "Procurando quem?", "O filho da Maria.", "Sabia que ia dar ruim."],
     ["Vai ter churrasco hoje?", "Só se você pagar.", "Tô liso, irmão.", "Então fica com fome."],
+    ["Viu a briga na esquina hoje?", "Foi por causa de jogo?", "Sempre é por causa de jogo.", "Povo não aprende."],
+    ["Dizem que o Shopping vai fechar.", "Mentira, acabou de abrir!", "Ouvi falar que deu rolo com os fiscais.", "Santa Cruz não é pra amadores."],
 ];
 
 const ONELINERS_PERIPHERAL = [
@@ -47,6 +53,11 @@ const ONELINERS_PERIPHERAL = [
     ["Cadê o dinheiro do aluguel?"],
     ["Vizinho fofoqueiro é foda."],
     ["Para de gritar, tem gente dormindo!"],
+    ["O bicho deu zebra hoje, hein?"],
+    ["Quem não deve, não teme... mas eu temo."],
+    ["Bota fé que amanhã a sorte vira."],
+    ["Não encosta no meu carro!"],
+    ["Hoje é dia de maldade no fliperama."],
 ];
 
 const TV_RADIO = [
@@ -59,11 +70,15 @@ const ARGUMENTS_CENTRAL = [
     ["Apaga essa luz!", "Tô lendo!", "São 3 da manhã!", "E daí?"],
     ["Você não lavou a louça.", "Lavo amanhã.", "Vai lavar AGORA.", "Que chatice."],
     ["O cachorro fugiu de novo!", "Deixou o portão aberto?", "Foi você!", "Eu não!"],
+    ["Cadê a chave do carro?", "Não sei, você que usou por último.", "MENTIRA!", "Procura no sofá..."],
+    ["Você esqueceu nosso aniversário!", "Não esqueci, o presente tá chegando.", "TÁ CHEGANDO DESDE O ANO PASSADO!", "Calma, amor..."],
 ];
 
 const CASUAL_CENTRAL = [
     ["Que calor insuportável.", "Liga o ventilador.", "Tá quebrado.", "Então sofre."],
     ["O preço da carne subiu.", "De novo?", "Tá impossível viver.", "Vou virar vegetariano."],
+    ["Vai pedir pizza hoje?", "Se você pagar a taxa de entrega.", "Tô sem troco.", "Então vamos de miojo."],
+    ["Viu o jornal hoje?", "Só tragédia.", "Santa Cruz tá mudando muito.", "Pra pior ou pra melhor?"],
 ];
 
 const ONELINERS_CENTRAL = [

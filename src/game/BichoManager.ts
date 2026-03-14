@@ -1,6 +1,7 @@
 import { JogoDoBicho } from './MiniGames/JogoDoBicho';
 import { EconomyManager } from './Core/EconomyManager';
 import { GameConfig } from './Core/GameConfig';
+import { AchievementManager } from './Core/AchievementManager';
 
 export interface BichoBet {
     animal: number;
@@ -67,6 +68,9 @@ export class BichoManager {
             resultTime: this.internalTimer + delayInSeconds,
             processed: false
         });
+
+        // Track for achievements
+        AchievementManager.getInstance().recordBichoBet();
     }
 
     public update(dt: number) {
@@ -95,10 +99,12 @@ export class BichoManager {
                         const payout = bet.amount * GameConfig.BICHO_EXACT_MATCH_MULTIPLIER;
                         economy.addMoney(payout);
                         this.addNotification(`+R$${payout}! DEU ${winnerEmoji} ${winnerName.toUpperCase()}!`, 5);
+                        AchievementManager.getInstance().recordBichoWin();
                     } else if (betGroup === winningGroup) {
                         const payout = GameConfig.BICHO_GROUP_MATCH_PAYOUT;
                         economy.addMoney(payout);
                         this.addNotification(`+R$${payout}! Ganhou prêmio no GRUPO do ${winnerName}!`, 4);
+                        AchievementManager.getInstance().recordBichoWin();
                     } else {
                         this.addNotification(`Deu ${winnerEmoji} ${winnerName}. Seu ${animalName} perdeu.`, 4);
                     }

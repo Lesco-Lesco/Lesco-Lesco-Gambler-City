@@ -174,7 +174,7 @@ export class AirPongGame {
         }
         if (this.discX > this.fieldW) {
             this.playerGoals++;
-            this.score += 100;
+            this.score += 30;
             this.lastScorer = 'player';
             this.phase = 'goal';
             this.goalTimer = 1.5;

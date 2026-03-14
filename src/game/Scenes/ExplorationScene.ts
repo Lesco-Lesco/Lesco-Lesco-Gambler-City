@@ -56,6 +56,8 @@ import { SinucaGame } from '../ArcadeGames/SinucaGame';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import { SoundManager } from '../Core/SoundManager';
+import { AchievementManager } from '../Core/AchievementManager';
+import { AchievementUI } from '../UI/AchievementUI';
 
 export class ExplorationScene implements Scene {
     public name = 'exploration';
@@ -126,6 +128,10 @@ export class ExplorationScene implements Scene {
     private lastPlayerTileX: number = 0;
     private lastPlayerTileY: number = 0;
 
+    // Achievement system
+    private achievementUI: AchievementUI;
+    private walkTimeAccumulator: number = 0;
+
     // Zoom Stages (6 stages: 0.5x to 3.0x)
     private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
     private zoomStageIndex: number = 1; // Default 1.0x
@@ -172,6 +178,9 @@ export class ExplorationScene implements Scene {
         this.lighting.addLight(this.playerLight);
         this.hud = new HUD();
         this.newspaper = new NewspaperUI();
+
+        // Achievement system
+        this.achievementUI = AchievementUI.getInstance();
 
         // Minigames
         this.diceGame = new DiceGame();
@@ -365,6 +374,7 @@ export class ExplorationScene implements Scene {
         if (this.activeMinigame === 'arcade_air_pong' && this.airPongGame) {
             this.airPongGame.update(dt);
             if (this.airPongGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.processArcadeEnd('air_pong', this.airPongGame.score);
                 this.airPongGame = null;
                 this.activeMinigame = 'arcade_menu';
             }
@@ -377,6 +387,7 @@ export class ExplorationScene implements Scene {
         if (this.activeMinigame === 'arcade_tank_attack' && this.tankAttackGame) {
             this.tankAttackGame.update(dt);
             if (this.tankAttackGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.processArcadeEnd('tank_attack', this.tankAttackGame.score);
                 this.tankAttackGame = null;
                 this.activeMinigame = 'arcade_menu';
                 InputManager.getInstance().setActiveMinigame(null);
@@ -391,6 +402,7 @@ export class ExplorationScene implements Scene {
         if (this.activeMinigame === 'arcade_faroeste' && this.faroesteGame) {
             this.faroesteGame.update(dt);
             if (this.faroesteGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.processArcadeEnd('faroeste', this.faroesteGame.score);
                 this.faroesteGame = null;
                 this.activeMinigame = 'arcade_menu';
             }
@@ -403,6 +415,7 @@ export class ExplorationScene implements Scene {
         if (this.activeMinigame === 'arcade_risca_faca' && this.riscaFacaGame) {
             this.riscaFacaGame.update(dt);
             if (this.riscaFacaGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.processArcadeEnd('risca_faca', this.riscaFacaGame.score);
                 this.riscaFacaGame = null;
                 this.activeMinigame = 'arcade_menu';
             }
@@ -415,6 +428,12 @@ export class ExplorationScene implements Scene {
         if (this.activeMinigame === 'arcade_sinuca' && this.sinucaGame) {
             this.sinucaGame.update(dt);
             if (this.sinucaGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                // Check Sinuca win (player pocketed all AI balls = score includes 500 win bonus)
+                const sinucaWon = this.sinucaGame.score >= 500;
+                this.processArcadeEnd('sinuca', this.sinucaGame.score);
+                if (sinucaWon) {
+                    AchievementManager.getInstance().recordSinucaWin();
+                }
                 this.sinucaGame = null;
                 this.activeMinigame = 'arcade_menu';
             }
@@ -440,12 +459,18 @@ export class ExplorationScene implements Scene {
         this.player.update(dt, this.tileMap);
         this.camera.follow(this.player.x, this.player.y, dt);
 
-        // Footstep sounds when walking
+        // Footstep sounds when walking + achievement walk time tracking
         if (this.player.isMoving) {
             this.footstepTimer -= dt;
             if (this.footstepTimer <= 0) {
                 SoundManager.getInstance().play('footstep');
                 this.footstepTimer = this.player.isRunning ? 0.22 : 0.35;
+            }
+            // Walk time for achievements (batch to avoid spamming)
+            this.walkTimeAccumulator += dt;
+            if (this.walkTimeAccumulator >= 5.0) {
+                AchievementManager.getInstance().addWalkTime(this.walkTimeAccumulator);
+                this.walkTimeAccumulator = 0;
             }
         } else {
             this.footstepTimer = 0;
@@ -600,10 +625,11 @@ export class ExplorationScene implements Scene {
                     pm.currentJoke = pm.getRandomSarcasticComment();
                     pm.phase = 'consequence';
                     SoundManager.getInstance().play('coin_loss');
+                    AchievementManager.getInstance().recordBribePaid();
+                    AchievementManager.getInstance().recordRaidSurvived();
                 } else {
                     bmanager.addNotification("Você está quebrado demais até para propina!", 3);
-                    pm.phase = 'interruption'; // Go back or just stay there? Let's just stay or maybe police gets angry?
-                    // For now, just let it stay in check phase but with a message.
+                    pm.phase = 'interruption';
                 }
             }
         } else if (pm.phase === 'dice_battle') {
@@ -616,9 +642,11 @@ export class ExplorationScene implements Scene {
                     bmanager.playerMoney += 300; // 150 bet + 150 reward
                     pm.currentJoke = "Sorte de principiante... Pega esse dinheiro e some da minha frente!";
                     SoundManager.getInstance().play('win_small');
+                    AchievementManager.getInstance().recordRaidSurvived();
                 } else {
                     pm.currentJoke = "Eu avisei que a banca do Estado nunca perde. Agora tchau!";
                     SoundManager.getInstance().play('lose');
+                    AchievementManager.getInstance().recordRaidSurvived();
                 }
             }
         } else if (pm.phase === 'dice_battle_result') {
@@ -637,13 +665,17 @@ export class ExplorationScene implements Scene {
     private handleMinigameExit(game?: any, payout: number = 0) {
         const bmanager = BichoManager.getInstance();
         const sm = SoundManager.getInstance();
+        const achManager = AchievementManager.getInstance();
+
+        // Track minigame play for achievements
+        if (this.activeMinigame !== 'none' && this.activeMinigame !== 'bar_menu' && this.activeMinigame !== 'arcade_menu') {
+            achManager.recordMinigamePlay(this.activeMinigame);
+        }
+
         if (game) {
-            // Se saiu no meio da partida (já tinha apostado e não terminou)
-            // No Bingo, 'picking' também conta como partida iniciada após pagar
             const inProgress = game.phase !== 'betting' && game.phase !== 'result';
 
             if (inProgress) {
-                // Jogos que não descontam no ato da aposta, descontamos no abandono
                 const needsDeduction = [
                     'purrinha', 'heads_tails', 'palitinho', 'fan_tan', 'jokenpo',
                     'dice', 'ronda'
@@ -656,17 +688,38 @@ export class ExplorationScene implements Scene {
                 } else if (inProgress) {
                     bmanager.addNotification(`Partida encerrada.`, 4);
                 }
+                achManager.recordMinigameLoss();
             }
             if (payout > 0) {
                 bmanager.playerMoney += payout;
                 sm.play('coin_gain');
+                achManager.recordMinigameWin(this.activeMinigame);
             } else if (payout < 0) {
                 bmanager.playerMoney += payout;
                 sm.play('coin_loss');
+                achManager.recordMinigameLoss();
+            } else if (!inProgress && game.phase === 'result') {
+                achManager.recordMinigameLoss();
             }
         }
+
+        achManager.updateMaxMoney(bmanager.playerMoney);
         this.exitMinigame();
     }
+
+    /** Process arcade game end: record stats for achievements only (no direct money reward per session) */
+    private processArcadeEnd(type: string, score: number): void {
+        const achManager = AchievementManager.getInstance();
+        const bmanager = BichoManager.getInstance();
+
+        // Track stats and trigger any achievement unlocks (achievements are one-time events, not farmable)
+        achManager.recordArcadeEnd(type, score);
+
+        // No direct money reward per session — prevents score farming exploit.
+        // Financial recognition comes exclusively through one-time achievement unlocks.
+        achManager.updateMaxMoney(bmanager.playerMoney);
+    }
+
 
     private exitMinigame() {
         this.activeMinigame = 'none';
@@ -1506,7 +1559,11 @@ export class ExplorationScene implements Scene {
 
         this.renderPoliceOverlay(ctx);
 
-        // 8. Newspaper (Final Overlay)
+        // 8. Achievement Toasts (above everything except newspaper)
+        this.achievementUI.update(0.016); // Approximate dt for render-time toasts
+        this.achievementUI.render(ctx, this.screenW, this.screenH);
+
+        // 9. Newspaper (Final Overlay)
         if (this.newspaper.isVisible()) {
             this.newspaper.render(ctx, this.screenW, this.screenH);
         }

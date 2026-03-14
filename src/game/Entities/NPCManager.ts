@@ -56,7 +56,7 @@ export class NPCManager {
     }
 
     private spawnPopulation() {
-        const TOTAL_POPULATION = 750; // Increased from 550 for more density in alleys
+        const TOTAL_POPULATION = 1800; // Aumento massivo para sensação de cidade lotada
         let spawned = 0;
         let attempts = 0;
 
@@ -65,7 +65,7 @@ export class NPCManager {
         const SHOPPING_Y = 125;
         const SAFE_RADIUS = 40;
 
-        while (spawned < TOTAL_POPULATION && attempts < 12000) {
+        while (spawned < TOTAL_POPULATION && attempts < 40000) {
             attempts++;
             const x = Math.floor(Math.random() * MAP_WIDTH);
             const y = Math.floor(Math.random() * MAP_HEIGHT);
@@ -80,8 +80,15 @@ export class NPCManager {
 
             if (!isWalkable) continue;
 
-            const distToShop = Math.sqrt((x - SHOPPING_X) ** 2 + (y - SHOPPING_Y) ** 2);
             const isAlley = tile === TILE_TYPES.ALLEY;
+            const isPeriphery = PoliceManager.getInstance().isPeriphery(x, y);
+
+            // Adensamento massivo em favelas e periferia
+            // Descartamos spawns no asfalto/calçada comum com frequência para favorecer becos
+            if (!isAlley && Math.random() < 0.25) continue; // 25% de viés para becos/favelas
+            if (!isPeriphery && Math.random() < 0.15) continue; // 15% de viés extra para periferia
+
+            const distToShop = Math.sqrt((x - SHOPPING_X) ** 2 + (y - SHOPPING_Y) ** 2);
 
             let type: NPCType = 'gambler';
             let minigame: any = null;
@@ -194,8 +201,8 @@ export class NPCManager {
             const dy = npc.y - playerY;
             const distSq = dx * dx + dy * dy;
 
-            // Full update for anyone within 15 tiles
-            if (distSq < 225) {
+            // Full update for anyone within 25 tiles (increased for immersion)
+            if (distSq < 625) {
                 npc.update(dt, playerX, playerY, tileMap);
             }
             // Budget update for far NPCs: once every 10 frames

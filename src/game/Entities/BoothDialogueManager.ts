@@ -20,6 +20,11 @@ const POLICE_PHRASES = [
     "A segurança tem um preço, e o café aqui na cabine anda meio caro ultimamente.",
     "Não vi nada, não ouvi nada. Desde que o 'incentivo' continue chegando.",
     "Santa Cruz é uma cidade de oportunidades... para quem sabe conversar.",
+    "O bicho correu? Pois é, aqui na estação ele corre sempre pro mesmo lado.",
+    "Sabe aquele matadouro? Pois é, tem muito osso rolando por lá.",
+    "A viatura está sem combustível... se é que você me entende.",
+    "Mantenha a discrição e a gente mantém a amizade.",
+    "O Shopping é bonito por fora, né? Pena que o subsolo é tão 'gelado'.",
 ];
 
 const GAME_INFO = [
@@ -29,6 +34,11 @@ const GAME_INFO = [
     "Procurando por animais? O bicheiro da esquina costuma ser bem atencioso com estranhos.",
     "Cuidado com os dados na praça. A sorte é cega, mas a gente também pode ser.",
     "Se o bolso estiver pesado, tem gente no subsolo do Shopping que pode te ajudar a aliviar.",
+    "No Beco do Matadouro, o dado não cai, ele 'voa'.",
+    "Já ouviu falar da Ronda da Estação? É onde os trilhos encontram o baralho.",
+    "O cassino underground tem um leão na porta. Não esqueça do carinho dele.",
+    "A Purrinha ali perto da Igreja é jogo de gente grande.",
+    "Quer ganhar rápido? Cuidado pra não perder mais rápido ainda.",
 ];
 
 export class BoothDialogueManager {

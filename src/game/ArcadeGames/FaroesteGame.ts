@@ -118,7 +118,7 @@ export class FaroesteGame {
     private resolveRound() {
         if (this.playerDrawTime <= this.aiDrawTime) {
             this.roundWon = true;
-            this.score += 200 + Math.floor(Math.max(0, (1 - this.playerDrawTime) * 300));
+            this.score += 25 + Math.floor(Math.max(0, (1 - this.playerDrawTime) * 75));
         } else {
             this.roundWon = false;
             this.lives--;

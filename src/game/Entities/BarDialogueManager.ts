@@ -58,7 +58,14 @@ export class BarDialogueManager {
             "Já viu as propostas do homem?",
             "O som tá alto, mas a resenha é boa.",
             "Aqui a polícia não entra!",
-            "Bota mais uma dose aí!"
+            "Bota mais uma dose aí!",
+            "O bicho deu o quê hoje?",
+            "Fala pro Tiquinho que eu mandei um abraço.",
+            "Essa carne de sol tá no ponto!",
+            "Mais um dia de luta e uma noite de copo.",
+            "O ar-condicionado tá no 15, chega mais!",
+            "Santa Cruz não dorme, só descansa o fígado.",
+            "Ouve esse pagode, isso que é vida!",
         ];
 
         const randomGeneric = genericMessages[Math.floor(Math.random() * genericMessages.length)];

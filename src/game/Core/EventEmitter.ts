@@ -11,7 +11,8 @@ export type GameEventType =
     | 'RAID_STARTED'
     | 'RAID_ENDED'
     | 'GAME_OVER'
-    | 'NOTIFICATION';
+    | 'NOTIFICATION'
+    | 'ACHIEVEMENT_UNLOCKED';
 
 export interface GameEventData {
     MONEY_CHANGED: { amount: number; delta: number };
@@ -21,6 +22,7 @@ export interface GameEventData {
     RAID_ENDED: { confiscated: number };
     GAME_OVER: Record<string, never>;
     NOTIFICATION: { message: string; duration: number };
+    ACHIEVEMENT_UNLOCKED: { name: string; description: string; reward: number; tier: number };
 }
 
 type EventCallback<T extends GameEventType> = (data: GameEventData[T]) => void;

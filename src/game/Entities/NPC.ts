@@ -41,6 +41,12 @@ const DIALOGUES = {
         ["Sabe onde tem um jogo bom?", "Tô querendo apostar uns trocados."],
         ["Eles dizem que vão arrumar, mas nunca arrumam.", "Política é tudo igual."],
         ["Cuidado com a carteira, amigo.", "Tem muito malandro por aí."],
+        ["A passagem do trem subiu de novo.", "Sempre sobra pra gente."],
+        ["Dizem que o Shopping é chique, mas só vou lá pra usar o banheiro.", "Shopping de Santa Cruz é outro nível."],
+        ["Bela noite pra uma cerveja, não acha?", "Pena que o bolso tá vazio."],
+        ["Viu o preço da carne?", "Vou virar vegetariano na marra."],
+        ["Esse sol de Santa Cruz não é de Deus.", "Tô derretendo no asfalto."],
+        ["Amanhã tem feira, né?", "Vou ver se compro umas frutas baratas."],
     ],
     station_hints: [
         ["Ouviu esse barulho de fichas? Não é o trem não...", "Tem gente ganhando o dia lá no subsolo."],
@@ -49,6 +55,9 @@ const DIALOGUES = {
         ["Escutei que o blackjack lá embaixo tá fervendo.", "As cartas giram mais rápido que os rodeiros do trem."],
         ["Dizem que se você bater 3 vezes na viga certa, o 'Leão' aparece.", "Cuidado pra não apostar a passagem de volta."],
         ["A sorte mora no subsolo hoje, doutor.", "Viu aquele brilho vindo do ralo? É ouro, ou quase isso."],
+        ["O trem tá atrasado, mas a roleta tá a mil.", "Quem desce na plataforma 3 sabe do que eu tô falando."],
+        ["O fiscal finge que não vê, e a gente finge que não aposta.", "A lei do silêncio vale mais que o bilhete."],
+        ["Já viu o homem do terno cinza?", "Ele é quem manda no baralho por aqui."],
     ],
     sarcastic: [
         ["Olha a roupa desse playboy...", "Achou que aqui era a Zona Sul?"],
@@ -64,6 +73,10 @@ const DIALOGUES = {
         ["Aquele beco ali tem cheiro de comida de bacana.", "Alguém tá ganhando muito dinheiro lá embaixo hoje."],
         ["Não entra naquele porão não, irmão.", "Vi gente entrar sorrindo e sair sem nem as calças."],
         ["O shopping brilha por fora, mas o porão devora.", "Cuidado com o que você aposta lá embaixo."],
+        ["O vento aqui na esquina corta como navalha.", "Perto do bicheiro sempre é mais quente."],
+        ["Vi você olhando pro cassino.", "O brilho nos olhos de quem vai perder tudo é inconfundível."],
+        ["Ontem ganharam um prêmio grande lá dentro.", "O cara pagou um jantar pra todo mundo da rua."],
+        ["Não dorme no ponto, a polícia tá vindo.", "Eles não gostam de quem tem menos que eles."],
     ],
     pedinte_aggressive: [
         ["Ei doutor! Preciso comer!", "Não vai negar um prato de comida?", "Tô vendo essa carteira cheia aí!"],
@@ -144,7 +157,11 @@ const DIALOGUES = {
         ["Divertido enquanto dura, triste quando a gente chega.", "A sorte é cega, mas a polícia tem olhos em todo lugar."],
         ["Cuidado com o que aposta, o preço pode ser alto demais.", "Belo dia pra uma batida, não acha?"],
         ["Documentos? Ah, deixa pra lá, tô vendo que o problema é outro.", "Esse 'Lesco Lesco' ainda vai te meter em encrenca."],
-        ["Se eu pegar você jogando, o prejuízo vai ser grande.", "A lei é clara, mas o seu juízo parece meio nublado."]
+        ["Se eu pegar você jogando, o prejuízo vai ser grande.", "A lei é clara, mas o seu juízo parece meio nublado."],
+        ["Circulando, circulando! Não quero aglomeração aqui.", "A ordem é prioridade, o resto é conversa."],
+        ["Estou de olho naquele bicheiro ali..", "Um dia a casa cai, e cai pesada."],
+        ["Já pagou o café da guarnição hoje?", "Ou prefere explicar o que tem nessa carteira lá na delegacia?"],
+        ["O bicho só corre se a gente deixar.", "E ultimamente a gente tem andado bem devagar."],
     ],
     casino_promoter: [
         ["O shopping é para gastar seu suor, o porão é para colher os frutos.", "Já sentiu que hoje é o seu dia de virar o jogo?"],
