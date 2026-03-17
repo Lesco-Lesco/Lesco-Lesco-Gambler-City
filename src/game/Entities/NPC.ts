@@ -531,6 +531,7 @@ export class NPC {
     private drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, z: number) {
         ctx.font = `${Math.max(10, 8 * z)}px monospace`;
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic'; // Fix for vertical alignment bug
         const metrics = ctx.measureText(text);
         const w = metrics.width + 10 * z;
         const h = 16 * z;

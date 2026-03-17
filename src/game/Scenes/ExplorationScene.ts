@@ -131,6 +131,8 @@ export class ExplorationScene implements Scene {
     // Achievement system
     private achievementUI: AchievementUI;
     private walkTimeAccumulator: number = 0;
+    private locationTriggerTimer: number = 0; // Timer to throttle geographic checks
+    private lastActiveMinigame: string = 'none'; // Track state changes for exit achievements
 
     // Zoom Stages (6 stages: 0.5x to 3.0x)
     private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
@@ -304,6 +306,12 @@ export class ExplorationScene implements Scene {
                 // Use handleMinigameExit to process the loss
                 this.handleMinigameExit(game);
             }
+
+            // Achievement: record first contact with police
+            if (pm.phase === 'interruption') {
+                AchievementManager.getInstance().recordRaidEncounter();
+            }
+
             this.updatePoliceRaid(dt);
             return; // Block world and minigame update during raid
         }
@@ -498,6 +506,23 @@ export class ExplorationScene implements Scene {
 
         // Interactions
         this.checkInteractions();
+
+        // Exploration Achievements (Throttled geographic checks)
+        this.locationTriggerTimer -= dt;
+        if (this.locationTriggerTimer <= 0) {
+            this.checkGeographicAchievements();
+            this.locationTriggerTimer = 0.5; // Every half second
+        }
+
+        // Detect Exit from Bar/Arcade
+        if (this.lastActiveMinigame !== 'none' && this.activeMinigame === 'none') {
+            if (this.lastActiveMinigame === 'bar_menu') {
+                AchievementManager.getInstance().recordEstablishmentExit('bar');
+            } else if (this.lastActiveMinigame === 'arcade_menu') {
+                AchievementManager.getInstance().recordEstablishmentExit('arcade');
+            }
+        }
+        this.lastActiveMinigame = this.activeMinigame;
 
         // 6. Adaptive Player Light logic (Fluid and Automatic)
         this.updateAdaptiveLighting(dt);
@@ -1797,6 +1822,44 @@ export class ExplorationScene implements Scene {
             }
         }
         ctx.fillText(line, x, currentY);
+    }
+
+    private checkGeographicAchievements() {
+        const ach = AchievementManager.getInstance();
+        const px = this.player.x;
+        const py = this.player.y;
+
+        // 1. Church
+        if (px >= 125 && px <= 135 && py >= 86 && py <= 98) {
+            ach.recordLocationVisit('church');
+        }
+
+        // 2. Plaza Marques de Herval
+        if (px >= 148 && px <= 168 && py >= 160 && py <= 190) {
+            ach.recordLocationVisit('plaza_main');
+        }
+
+        // 3. Marco Imperial
+        if (px >= 225 && px <= 245 && py >= 130 && py <= 149) {
+            ach.recordLocationVisit('marco_imperial');
+        }
+
+        // 4. Residential Areas
+        const isResidential = 
+            (px >= 45 && px <= 95 && py >= 35 && py <= 145) ||
+            (px >= 165 && px <= 215 && py >= 35 && py <= 145) ||
+            (px >= 10 && px <= 35) || // Far West Favela
+            (px >= 225 && px <= 290) || // Far East Favela
+            (py >= 205 && py <= 290); // South Favela
+
+        if (isResidential) {
+            ach.recordLocationVisit('residential');
+        }
+
+        // 5. High Risk Area (Periphery)
+        if (PoliceManager.getInstance().isPeriphery(px, py)) {
+            ach.recordLocationVisit('high_risk');
+        }
     }
 }
 

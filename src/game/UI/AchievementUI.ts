@@ -147,6 +147,29 @@ export class AchievementUI {
         }
     }
 
+    private drawTextWrapped(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number): number {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+        let linesCount = 0;
+
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line.trim(), x, currentY);
+                line = words[n] + ' ';
+                currentY += lineHeight;
+                linesCount++;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line.trim(), x, currentY);
+        return currentY;
+    }
+
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number): void {
         if (!this.current && this.particles.length === 0) return;
 
@@ -216,35 +239,41 @@ export class AchievementUI {
 
             // Achievement name
             ctx.fillStyle = '#ffdd44';
-            ctx.font = `bold ${r(mobile ? 13 : 15)}px "Press Start 2P", monospace`;
+            ctx.font = `bold ${r(mobile ? 12 : 14)}px "Press Start 2P", monospace`;
             ctx.textAlign = 'left';
             ctx.shadowBlur = s(8);
             ctx.shadowColor = '#ffaa00';
-            ctx.fillText(toast.name, boxX + s(55), boxY + s(mobile ? 28 : 30));
+            
+            // Limit name width to avoid overlap with icon
+            const maxTitleW = boxW - s(110);
+            this.drawTextWrapped(ctx, toast.name, boxX + s(55), boxY + s(mobile ? 28 : 30), maxTitleW, s(mobile ? 14 : 16));
             ctx.shadowBlur = 0;
 
             // Description
             ctx.fillStyle = '#cccccc';
             ctx.font = `${r(mobile ? 10 : 11)}px monospace`;
-            ctx.fillText(toast.description, boxX + s(55), boxY + s(mobile ? 48 : 52));
+            const maxDescW = boxW - s(110);
+            this.drawTextWrapped(ctx, toast.description, boxX + s(55), boxY + s(mobile ? 48 : 52), maxDescW, s(mobile ? 12 : 14));
 
             // Reward
             ctx.fillStyle = '#44ff88';
             ctx.font = `bold ${r(mobile ? 12 : 14)}px monospace`;
             ctx.shadowBlur = s(6);
             ctx.shadowColor = '#44ff88';
-            ctx.fillText(`+R$${toast.reward}`, boxX + s(55), boxY + s(mobile ? 68 : 75));
+            ctx.fillText(`+R$${toast.reward}`, boxX + s(55), boxY + s(mobile ? 78 : 82));
             ctx.shadowBlur = 0;
 
-            // Tier badge (right side)
+            // Tier info container (Right side)
+            ctx.textAlign = 'right';
+            
+            // Tier label
             ctx.fillStyle = tierInfo.color;
             ctx.font = `bold ${r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
-            ctx.textAlign = 'right';
-            ctx.fillText(tierInfo.label, boxX + boxW - s(15), boxY + s(mobile ? 28 : 30));
+            ctx.fillText(tierInfo.label, boxX + boxW - s(15), boxY + s(mobile ? 78 : 82));
 
             // Tier icon
-            ctx.font = `${r(14)}px "Segoe UI Emoji", Arial`;
-            ctx.fillText(tierInfo.icon, boxX + boxW - s(15), boxY + s(mobile ? 48 : 52));
+            ctx.font = `${r(16)}px "Segoe UI Emoji", Arial`;
+            ctx.fillText(tierInfo.icon, boxX + boxW - s(15), boxY + s(mobile ? 28 : 30));
 
             ctx.restore();
 

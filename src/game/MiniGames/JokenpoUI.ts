@@ -93,6 +93,7 @@ export class JokenpoUI implements IMinigameUI {
     public render(ctx: CanvasRenderingContext2D, screenW: number, screenH: number) {
         const theme = MINIGAME_THEMES.jokenpo;
 
+        ctx.save();
         drawMinigameBackground(ctx, screenW, screenH, theme);
         drawMinigameTitle(ctx, screenW, screenH, theme, 'PEDRA PAPEL TESOURA');
 
@@ -112,6 +113,7 @@ export class JokenpoUI implements IMinigameUI {
 
         const hint = isMobile() ? 'DPAD Selecionar • [OK] Confirmar' : '←→ SELECIONAR • ESPAÇO CONFIRMAR • ESC SAIR';
         drawMinigameFooter(ctx, screenW, screenH, theme, hint);
+        ctx.restore();
     }
 
     private drawBettingUI(ctx: CanvasRenderingContext2D, cx: number, cy: number, theme: any) {
@@ -274,14 +276,37 @@ export class JokenpoUI implements IMinigameUI {
         this.drawLargeHand(ctx, cx - xOff, cy - yOff, iconMap[this.game.playerChoice as string] || '❓', 'VOCÊ', theme.accent, theme);
         this.drawLargeHand(ctx, cx + xOff, cy - yOff, iconMap[this.game.npcChoice as string] || '❓', 'BANCA', theme.accentAlt, theme);
 
-        // Result Message
+        // Result Message — quebra em até 2 linhas para não estourar a tela
+        const resultFontSize = r(mobile ? 22 : 28);
         ctx.fillStyle = '#fff';
-        ctx.font = `900 ${r(mobile ? 38 : 48)}px ${theme.titleFont}`;
+        ctx.font = `900 ${resultFontSize}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
-        ctx.fillText(this.game.resultMessage.toUpperCase(), cx, cy + s(110));
 
+        const resultText = this.game.resultMessage.toUpperCase();
+        const maxWidth = mobile ? 260 : 420;
+        const words = resultText.split(' ');
+        let line1 = '';
+        let line2 = '';
+        for (const word of words) {
+            const test = line1 ? line1 + ' ' + word : word;
+            if (ctx.measureText(test).width > maxWidth && line1) {
+                line2 = line2 ? line2 + ' ' + word : word;
+            } else {
+                line1 = test;
+            }
+        }
+        const lineH = s(mobile ? 28 : 34);
+        const resultY = cy + s(mobile ? 95 : 100);
+        ctx.fillText(line1, cx, resultY);
+        if (line2) ctx.fillText(line2, cx, resultY + lineH);
+
+        // Hint de nova partida — fonte menor e separada visualmente
         const canPlayAgain = BichoManager.getInstance().playerMoney + this.game.settle() >= this.game.minBet;
         const playNextHint = mobile ? '[OK] Nova Partida' : 'ESPAÇO PARA NOVA PARTIDA';
-        ctx.fillText(canPlayAgain ? playNextHint : 'SALDO INSUFICIENTE - ESC PARA SAIR', cx, cy + s(150));
+        const hintText = canPlayAgain ? playNextHint : 'SALDO INSUFICIENTE - ESC PARA SAIR';
+        ctx.fillStyle = theme.textMuted;
+        ctx.font = `600 ${r(mobile ? 11 : 13)}px ${theme.bodyFont}`;
+        const hintY = resultY + (line2 ? lineH * 2 : lineH) + s(mobile ? 14 : 18);
+        ctx.fillText(hintText, cx, hintY);
     }
 }

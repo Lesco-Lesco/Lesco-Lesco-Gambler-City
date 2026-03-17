@@ -21,13 +21,13 @@ export const LATEST_NEWS_BASE: NewsItem = {
     description: [
         "Confira as novidades do nosso bairro:",
         "",
+        "• EXPLORAÇÃO: A prefeitura agora premia com R$10 a descoberta de locais icônicos e estabelecimentos.",
         "• TRADIÇÃO: A Praça Herval e o Marco Imperial seguem como o coração do Dominó e da Purrinha.",
-        "• JOGOS: Bares e Fliperamas agora contam com Galgos, Poker, Tank Attack e o intenso Risca Faca.",
-        "• EXPLORAÇÃO: Máquinas de sorte estão escondidas no subsolo da Estação e do Shopping.",
+        "• SEGURANÇA: Cuidado com as batidas policiais! O 'alto índice de achacamento' é real nas periferias.",
         "• AMBIENTE: O protótipo ganha vida sonora, trazendo a imersão das ruas para o PC e Mobile.",
         "",
         "--- COMUNICADO ESPECIAL ---",
-        "• NOTÁVEL: Saudamos a Madame M (renomada Dra. em Maricá). Que o Dominó na palma da mão traga as melhores lembranças e muita sorte!",
+        "• NOTÁVEL: Saudamos a Madame M (renomada Dra. em Maricá). Que o Dominó na palma da mão traga as melhores lembranças!",
         "",
     ]
 };

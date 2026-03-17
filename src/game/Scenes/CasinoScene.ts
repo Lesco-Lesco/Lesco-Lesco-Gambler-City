@@ -19,6 +19,7 @@ import { PokerUI } from '../MiniGames/PokerUI';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import { SoundManager } from '../Core/SoundManager';
+import { AchievementManager } from '../Core/AchievementManager';
 
 /** Objeto visual de uma máquina no cassino (slot ou bicho) */
 interface CasinoMachine {
@@ -258,6 +259,9 @@ export class CasinoScene implements Scene {
         const sm = SoundManager.getInstance();
         sm.fadeOutLoop('ambient_casino', 500);
         sm.play('door_exit');
+
+        // Achievement: record casino exit
+        AchievementManager.getInstance().recordEstablishmentExit('casino_' + this.type);
     }
 
     public update(dt: number) {

@@ -14,6 +14,7 @@ import { EconomyManager } from './EconomyManager';
 import { SoundManager } from './SoundManager';
 
 /** All tracked player statistics */
+/** All tracked player statistics */
 export interface PlayerStats {
     // Minigame tracking
     minigamesPlayedByType: Record<string, number>;
@@ -35,6 +36,7 @@ export interface PlayerStats {
     // Police
     raidsSurvived: number;
     bribesPaid: number;
+    raidsEncountered: number; // New: tracking first contact
 
     // Bicho
     bichoBetsPlaced: number;
@@ -42,6 +44,8 @@ export interface PlayerStats {
 
     // Exploration
     walkTimeSeconds: number;
+    visitedLocations: Set<string>; // New: church, squares, etc.
+    exitedEstablishments: Set<string>; // New: bars, arcades, casinos
 
     // Sinuca specifically
     sinucaWins: number;
@@ -57,13 +61,14 @@ export interface Achievement {
     name: string;
     description: string;
     reward: number;
-    tier: 1 | 2 | 3 | 4;
+    tier: 0 | 1 | 2 | 3 | 4; // Added 0
     unlocked: boolean;
     condition: (stats: PlayerStats) => boolean;
 }
 
 /** Tier display info */
 const TIER_INFO: Record<number, { label: string; color: string; icon: string }> = {
+    0: { label: 'EXPLORADOR', color: '#3399ff', icon: '🔵' }, // New blue tier
     1: { label: 'CURIOSO', color: '#44ff88', icon: '🟢' },
     2: { label: 'FREQUENTE', color: '#ffcc00', icon: '🟡' },
     3: { label: 'VETERANO', color: '#ff4444', icon: '🔴' },
@@ -93,6 +98,30 @@ export class AchievementManager {
     // ─────────────────────────────────────────────────
     // Stats Recording
     // ─────────────────────────────────────────────────
+
+    /** Record a location being visited */
+    public recordLocationVisit(id: string): void {
+        const prevSize = this.stats.visitedLocations.size;
+        this.stats.visitedLocations.add(id);
+        if (this.stats.visitedLocations.size !== prevSize) {
+            this.checkAchievements();
+        }
+    }
+
+    /** Record exiting an establishment */
+    public recordEstablishmentExit(id: string): void {
+        const prevSize = this.stats.exitedEstablishments.size;
+        this.stats.exitedEstablishments.add(id);
+        if (this.stats.exitedEstablishments.size !== prevSize) {
+            this.checkAchievements();
+        }
+    }
+
+    /** Record first contact with police raid */
+    public recordRaidEncounter(): void {
+        this.stats.raidsEncountered++;
+        this.checkAchievements();
+    }
 
     /** Record a minigame being played */
     public recordMinigamePlay(type: string): void {
@@ -294,9 +323,12 @@ export class AchievementManager {
             brokeTimes: 0,
             raidsSurvived: 0,
             bribesPaid: 0,
+            raidsEncountered: 0,
             bichoBetsPlaced: 0,
             bichoWins: 0,
             walkTimeSeconds: 0,
+            visitedLocations: new Set(),
+            exitedEstablishments: new Set(),
             sinucaWins: 0,
             uniqueMinigamesPlayed: new Set(),
             uniqueArcadesPlayed: new Set(),
@@ -304,11 +336,103 @@ export class AchievementManager {
     }
 
     // ─────────────────────────────────────────────────
-    // Achievement Definitions (30 total)
+    // Achievement Definitions (40 total)
     // ─────────────────────────────────────────────────
 
     private createAchievements(): Achievement[] {
         return [
+            // ═══ TIER 0: EXPLORADOR (Descoberta) ═══
+            {
+                id: 'ar_graca',
+                name: 'Ar de Graça',
+                description: 'Saindo do Cassino do Shopping pela primeira vez',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.exitedEstablishments.has('casino_shopping'),
+            },
+            {
+                id: 'passagem_comprada',
+                name: 'Passagem Comprada',
+                description: 'Saindo do Cassino da Estação pela primeira vez',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.exitedEstablishments.has('casino_station'),
+            },
+            {
+                id: 'pecador',
+                name: 'Pecador',
+                description: 'Visitando a Igreja de Santa Cruz pela primeira vez',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.visitedLocations.has('church'),
+            },
+            {
+                id: 'ar_fresco',
+                name: 'Ar Fresco',
+                description: 'Passou pela Praça principal do bairro',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.visitedLocations.has('plaza_main'),
+            },
+            {
+                id: 'historia_imperial',
+                name: 'História Imperial',
+                description: 'Visitou o Marco Imperial de Santa Cruz',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.visitedLocations.has('marco_imperial'),
+            },
+            {
+                id: 'bairro_amigo',
+                name: 'Bairro Amigo',
+                description: 'Explorou uma área residencial pela primeira vez',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.visitedLocations.has('residential'),
+            },
+            {
+                id: 'filho_chora',
+                name: 'Onde o Filho Chora',
+                description: 'Primeiro contato visual com uma batida policial',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.raidsEncountered >= 1,
+            },
+            {
+                id: 'vigilancia_constante',
+                name: 'Vigilância Constante',
+                description: 'Entrando em zona de alto índice de achacamento',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.visitedLocations.has('high_risk'),
+            },
+            {
+                id: 'saideira_lei',
+                name: 'Saideira de Lei',
+                description: 'Saindo de um bar após uma rodada de conversas',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.exitedEstablishments.has('bar'),
+            },
+            {
+                id: 'viciado_fichas',
+                name: 'Viciado em Fichas',
+                description: 'Saindo de um fliperama após gastar umas fichas',
+                reward: 10,
+                tier: 0,
+                unlocked: false,
+                condition: (s) => s.exitedEstablishments.has('arcade'),
+            },
+
             // ═══ TIER 1: CURIOSO (Exploração) ═══
             {
                 id: 'primeiro_passo',

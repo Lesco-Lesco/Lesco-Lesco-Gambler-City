@@ -263,6 +263,7 @@ export class HouseDialogueManager {
     }
 
     private drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, z: number, isPeripheral: boolean) {
+        ctx.save();
         ctx.font = `${Math.max(11, 8.8 * z)}px monospace`;
         const metrics = ctx.measureText(text);
         const padding = 5 * z;
@@ -301,5 +302,6 @@ export class HouseDialogueManager {
         ctx.lineTo(x + 5 * z, y);
         ctx.fillStyle = ctx.strokeStyle;
         ctx.fill();
+        ctx.restore();
     }
 }

@@ -133,6 +133,7 @@ export class BoothDialogueManager {
     }
 
     private drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, z: number) {
+        ctx.save();
         ctx.font = `${Math.max(12, 9 * z)}px monospace`;
         const metrics = ctx.measureText(text);
         const padding = 6 * z;
@@ -159,5 +160,6 @@ export class BoothDialogueManager {
         ctx.lineTo(x + 5 * z, y);
         ctx.fillStyle = '#ffd700';
         ctx.fill();
+        ctx.restore();
     }
 }
