@@ -347,6 +347,11 @@ function generateMap(): number[][] {
     fill(125, 81, 135, 85, PZ);
     // Church: 125..135, Y=86..98
     fill(125, 86, 135, 98, CH);
+    
+    // Main Entrance (Beautifully centered facing the street via the plaza)
+    set(130, 85, TILE_TYPES.ENTRANCE);
+    // Decorative path through plaza
+    fill(130, 81, 130, 84, W); 
 
     // C. Commercial Blocks (Barão de Laguna)
     // Very tall, very dense
@@ -463,9 +468,19 @@ function generateMap(): number[][] {
     set(158, 175, FT); // Ensure fountain is back if G fill cleared it
 
     // Domino Tables (8 tables)
-    set(152, 165, DT); set(152, 175, DT); set(152, 185, DT);
-    set(164, 165, DT); set(164, 175, DT); set(164, 185, DT);
-    set(158, 165, DT); set(158, 185, DT);
+    set(152, 164, DT); set(152, 174, DT); set(152, 184, DT);
+    set(164, 164, DT); set(164, 174, DT); set(164, 184, DT);
+    set(158, 164, DT); set(158, 184, DT);
+
+    // --- CONEXÕES DA PRAÇA (Correção Visual) ---
+    // Norte: Liga à Rua Felipe Cardoso
+    fill(157, 152, 159, 159, PZ);
+    // Sul: Liga a uma calçada futura ou apenas estende
+    fill(157, 191, 159, 195, PZ);
+    // Oeste: Liga em direção ao Shopping
+    fill(140, 174, 147, 176, PZ);
+    // Leste: Liga à Rua Severiano
+    fill(169, 174, 175, 176, PZ);
 
     // --- G. IRREGULAR RESIDENTIAL STREETS (Carved out) ---
 
@@ -882,11 +897,15 @@ export const POINTS_OF_INTEREST: POI[] = [
     { x: 158, y: 165, type: 'domino_table', name: 'Zezé' },
     { x: 158, y: 185, type: 'domino_table', name: 'Carlinhos' },
 
-    // --- MINIGAME SECTOR CLUSTERS ---
     // North Hub: Purrinha (Near Church/North Side)
     { x: 130, y: 75, type: 'purrinha', name: 'do Norte' },
     { x: 125, y: 78, type: 'purrinha', name: 'da Praça' },
     { x: 135, y: 78, type: 'purrinha', name: 'Antigo' },
+
+    // Preachers near Church Entrance
+    { x: 128, y: 82, type: 'preacher' as any, name: 'Missionário João' },
+    { x: 132, y: 82, type: 'preacher' as any, name: 'Irmã Maria' },
+    { x: 130, y: 80, type: 'preacher' as any, name: 'Pastor Ezequiel' },
 
     // West Hub: Dice (Deep Alleys / Beco do Matadouro)
     { x: 60, y: 235, type: 'dice', name: 'do Beco' },

@@ -1,7 +1,4 @@
-/**
- * SlotMachine — 3-reel caça-níquel logic.
- * Supports multiple themes (Fruits, Animals, Shapes, Food).
- */
+import { BuffManager } from '../Core/BuffManager';
 
 export type SlotTheme = 'fruits' | 'animals' | 'shapes' | 'food' | 'ocean' | 'space';
 
@@ -50,11 +47,25 @@ export class SlotMachine {
         const theme = SlotMachine.THEMES[themeName];
         const symbolsList = theme.symbols;
 
-        const reels = [
+        let reels = [
             Math.floor(Math.random() * symbolsList.length),
             Math.floor(Math.random() * symbolsList.length),
             Math.floor(Math.random() * symbolsList.length),
         ];
+
+        // Luck Bonus: 10% chance to force at least 2 matching symbols if player loses
+        const luck = BuffManager.getInstance().getLuckBonus();
+        if (luck > 0 && Math.random() < luck) {
+            const s0 = symbolsList[reels[0]];
+            const s1 = symbolsList[reels[1]];
+            const s2 = symbolsList[reels[2]];
+            
+            // If it's a total loss (all different)
+            if (s0 !== s1 && s1 !== s2 && s0 !== s2) {
+                // Force s1 to match s0
+                reels[1] = reels[0];
+            }
+        }
 
         const s0 = symbolsList[reels[0]];
         const s1 = symbolsList[reels[1]];
@@ -70,7 +81,7 @@ export class SlotMachine {
             // Last symbol in list is the jackpot
             if (s0 === symbolsList[symbolsList.length - 1]) isJackpot = true;
         } else if (s0 === s1 || s1 === s2 || s0 === s2) {
-            // Two of a kind — pagar o dobro da aposta
+            // Two of a kind — pagar 2x da aposta (Padronizado para Regra de Ouro)
             payout = bet * 2;
         }
 

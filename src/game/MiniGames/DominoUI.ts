@@ -1,6 +1,7 @@
 import { DominoGame } from './DominoGame';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
@@ -29,13 +30,14 @@ export class DominoUI implements IMinigameUI {
 
         if (this.game.phase === 'betting') {
             this.hasSettled = false;
+            const { step } = EconomyManager.getInstance().getBetLimits();
             if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) {
-                this.game.betAmount = Math.min(this.game.maxBet, this.game.betAmount + 10);
+                this.game.betAmount = Math.min(this.game.maxBet, this.game.betAmount + step);
             }
             if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) {
-                this.game.betAmount = Math.max(this.game.minBet, this.game.betAmount - 10);
+                this.game.betAmount = Math.max(this.game.minBet, this.game.betAmount - step);
             }
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startRound(this.game.betAmount);
@@ -76,11 +78,19 @@ export class DominoUI implements IMinigameUI {
                 }
                 this.hasSettled = true;
             }
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
+                const bmanager = BichoManager.getInstance();
                 const win = this.game.winner?.isHuman ? this.game.betAmount * 3 : 0;
-                SoundManager.getInstance().play(win > 0 ? 'win_small' : 'lose');
-                this.onPlayAgain(win);
-                this.game.reset();
+                
+                if (bmanager.playerMoney < this.game.minBet) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onClose(win); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(win > 0 ? 'win_small' : 'lose');
+                    this.onPlayAgain(win);
+                    this.game.reset();
+                }
             }
         }
 
@@ -334,11 +344,16 @@ export class DominoUI implements IMinigameUI {
         ctx.textBaseline = 'middle';
         ctx.fillText('VALOR DA PARTIDA', cx, cy - s(60));
 
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(mobile ? 48 : 64)}px ${theme.titleFont}`;
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = theme.accent + '88';
-        ctx.fillText(`R$ ${this.game.betAmount}`, cx, cy + s(10));
+        const isBroke = BichoManager.getInstance().playerMoney < this.game.minBet;
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.fillText('SEM GRANA!', cx, cy + s(10));
+        } else {
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = s(20);
+            ctx.shadowColor = theme.accent + '88';
+            ctx.fillText(`R$ ${this.game.betAmount}`, cx, cy + s(10));
+        }
         ctx.shadowBlur = 0;
     }
 

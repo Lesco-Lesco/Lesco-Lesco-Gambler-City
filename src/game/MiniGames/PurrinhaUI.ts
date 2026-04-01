@@ -11,6 +11,8 @@ import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
 import { SoundManager } from '../Core/SoundManager';
+import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
 
 export class PurrinhaUI implements IMinigameUI {
     private game: PurrinhaGame;
@@ -29,13 +31,14 @@ export class PurrinhaUI implements IMinigameUI {
         const phase = this.game.phase;
 
         if (phase === 'betting') {
+            const { step } = EconomyManager.getInstance().getBetLimits();
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
-                this.game.selectedBet = Math.min(this.game.maxBet, this.game.selectedBet + 10);
+                this.game.selectedBet = Math.min(this.game.maxBet, this.game.selectedBet + step);
             }
             if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
-                this.game.selectedBet = Math.max(this.game.minBet, this.game.selectedBet - 10);
+                this.game.selectedBet = Math.max(this.game.minBet, this.game.selectedBet - step);
             }
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
                 SoundManager.getInstance().play('bet_place');
             }
@@ -46,7 +49,7 @@ export class PurrinhaUI implements IMinigameUI {
             if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
                 this.game.selectedStones = Math.max(0, this.game.selectedStones - 1);
             }
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.chooseStones(this.game.selectedStones);
                 SoundManager.getInstance().play('dice_roll');
             }
@@ -57,16 +60,25 @@ export class PurrinhaUI implements IMinigameUI {
             if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
                 this.game.selectedGuess = Math.max(0, this.game.selectedGuess - 1);
             }
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.makeGuess(this.game.selectedGuess);
             }
         } else if (phase === 'reveal') {
             this.game.update(dt);
         } else if (phase === 'result') {
-            if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE') || this.input.wasPressed('KeyR')) {
+                const bmanager = BichoManager.getInstance();
                 const moneyChange = this.game.settle();
-                SoundManager.getInstance().play(moneyChange > 0 ? 'win_small' : 'lose');
-                this.onPlayAgain(moneyChange);
+                const totalMoney = bmanager.playerMoney + moneyChange;
+
+                if (totalMoney < this.game.minBet) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onClose(moneyChange); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(moneyChange > 0 ? 'win_small' : 'lose');
+                    this.onPlayAgain(moneyChange);
+                }
             }
         }
 
@@ -223,11 +235,18 @@ export class PurrinhaUI implements IMinigameUI {
         ctx.textAlign = 'center';
         ctx.fillText('VALOR DA APOSTA', cx, zoneTop + zoneH * 0.15);
 
-        ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(mobile ? 48 : 64)}px ${theme.titleFont}`;
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = theme.accent + '66';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, zoneTop + zoneH * 0.5);
+        const isBroke = BichoManager.getInstance().playerMoney < this.game.minBet;
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(mobile ? 20 : 26)}px ${theme.titleFont}`;
+            ctx.fillText('SEM GRANA!', cx, zoneTop + zoneH * 0.5);
+        } else {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(mobile ? 48 : 64)}px ${theme.titleFont}`;
+            ctx.shadowBlur = s(20);
+            ctx.shadowColor = theme.accent + '66';
+            ctx.fillText(`R$ ${this.game.selectedBet}`, cx, zoneTop + zoneH * 0.5);
+        }
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = theme.textMuted;

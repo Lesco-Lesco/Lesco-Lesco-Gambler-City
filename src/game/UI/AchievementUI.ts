@@ -13,6 +13,8 @@ interface AchievementToast {
     description: string;
     reward: number;
     tier: number;
+    category: 'exploracao' | 'vitoria' | 'derrota' | 'malandragem' | 'lenda' | 'resiliencia';
+    type: 'achievement' | 'phase' | 'tier';
     phase: 'slide_in' | 'display' | 'slide_out' | 'done';
     timer: number;
     slideProgress: number; // 0 = off-screen, 1 = on-screen
@@ -30,7 +32,7 @@ interface Particle {
 }
 
 const SLIDE_DURATION = 0.4;
-const DISPLAY_DURATION = 4.0;
+const DISPLAY_DURATION = 3.0;
 
 export class AchievementUI {
     private static instance: AchievementUI;
@@ -41,8 +43,18 @@ export class AchievementUI {
 
     private constructor() {
         // Listen for achievement unlock events
-        GameEventEmitter.getInstance().on('ACHIEVEMENT_UNLOCKED', (data) => {
-            this.enqueue(data.name, data.description, data.reward, data.tier);
+        GameEventEmitter.getInstance().on('ACHIEVEMENT_UNLOCKED', (data: any) => {
+            this.enqueue(data.name, data.description, data.reward, data.tier, 'achievement', data.category);
+        });
+
+        // Listen for Phase Unlocked events
+        GameEventEmitter.getInstance().on('PHASE_UNLOCKED', (data) => {
+            this.enqueue(data.title, data.description, 0, 0, 'phase', 'exploracao');
+        });
+
+        // Listen for Tier Complete events
+        GameEventEmitter.getInstance().on('TIER_COMPLETE', (data) => {
+            this.enqueue('TIER COMPLETO!', data.message, data.bonus, data.tier, 'tier', 'lenda');
         });
     }
 
@@ -53,12 +65,22 @@ export class AchievementUI {
         return AchievementUI.instance;
     }
 
-    private enqueue(name: string, description: string, reward: number, tier: number): void {
+    /** Reset UI state (clear queue and current toast) */
+    public reset(): void {
+        this.queue = [];
+        this.current = null;
+        this.particles = [];
+        this.sparkleTimer = 0;
+    }
+
+    private enqueue(name: string, description: string, reward: number, tier: number, type: 'achievement' | 'phase' | 'tier', category: any): void {
         this.queue.push({
             name,
             description,
             reward,
             tier,
+            category: category || 'exploracao',
+            type,
             phase: 'slide_in',
             timer: 0,
             slideProgress: 0,
@@ -186,11 +208,48 @@ export class AchievementUI {
             // Easing: smooth slide from top
             const ease = this.easeOutBack(toast.slideProgress);
             const boxW = s(mobile ? 380 : 420);
-            const boxH = s(mobile ? 90 : 100);
-            const boxX = cx - boxW / 2;
-            const targetY = s(mobile ? 100 : 90);
-            const offscreenY = -boxH - s(20);
-            const boxY = offscreenY + (targetY - offscreenY) * ease;
+            const boxH = s(mobile ? (toast.type === 'phase' ? 110 : 90) : 100);
+            
+            // Positioning based on category
+            let targetX = cx - boxW / 2;
+            let targetY = s(mobile ? 100 : 90);
+            let slideDir: 'top' | 'bottom' | 'side' = 'top';
+
+            if (toast.category === 'vitoria') {
+                targetX = screenW - boxW - s(10);
+                targetY = s(10);
+            } else if (toast.category === 'exploracao') {
+                targetX = s(10);
+                targetY = s(10);
+            } else if (toast.category === 'derrota' || toast.category === 'malandragem') {
+                targetX = toast.category === 'derrota' ? screenW - boxW - s(10) : s(10);
+                targetY = screenH - boxH - s(mobile ? 60 : 20);
+                slideDir = 'bottom';
+            } else if (toast.category === 'lenda') {
+                targetX = cx - boxW / 2;
+                targetY = screenH * 0.3;
+            }
+
+            const offscreenY = slideDir === 'top' ? -boxH - s(20) : screenH + s(20);
+            const boxX = targetX;
+            const boxY = slideDir === 'top' 
+                ? offscreenY + (targetY - offscreenY) * ease
+                : offscreenY - (offscreenY - targetY) * ease;
+
+            const catColors: Record<string, { main: string, glow: string, icon: string }> = {
+                'exploracao': { main: '#33ccff', glow: '#0088ff', icon: '📍' },
+                'vitoria':    { main: '#ffcc00', glow: '#ffaa00', icon: '💰' },
+                'malandragem': { main: '#cc66ff', glow: '#9933ff', icon: '🚬' },
+                'derrota':     { main: '#ff4444', glow: '#cc0000', icon: '🤡' },
+                'lenda':       { main: '#ffffff', glow: '#00ffff', icon: '👑' },
+                'resiliencia': { main: '#ff9900', glow: '#cc6600', icon: '🥖' }
+            };
+            const catStyle = catColors[toast.category] || catColors['exploracao'];
+
+            // Gold Theme for Phase/Tier
+            const isSpecial = toast.type === 'phase' || toast.type === 'tier';
+            const mainColor = isSpecial ? '#ffcc00' : catStyle.main;
+            const glowColor = isSpecial ? '#ff8800' : catStyle.glow;
 
             ctx.save();
 
@@ -202,8 +261,13 @@ export class AchievementUI {
 
             // Background
             const bgGrad = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
-            bgGrad.addColorStop(0, 'rgba(20, 15, 5, 0.95)');
-            bgGrad.addColorStop(1, 'rgba(10, 8, 2, 0.95)');
+            if (isSpecial || toast.category === 'lenda') {
+                bgGrad.addColorStop(0, 'rgba(40, 30, 5, 0.98)');
+                bgGrad.addColorStop(1, 'rgba(20, 15, 2, 0.98)');
+            } else {
+                bgGrad.addColorStop(0, 'rgba(20, 15, 5, 0.95)');
+                bgGrad.addColorStop(1, 'rgba(10, 8, 2, 0.95)');
+            }
             ctx.fillStyle = bgGrad;
             ctx.beginPath();
             ctx.roundRect(boxX, boxY, boxW, boxH, s(10));
@@ -212,17 +276,25 @@ export class AchievementUI {
             // Animated tier-colored border
             const time = Date.now();
             const glowPulse = Math.sin(time / 300) * 0.3 + 0.7;
-            ctx.strokeStyle = tierInfo.color;
-            ctx.lineWidth = s(3);
-            ctx.shadowBlur = s(12) * glowPulse;
-            ctx.shadowColor = tierInfo.color;
+            ctx.strokeStyle = mainColor;
+            ctx.lineWidth = s(isSpecial ? 4 : 3);
+            ctx.shadowBlur = s(isSpecial ? 20 : 12) * glowPulse;
+            ctx.shadowColor = glowColor;
+            
+            // Lenda Rainbow Border
+            if (toast.category === 'lenda') {
+                const hue = (time / 10) % 360;
+                ctx.strokeStyle = `hsl(${hue}, 100%, 70%)`;
+                ctx.shadowColor = `hsl(${hue}, 100%, 50%)`;
+            }
+
             ctx.beginPath();
             ctx.roundRect(boxX, boxY, boxW, boxH, s(10));
             ctx.stroke();
             ctx.shadowBlur = 0;
 
             // Inner glow line
-            ctx.strokeStyle = `${tierInfo.color}44`;
+            ctx.strokeStyle = `${mainColor}44`;
             ctx.lineWidth = s(1);
             ctx.beginPath();
             ctx.roundRect(boxX + s(3), boxY + s(3), boxW - s(6), boxH - s(6), s(8));
@@ -234,15 +306,25 @@ export class AchievementUI {
             ctx.font = `${r(mobile ? 28 : 32)}px "Segoe UI Emoji", Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('🏆', trophyX, trophyY);
+            
+            let icon = '🏆';
+            if (toast.type === 'phase') icon = '🔓';
+            if (toast.type === 'tier') icon = '🎁';
+            
+            ctx.fillText(icon, trophyX, trophyY);
             ctx.textBaseline = 'alphabetic';
 
             // Achievement name
-            ctx.fillStyle = '#ffdd44';
+            ctx.fillStyle = isSpecial ? '#ffffff' : '#ffdd44';
             ctx.font = `bold ${r(mobile ? 12 : 14)}px "Press Start 2P", monospace`;
             ctx.textAlign = 'left';
-            ctx.shadowBlur = s(8);
-            ctx.shadowColor = '#ffaa00';
+            if (isSpecial) {
+                ctx.shadowBlur = s(10);
+                ctx.shadowColor = '#fff';
+            } else {
+                ctx.shadowBlur = s(8);
+                ctx.shadowColor = '#ffaa00';
+            }
             
             // Limit name width to avoid overlap with icon
             const maxTitleW = boxW - s(110);
@@ -250,30 +332,43 @@ export class AchievementUI {
             ctx.shadowBlur = 0;
 
             // Description
-            ctx.fillStyle = '#cccccc';
+            ctx.fillStyle = isSpecial ? '#ffddaa' : '#cccccc';
             ctx.font = `${r(mobile ? 10 : 11)}px monospace`;
             const maxDescW = boxW - s(110);
             this.drawTextWrapped(ctx, toast.description, boxX + s(55), boxY + s(mobile ? 48 : 52), maxDescW, s(mobile ? 12 : 14));
 
             // Reward
-            ctx.fillStyle = '#44ff88';
-            ctx.font = `bold ${r(mobile ? 12 : 14)}px monospace`;
-            ctx.shadowBlur = s(6);
-            ctx.shadowColor = '#44ff88';
-            ctx.fillText(`+R$${toast.reward}`, boxX + s(55), boxY + s(mobile ? 78 : 82));
-            ctx.shadowBlur = 0;
+            if (toast.reward > 0 || toast.type === 'tier') {
+                ctx.fillStyle = '#44ff88';
+                ctx.font = `bold ${r(mobile ? 12 : 14)}px monospace`;
+                ctx.shadowBlur = s(6);
+                ctx.shadowColor = '#44ff88';
+                ctx.fillText(`+R$${toast.reward}`, boxX + s(55), boxY + boxH - s(15));
+                ctx.shadowBlur = 0;
+            }
 
             // Tier info container (Right side)
             ctx.textAlign = 'right';
             
-            // Tier label
-            ctx.fillStyle = tierInfo.color;
-            ctx.font = `bold ${r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
-            ctx.fillText(tierInfo.label, boxX + boxW - s(15), boxY + s(mobile ? 78 : 82));
+            if (isSpecial) {
+                // Special label
+                ctx.fillStyle = mainColor;
+                ctx.font = `bold ${r(mobile ? 9 : 10)}px "Press Start 2P", monospace`;
+                ctx.fillText(toast.type === 'phase' ? 'NOVA ÁREA!' : 'RECOMPENSA', boxX + boxW - s(15), boxY + boxH - s(15));
+                
+                // Special icon
+                ctx.font = `${r(18)}px "Segoe UI Emoji", Arial`;
+                ctx.fillText(toast.type === 'phase' ? '✨' : '⭐', boxX + boxW - s(15), boxY + s(mobile ? 28 : 30));
+            } else {
+                // Tier label
+                ctx.fillStyle = tierInfo.color;
+                ctx.font = `bold ${r(mobile ? 8 : 9)}px "Press Start 2P", monospace`;
+                ctx.fillText(tierInfo.label, boxX + boxW - s(15), boxY + boxH - s(15));
 
-            // Tier icon
-            ctx.font = `${r(16)}px "Segoe UI Emoji", Arial`;
-            ctx.fillText(tierInfo.icon, boxX + boxW - s(15), boxY + s(mobile ? 28 : 30));
+                // Tier icon
+                ctx.font = `${r(16)}px "Segoe UI Emoji", Arial`;
+                ctx.fillText(tierInfo.icon, boxX + boxW - s(15), boxY + s(mobile ? 28 : 30));
+            }
 
             ctx.restore();
 

@@ -6,6 +6,7 @@
 
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
+import { BuffManager } from '../Core/BuffManager';
 
 export class HUD {
     public render(
@@ -36,6 +37,23 @@ export class HUD {
         ctx.fillStyle = '#888';
         ctx.font = `${UIScale.r(10)}px monospace`;
         ctx.fillText('GRANA', s(20), s(50));
+
+        // --- Buffs: Comungado ---
+        const bfm = BuffManager.getInstance();
+        if (bfm.hasBuff('comungado')) {
+            const time = Math.ceil(bfm.getBuffTime('comungado'));
+            // Moved down to s(95) to avoid overlapping with stamina bar
+            const buffY = s(95);
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+            ctx.fillRect(s(10), buffY, s(180), s(25));
+            ctx.strokeStyle = '#ffd700';
+            ctx.strokeRect(s(10), buffY, s(180), s(25));
+
+            ctx.fillStyle = '#ffd700';
+            ctx.font = `bold ${UIScale.r(10)}px monospace`;
+            ctx.textAlign = 'left';
+            ctx.fillText(`✨ COMUNGADO: ${time}s`, s(20), buffY + s(17));
+        }
 
         // --- Stamina bar (bottom-left) ---
         if (stamina >= 0) {

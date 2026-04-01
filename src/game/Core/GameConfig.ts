@@ -70,6 +70,18 @@ export const GameConfig = {
     SHOP_X: 130,
     SHOP_Y: 125,
     SHOP_RADIUS: 40,
+
+    TIER_0_COMPLETION_BONUS: 10,
+
+    // --- Cooldowns (seconds) ---
+    COOLDOWN_STREET_NPC: 30,
+    COOLDOWN_BAR: 45,
+    COOLDOWN_SLOTS: 15,
+    COOLDOWN_BLACKJACK: 45,
+    COOLDOWN_POKER: 60,
+
+    // --- Poker Balance ---
+    POKER_POT_CAP: 500,
 } as const;
 
 export type GameConfigType = typeof GameConfig;

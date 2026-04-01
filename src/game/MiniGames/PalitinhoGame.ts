@@ -1,4 +1,5 @@
 import { EconomyManager } from '../Core/EconomyManager';
+import { BuffManager } from '../Core/BuffManager';
 import type { IMinigame } from './BaseMinigame';
 
 /**
@@ -46,8 +47,8 @@ export class PalitinhoGame implements IMinigame {
         ];
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = Math.min(limits.max, 500); // Caps for street game
         this.selectedBet = Math.max(this.minBet, Math.min(this.selectedBet, this.maxBet));
@@ -141,12 +142,35 @@ export class PalitinhoGame implements IMinigame {
     }
 
     public calculateResult() {
+        const human = this.players.find(p => p.isHuman);
+        if (human && human.choice !== null) {
+            const myStick = this.matchsticks[human.choice];
+            if (myStick.isBroken) {
+                const luck = BuffManager.getInstance().getLuckBonus();
+                if (luck > 0 && Math.random() < luck) {
+                    // Try to swap with a non-broken stick picked by an NPC
+                    const npcWithSafeStick = this.players.find(p => !p.isHuman && p.choice !== null && !this.matchsticks[p.choice].isBroken);
+                    if (npcWithSafeStick && npcWithSafeStick.choice !== null) {
+                        const npcChoice = npcWithSafeStick.choice;
+                        const myChoice = human.choice;
+                        
+                        // Swap ownership in matchsticks
+                        this.matchsticks[myChoice].pickedBy = npcWithSafeStick.name;
+                        this.matchsticks[npcChoice].pickedBy = human.name;
+                        
+                        // Swap choices in players
+                        human.choice = npcChoice;
+                        npcWithSafeStick.choice = myChoice;
+                    }
+                }
+            }
+        }
+
         const brokenSticks = this.matchsticks.filter(m => m.isBroken);
         const losers = this.players.filter(p => brokenSticks.some(m => m.pickedBy === p.name));
 
         losers.forEach(l => l.isLoser = true);
 
-        const human = this.players.find(p => p.isHuman);
         if (human?.isLoser) {
             this.resultMessage = `❌ Você quebrou o palito! Perdeu R$${this.betAmount}.`;
         } else {
@@ -159,9 +183,9 @@ export class PalitinhoGame implements IMinigame {
     }
 
     public settle(): number {
-        const human = this.players.find(p => p.isHuman);
-        if (!human) return 0;
-        if (human.isLoser) return -this.betAmount;
+        const humanPlayer = this.players.find(p => p.isHuman);
+        if (!humanPlayer) return 0;
+        if (humanPlayer.isLoser) return -this.betAmount;
 
         const winnersCount = this.players.length - 2; // 2 winners, 2 losers
         const payout = Math.floor(this.pot / (winnersCount * 10)) * 10;

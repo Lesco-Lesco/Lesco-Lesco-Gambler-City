@@ -7,6 +7,7 @@ import { isMobile } from '../Core/MobileDetect';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import { SoundManager } from '../Core/SoundManager';
+import { EconomyManager } from '../Core/EconomyManager';
 
 export class BlackjackUI implements IMinigameUI {
     private game: BlackjackGame;
@@ -24,7 +25,7 @@ export class BlackjackUI implements IMinigameUI {
         const mobile = isMobile();
 
         if (this.game.phase === 'betting') {
-            const step = 10;
+            const { step } = EconomyManager.getInstance().getBetLimits();
             if (this.input.wasPressed('ArrowUp')) {
                 this.game.betAmount = Math.min(this.game.betAmount + step, bmanager.playerMoney, this.game.maxBet);
             }
@@ -50,13 +51,21 @@ export class BlackjackUI implements IMinigameUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
                 const profit = this.game.settle();
                 const payout = this.game.betAmount + profit;
+                const totalMoney = (bmanager.playerMoney + payout);
+
                 if (payout > 0) {
                     bmanager.playerMoney += payout;
                     SoundManager.getInstance().play(this.game.winner === 'push' ? 'draw' : 'win_small');
                 } else {
                     SoundManager.getInstance().play('lose');
                 }
-                this.game.reset();
+
+                if (totalMoney < this.game.minBet) {
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onExit(payout); // Exit if broke
+                } else {
+                    this.game.reset();
+                }
             }
         }
 
@@ -140,19 +149,27 @@ export class BlackjackUI implements IMinigameUI {
         const s = UIScale.s.bind(UIScale);
         const mobile = isMobile();
 
-        ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(mobile ? 42 : 48)}px ${theme.titleFont}`;
-        ctx.textAlign = 'center';
-        ctx.shadowBlur = s(15);
-        ctx.shadowColor = theme.accent + '66';
-        ctx.fillText('R$ ' + this.game.betAmount, cx, cy);
+        const bmanager = BichoManager.getInstance();
+        const isBroke = bmanager.playerMoney < this.game.minBet;
+
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
+            ctx.fillText('SEM GRANA!', cx, cy);
+        } else {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(mobile ? 42 : 48)}px ${theme.titleFont}`;
+            ctx.shadowBlur = s(15);
+            ctx.shadowColor = theme.accent + '66';
+            ctx.fillText('R$ ' + this.game.betAmount, cx, cy);
+        }
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
         ctx.fillText('DEFINA SUA APOSTA', cx, cy - s(40));
 
-        const hint = mobile ? '[DPAD] Ajustar • [OK] Apostar' : '↑↓ Ajustar • Enter Confirmar';
+        const hint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? '[DPAD] Ajustar • [OK] Apostar' : '↑↓ Ajustar • Enter Confirmar');
         ctx.font = `600 ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
         ctx.fillText(hint, cx, cy + s(40));
     }

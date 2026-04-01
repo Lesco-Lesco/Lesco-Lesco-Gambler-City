@@ -5,6 +5,9 @@ import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
 import { SoundManager } from '../Core/SoundManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import { InputManager } from '../Core/InputManager';
+import { BichoManager } from '../BichoManager';
 
 export class VideoBingoUI implements IMinigameUI {
     private game: VideoBingoGame;
@@ -22,14 +25,17 @@ export class VideoBingoUI implements IMinigameUI {
     }
 
     public update(_dt: number) {
-        const input = (window as any).gameInput; // Hack to get input manager if not passed
-        if (!input) return;
+        const input = InputManager.getInstance();
 
         if (this.game.phase === 'betting') {
-            if (input.wasPressed('Space') || input.wasPressed('KeyE')) {
-                const bmanager = (window as any).bmanager;
-                if (bmanager && bmanager.playerMoney >= 10) {
-                    bmanager.playerMoney -= 10;
+            const { step, max } = EconomyManager.getInstance().getBetLimits();
+            if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) this.game.betAmount = Math.max(10, this.game.betAmount - step);
+            if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) this.game.betAmount = Math.min(max, this.game.betAmount + step);
+
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
+                const bmanager = BichoManager.getInstance();
+                if (bmanager && bmanager.playerMoney >= this.game.betAmount) {
+                    bmanager.playerMoney -= this.game.betAmount;
                     this.game.start();
                     SoundManager.getInstance().play('bet_place');
                 }
@@ -43,15 +49,25 @@ export class VideoBingoUI implements IMinigameUI {
                 this.game.selectedCardIndex = (this.game.selectedCardIndex + 2) % 4;
             }
 
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
-                this.game.selectCard(this.game.selectedCardIndex, 10);
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
+                this.game.selectCard(this.game.selectedCardIndex, this.game.betAmount);
                 this.startDrawing();
                 SoundManager.getInstance().play('bet_place');
             }
         } else if (this.game.phase === 'result') {
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
-                SoundManager.getInstance().play(this.game.totalPayout > 0 ? 'win_small' : 'lose');
-                this.onPlayAgain(this.game.totalPayout);
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
+                const bmanager = BichoManager.getInstance();
+                const payout = this.game.totalPayout;
+                const totalMoney = (bmanager?.playerMoney || 0) + payout;
+
+                if (totalMoney < 10) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager?.addNotification("Você está sem grana para apostar!", 3);
+                    this.onExit(payout); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    this.onPlayAgain(payout);
+                }
             }
         }
 
@@ -90,7 +106,9 @@ export class VideoBingoUI implements IMinigameUI {
         if (this.game.phase === 'result') {
             this.drawResult(ctx, w, h, theme);
         } else if (this.game.phase === 'betting') {
-            const hint = mobile ? '[E] Comprar Entrada (R$10)' : 'ESPAÇO COMPRAR ENTRADA (R$10)';
+            const bmanager = (window as any).bmanager;
+            const isBroke = (bmanager?.playerMoney || 0) < this.game.betAmount;
+            const hint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? `←→ Alterar (R$${this.game.betAmount}) • [OK] Comprar` : `SETAS ALTERAR VALOR (R$${this.game.betAmount}) • ESPAÇO COMPRAR ENTRADA`);
             drawMinigameFooter(ctx, w, h, theme, hint);
         } else if (this.game.phase === 'picking') {
             const hint = mobile ? '[DPAD] Selecionar • [OK] Escolher' : 'SETAS SELECIONAR • ESPAÇO ESCOLHER';

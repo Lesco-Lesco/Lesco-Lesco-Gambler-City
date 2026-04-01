@@ -3,6 +3,7 @@ import type { Card } from './RondaGame';
 import type { IMinigameUI } from './BaseMinigame';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
+import { EconomyManager } from '../Core/EconomyManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
@@ -40,6 +41,7 @@ export class RondaUI implements IMinigameUI {
 
         // ── Betting Status ──
         if (this.game.phase === 'betting') {
+            const isBroke = BichoManager.getInstance().playerMoney < this.game.minBet;
             ctx.save();
             ctx.textBaseline = 'middle';
 
@@ -48,11 +50,17 @@ export class RondaUI implements IMinigameUI {
             ctx.textAlign = 'center';
             ctx.fillText('VALOR DA APOSTA', cx, labelY);
 
-            ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(mobile ? 40 : 52)}px ${theme.titleFont}`; // Slightly smaller but clearer
-            ctx.shadowBlur = s(20);
-            ctx.shadowColor = theme.accent + '55';
-            ctx.fillText(`R$ ${this.game.betAmount}`, cx, valueY);
+            if (isBroke) {
+                ctx.fillStyle = '#f87171';
+                ctx.font = `bold ${r(mobile ? 20 : 26)}px ${theme.titleFont}`;
+                ctx.fillText('SEM GRANA!', cx, valueY);
+            } else {
+                ctx.fillStyle = theme.accent;
+                ctx.font = `bold ${r(mobile ? 40 : 52)}px ${theme.titleFont}`;
+                ctx.shadowBlur = s(20);
+                ctx.shadowColor = theme.accent + '55';
+                ctx.fillText(`R$ ${this.game.betAmount}`, cx, valueY);
+            }
             ctx.restore();
         }
 
@@ -225,12 +233,13 @@ export class RondaUI implements IMinigameUI {
 
         if (this.game.phase === 'betting') {
             this.hasSettled = false;
+            const { step } = EconomyManager.getInstance().getBetLimits();
 
             if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) {
-                this.game.betAmount = Math.min(this.game.maxBet, this.game.betAmount + 10);
+                this.game.betAmount = Math.min(this.game.maxBet, this.game.betAmount + step);
             }
             if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) {
-                this.game.betAmount = Math.max(this.game.minBet, this.game.betAmount - 10);
+                this.game.betAmount = Math.max(this.game.minBet, this.game.betAmount - step);
             }
             if (input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
@@ -239,7 +248,7 @@ export class RondaUI implements IMinigameUI {
                     SoundManager.getInstance().play('card_deal');
                 }
             }
-            if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) {
+            if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD') || input.wasPressed('Enter') || input.wasPressed('Space') || input.wasPressed('KeyE')) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.chooseCard(1);
@@ -250,10 +259,19 @@ export class RondaUI implements IMinigameUI {
             if (!this.hasSettled) {
                 this.hasSettled = true;
             }
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
-                SoundManager.getInstance().play(this.game.winAmount > 0 ? 'win_small' : 'lose');
-                this.onPlayAgain(this.game.winAmount);
-                this.game.reset();
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
+                const bmanager = BichoManager.getInstance();
+                const totalMoney = bmanager.playerMoney + this.game.winAmount;
+                
+                if (totalMoney < this.game.minBet) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onClose(this.game.winAmount); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(this.game.winAmount > 0 ? 'win_small' : 'lose');
+                    this.onPlayAgain(this.game.winAmount);
+                    this.game.reset();
+                }
             }
         }
 

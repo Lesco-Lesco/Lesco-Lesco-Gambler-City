@@ -3,8 +3,14 @@ import { Renderer } from '../game/Core/Renderer';
 import { GameLoop } from '../game/Core/Loop';
 import type { ExplorationScene } from '../game/Scenes/ExplorationScene';
 import type { CasinoScene } from '../game/Scenes/CasinoScene';
+import type { ChurchScene } from '../game/Scenes/ChurchScene';
 import type { GameOverScene } from '../game/Scenes/GameOverScene';
 import { EconomyManager } from '../game/Core/EconomyManager';
+import { AchievementManager } from '../game/Core/AchievementManager';
+import { AchievementUI } from '../game/UI/AchievementUI';
+import { BichoManager } from '../game/BichoManager';
+import { BuffManager } from '../game/Core/BuffManager';
+import { ProgressionManager } from '../game/Core/ProgressionManager';
 import { UIScale } from '../game/Core/UIScale';
 import { SoundManager } from '../game/Core/SoundManager';
 import MobileControls from './MobileControls';
@@ -19,6 +25,7 @@ const GameCanvas = () => {
         renderer: Renderer;
         scene: ExplorationScene;
         casinoScene: CasinoScene;
+        churchScene: ChurchScene;
         gameOverScene: GameOverScene;
     } | null>(null);
 
@@ -57,24 +64,33 @@ const GameCanvas = () => {
                 let gameOverScene: GameOverScene;
                 let casinoShopping: CasinoScene;
                 let casinoStation: CasinoScene;
+                let churchScene: ChurchScene;
 
                 try {
                     const { ExplorationScene } = await import('../game/Scenes/ExplorationScene');
                     const { CasinoScene } = await import('../game/Scenes/CasinoScene');
+                    const { ChurchScene } = await import('../game/Scenes/ChurchScene');
                     const { GameOverScene } = await import('../game/Scenes/GameOverScene');
 
                     scene = new ExplorationScene(renderer, w, h);
                     casinoShopping = new CasinoScene(w, h, 'shopping');
                     casinoStation = new CasinoScene(w, h, 'station');
+                    churchScene = new ChurchScene(w, h);
                     gameOverScene = new GameOverScene();
 
                     // Link Scenes
                     scene.onEnterCasino = (type: 'shopping' | 'station' = 'shopping') => {
                         loop.setScene(type === 'station' ? 'casino_station' : 'casino_shopping');
                     };
+                    scene.onEnterChurch = () => {
+                        loop.setScene('church');
+                    };
 
                     casinoShopping.onSceneExitRequest = () => loop.setScene('exploration');
                     casinoStation.onSceneExitRequest = () => loop.setScene('exploration');
+                    churchScene.onSceneExitRequest = () => {
+                        loop.setScene('exploration');
+                    };
 
                     const handleGameOver = () => loop.setScene('gameover');
                     scene.onGameOver = handleGameOver;
@@ -83,6 +99,11 @@ const GameCanvas = () => {
 
                     gameOverScene.onRestart = () => {
                         EconomyManager.getInstance().reset();
+                        AchievementManager.getInstance().reset();
+                        AchievementUI.getInstance().reset();
+                        BichoManager.getInstance().reset();
+                        BuffManager.getInstance().reset();
+                        ProgressionManager.getInstance().reset();
                         scene.resetPlayer();
                         triggerSplash();
                         loop.setScene('exploration');
@@ -97,6 +118,9 @@ const GameCanvas = () => {
                     casinoStation.name = 'casino_station';
                     loop.addScene(casinoStation);
 
+                    churchScene.name = 'church';
+                    loop.addScene(churchScene);
+
                     loop.addScene(gameOverScene);
                     loop.setScene('exploration');
 
@@ -104,7 +128,7 @@ const GameCanvas = () => {
                     await document.fonts.ready; // Ensure custom fonts are loaded
                     loop.start();
                     triggerSplash(); // Show splash on first start
-                    engineRef.current = { loop, renderer, scene, casinoScene: casinoShopping, gameOverScene };
+                    engineRef.current = { loop, renderer, scene, casinoScene: casinoShopping, churchScene, gameOverScene };
 
                     console.log("Scenes initialized successfully");
 
@@ -146,6 +170,7 @@ const GameCanvas = () => {
                     if (scene) scene.resize(rw, rh);
                     if (casinoShopping) casinoShopping.resize(rw, rh);
                     if (casinoStation) casinoStation.resize(rw, rh);
+                    if (churchScene) churchScene.resize(rw, rh);
                     if (gameOverScene) gameOverScene.resize(rw, rh);
                 };
 

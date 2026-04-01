@@ -58,6 +58,9 @@ import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '.
 import { SoundManager } from '../Core/SoundManager';
 import { AchievementManager } from '../Core/AchievementManager';
 import { AchievementUI } from '../UI/AchievementUI';
+import { ProgressionManager } from '../Core/ProgressionManager';
+import { BuffManager } from '../Core/BuffManager';
+import { EconomyManager } from '../Core/EconomyManager';
 
 export class ExplorationScene implements Scene {
     public name = 'exploration';
@@ -133,6 +136,11 @@ export class ExplorationScene implements Scene {
     private walkTimeAccumulator: number = 0;
     private locationTriggerTimer: number = 0; // Timer to throttle geographic checks
     private lastActiveMinigame: string = 'none'; // Track state changes for exit achievements
+    private currentInteractionId: string | null = null;
+    private currentInteractionType: 'street_npc' | 'bar' | 'slots' | 'blackjack' | 'poker' | null = null;
+    private brokeTimer: number = 0;
+    private bankruptcyData: { amount: number, message: string, character: string } | null = null;
+    private showBankruptcyOverlay: boolean = false;
 
     // Zoom Stages (6 stages: 0.5x to 3.0x)
     private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
@@ -149,6 +157,7 @@ export class ExplorationScene implements Scene {
 
     // Callbacks
     public onEnterCasino?: (type: 'shopping' | 'station') => void;
+    public onEnterChurch?: () => void;
     public onGameOver?: () => void;
 
     constructor(renderer: Renderer, screenW: number, screenH: number) {
@@ -245,6 +254,7 @@ export class ExplorationScene implements Scene {
     public update(dt: number) {
         this.updateMusic(dt);
         BichoManager.getInstance().update(dt);
+        ProgressionManager.getInstance().updateCooldowns(dt);
         const bmanager = BichoManager.getInstance();
         const pm = PoliceManager.getInstance();
         const isInArcade = (this.activeMinigame as string).startsWith('arcade_');
@@ -294,6 +304,7 @@ export class ExplorationScene implements Scene {
             bmanager.addNotification("Alto Índice de Achacamento!", 4);
         }
         this.wasInHighRiskArea = inHighRisk;
+        BuffManager.getInstance().update(dt);
 
         // 1. Minigame Logic / Interruption
         if (pm.phase !== 'none') {
@@ -321,10 +332,35 @@ export class ExplorationScene implements Scene {
             return; // Block world update
         }
 
-        // 0. Game Over Check
-        if (bmanager.playerMoney <= 0 && !bmanager.hasPendingBets() && this.activeMinigame === 'none') {
-            if (this.onGameOver) this.onGameOver();
-            return;
+        // 0. Bankruptcy / Recovery Check
+        if (bmanager.playerMoney <= 0 && !bmanager.hasPendingBets() && this.activeMinigame === 'none' && pm.phase === 'none' && !this.showBankruptcyOverlay) {
+            this.brokeTimer += dt;
+            if (this.brokeTimer >= 2.0) { // 2 second delay before recovery
+                const economy = EconomyManager.getInstance();
+                const data = economy.recoverFromBroke();
+                
+                if (data) {
+                    this.bankruptcyData = data;
+                    SoundManager.getInstance().play('achievement_unlock');
+                    this.showBankruptcyOverlay = true;
+                    this.input.pushContext('bankruptcy');
+                } else {
+                    // No more help! Game Over.
+                    if (this.onGameOver) this.onGameOver();
+                }
+                this.brokeTimer = 0;
+            }
+        } else {
+            this.brokeTimer = 0;
+        }
+
+        if (this.showBankruptcyOverlay) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
+                this.showBankruptcyOverlay = false;
+                this.input.popContext();
+                this.bankruptcyData = null;
+            }
+            return; // Block other world updates while overlay is shown
         }
         if (this.activeMinigame === 'dice' && this.diceUI) {
             this.diceUI.update(dt);
@@ -729,19 +765,31 @@ export class ExplorationScene implements Scene {
         }
 
         achManager.updateMaxMoney(bmanager.playerMoney);
+
+        // Start cooldown if we had an interaction ID
+        if (this.currentInteractionId && this.currentInteractionType) {
+            ProgressionManager.getInstance().startCooldown(this.currentInteractionId, this.currentInteractionType);
+            this.currentInteractionId = null;
+            this.currentInteractionType = null;
+        }
+
         this.exitMinigame();
     }
 
-    /** Process arcade game end: record stats for achievements only (no direct money reward per session) */
     private processArcadeEnd(type: string, score: number): void {
         const achManager = AchievementManager.getInstance();
         const bmanager = BichoManager.getInstance();
 
-        // Track stats and trigger any achievement unlocks (achievements are one-time events, not farmable)
-        achManager.recordArcadeEnd(type, score);
+        // Map arcade type to progression ID
+        let mappedType: string = type;
+        if (type === 'air_pong') mappedType = 'arcade_pong';
+        else if (type === 'tank_attack') mappedType = 'arcade_tank';
+        else if (type === 'faroeste') mappedType = 'arcade_faroeste';
+        else if (type === 'risca_faca') mappedType = 'arcade_risca';
+        else if (type === 'sinuca') mappedType = 'arcade_sinuca';
 
-        // No direct money reward per session — prevents score farming exploit.
-        // Financial recognition comes exclusively through one-time achievement unlocks.
+        // Track stats and trigger any achievement unlocks
+        achManager.recordArcadeEnd(mappedType, score);
         achManager.updateMaxMoney(bmanager.playerMoney);
     }
 
@@ -790,27 +838,67 @@ export class ExplorationScene implements Scene {
 
 
     private checkInteractions() {
-        // 1. Map Transitions (Casino/Subsolo)
-        // CHECK RADIUS: Increased proximity detection for transitions (1.5 range)
-        let isAtEntrance = false;
-        for (let dy = -1.5; dy <= 1.5; dy += 0.5) {
-            for (let dx = -1.5; dx <= 1.5; dx += 0.5) {
-                const tile = this.tileMap.getTile(this.player.x + dx, this.player.y + dy);
-                if (tile === TILE_TYPES.ENTRANCE || tile === TILE_TYPES.STAIRS_DOWN) {
-                    isAtEntrance = true;
-                    break;
+        // 1. Church Entrance (Special centered entrance at 130, 85)
+        const distToChurch = Math.sqrt((this.player.x - 130) ** 2 + (this.player.y - 85) ** 2);
+        if (distToChurch < 1.5) {
+            const bm = BichoManager.getInstance();
+            const buffMgr = BuffManager.getInstance();
+            
+            if (buffMgr.isOnCooldown('church')) {
+                const remaining = Math.ceil(buffMgr.getCooldown('church') / 60);
+                this.player.nearbyInteraction = `Aguarde ${remaining} min para entrar novamente.`;
+                if (this.input.wasPressed('KeyE')) {
+                    bm.addNotification(`A igreja está fechada para você no momento. Volte em ${remaining} min.`, 4);
+                }
+            } else if (bm.playerMoney > 100) {
+                this.player.nearbyInteraction = 'Você ainda não precisa de ajuda divina.';
+                if (this.input.wasPressed('KeyE')) {
+                    bm.addNotification('A igreja é para os necessitados (Máx R$100).', 4);
+                }
+            } else {
+                this.player.nearbyInteraction = '▶ E - Entrar na Igreja';
+                if (this.input.wasPressed('KeyE')) {
+                    SoundManager.getInstance().play('door_enter');
+                    if (this.onEnterChurch) this.onEnterChurch();
+                    return;
                 }
             }
-            if (isAtEntrance) break;
+        }
+
+        // 2. Map Transitions (Casino/Subsolo)
+        // CHECK RADIUS: Increased proximity detection for transitions (1.5 range)
+        let isAtEntrance = false;
+        // EXCLUDE CHURCH AREA FROM GENERIC ENTRANCE CHECK
+        if (distToChurch > 2.5) {
+            for (let dy = -1.5; dy <= 1.5; dy += 0.5) {
+                for (let dx = -1.5; dx <= 1.5; dx += 0.5) {
+                    const tile = this.tileMap.getTile(this.player.x + dx, this.player.y + dy);
+                    if (tile === TILE_TYPES.ENTRANCE || tile === TILE_TYPES.STAIRS_DOWN) {
+                        isAtEntrance = true;
+                        break;
+                    }
+                }
+                if (isAtEntrance) break;
+            }
         }
 
         if (isAtEntrance) {
-            this.player.nearbyInteraction = '▶ E - Entrar no Subsolo';
-            if (this.input.wasPressed('KeyE')) {
-                SoundManager.getInstance().play('door_enter');
-                const isStation = this.player.x > 200; // Station is roughly at x=242
-                if (this.onEnterCasino) this.onEnterCasino(isStation ? 'station' : 'shopping');
-                return;
+            const isStation = this.player.x > 200;
+            const pm = ProgressionManager.getInstance();
+
+            if (isStation && !pm.isCasinoUnlocked('station')) {
+                const hint = `🔒 ${pm.getStationCasinoLockedHint(AchievementManager.getInstance().getPlaysByGame())}`;
+                this.player.nearbyInteraction = hint;
+                if (this.input.wasPressed('KeyE')) {
+                    BichoManager.getInstance().addNotification(hint, 4);
+                }
+            } else {
+                this.player.nearbyInteraction = '▶ E - Entrar no Subsolo';
+                if (this.input.wasPressed('KeyE')) {
+                    SoundManager.getInstance().play('door_enter');
+                    if (this.onEnterCasino) this.onEnterCasino(isStation ? 'station' : 'shopping');
+                    return;
+                }
             }
         }
 
@@ -826,12 +914,29 @@ export class ExplorationScene implements Scene {
         }
 
         if (nearBar) {
-            this.player.nearbyInteraction = `▶ E - Entrar no ${nearBar.name}`;
-            if (this.input.wasPressed('KeyE')) {
-                SoundManager.getInstance().play('door_enter');
-                this.startBarActivities(nearBar);
-                return;
+            const pm = ProgressionManager.getInstance();
+            if (!pm.isGameUnlocked('bar_games')) {
+                const hint = `🔒 ${pm.getBarLockedHint()}`;
+                this.player.nearbyInteraction = hint;
+                if (this.input.wasPressed('KeyE')) {
+                    BichoManager.getInstance().addNotification(hint, 4);
+                }
+            } else {
+                this.player.nearbyInteraction = `▶ E - Entrar no ${nearBar.name}`;
+                if (this.input.wasPressed('KeyE')) {
+                    // Check bar cooldown
+                    const barId = `bar_${nearBar.name}`;
+                    if (pm.isOnCooldown(barId)) {
+                        BichoManager.getInstance().addNotification(pm.getCooldownMessage(barId, 'bar'), 3);
+                    } else {
+                        this.currentInteractionId = barId;
+                        this.currentInteractionType = 'bar';
+                        SoundManager.getInstance().play('door_enter');
+                        this.startBarActivities(nearBar);
+                    }
+                }
             }
+            return;
         }
 
         // 1.6 Arcade Interactions
@@ -846,12 +951,21 @@ export class ExplorationScene implements Scene {
         }
 
         if (nearArcade) {
-            this.player.nearbyInteraction = `▶ E - Entrar no ${nearArcade.name}`;
-            if (this.input.wasPressed('KeyE')) {
-                SoundManager.getInstance().play('door_enter');
-                this.startArcadeActivities(nearArcade);
-                return;
+            const pm = ProgressionManager.getInstance();
+            if (!pm.isGameUnlocked('arcade')) {
+                const hint = `🔒 ${pm.getArcadeLockedHint()}`;
+                this.player.nearbyInteraction = hint;
+                if (this.input.wasPressed('KeyE')) {
+                    BichoManager.getInstance().addNotification(hint, 4);
+                }
+            } else {
+                this.player.nearbyInteraction = `▶ E - Entrar no ${nearArcade.name}`;
+                if (this.input.wasPressed('KeyE')) {
+                    SoundManager.getInstance().play('door_enter');
+                    this.startArcadeActivities(nearArcade);
+                }
             }
+            return;
         }
 
         // 2. NPC Interactions
@@ -861,20 +975,42 @@ export class ExplorationScene implements Scene {
             const type = nearbyNPC.minigameType;
 
             if (type) {
+                const pm = ProgressionManager.getInstance();
+                const achMgr = AchievementManager.getInstance();
+
+                // Check if game type is unlocked
+                if (!pm.isGameUnlocked(type as any)) {
+                    const hint = `🔒 ${pm.getLockedHint(type as any, achMgr.getPlaysByGame(), achMgr.getWinCount())}`;
+                    this.player.nearbyInteraction = hint;
+                    return;
+                }
+
+                // Check cooldown for this specific NPC
+                const npcId = `npc_${nearbyNPC.name}_${Math.floor(nearbyNPC.x)}_${Math.floor(nearbyNPC.y)}`;
+                if (pm.isOnCooldown(npcId)) {
+                    const msg = pm.getCooldownMessage(npcId, 'street_npc');
+                    this.player.nearbyInteraction = msg;
+                    return;
+                }
+
                 // Fixed: Use gameName or fallback
                 const gameDisplay = nearbyNPC.gameName || type.toUpperCase();
                 this.player.nearbyInteraction = `▶ E - Jogar ${gameDisplay}`;
 
+                const isPeriphery = PoliceManager.getInstance().isPeriphery(this.player.x, this.player.y);
+
                 if (this.input.wasPressed('KeyE')) {
+                    this.currentInteractionId = npcId;
+                    this.currentInteractionType = 'street_npc';
                     SoundManager.getInstance().play('menu_confirm');
-                    if (type === 'purrinha') this.startPurrinha();
-                    else if (type === 'dice') this.startDice();
-                    else if (type === 'ronda') this.startRonda();
-                    else if (type === 'domino') this.startDomino();
-                    else if (type === 'heads_tails') this.startHeadsTails();
-                    else if (type === 'palitinho') this.startPalitinho();
-                    else if (type === 'fan_tan') this.startFanTan();
-                    else if (type === 'jokenpo') this.startJokenpo();
+                    if (type === 'purrinha') this.startPurrinha(isPeriphery);
+                    else if (type === 'dice') this.startDice(isPeriphery);
+                    else if (type === 'ronda') this.startRonda(isPeriphery);
+                    else if (type === 'domino') this.startDomino(isPeriphery);
+                    else if (type === 'heads_tails') this.startHeadsTails(isPeriphery);
+                    else if (type === 'palitinho') this.startPalitinho(isPeriphery);
+                    else if (type === 'fan_tan') this.startFanTan(isPeriphery);
+                    else if (type === 'jokenpo') this.startJokenpo(isPeriphery);
                 }
             } else {
                 this.player.nearbyInteraction = null;
@@ -886,26 +1022,30 @@ export class ExplorationScene implements Scene {
 
     // --- Minigame Starters ---
 
-    private startPurrinha() {
+    private startPurrinha(isPeriphery: boolean = false) {
         this.activeMinigame = 'purrinha';
         this.input.pushContext('minigame');
         const bmanager = BichoManager.getInstance();
         const game = new PurrinhaGame(bmanager.playerMoney);
+        if (isPeriphery) game.updateLimits(true);
         // Note: purrinhaUI constructor logic might need checking, but we assume it matches
         this.purrinhaUI = new PurrinhaUI(game, (payout: number) => {
             this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             // Play Again logic
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('purrinha');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
             if (bmanager.playerMoney < 0) bmanager.playerMoney = 0;
             game.reset(bmanager.playerMoney);
             bmanager.addNotification(`Saldo atualizado: R$${bmanager.playerMoney}`, 2);
         });
     }
 
-    private startHeadsTails() {
+    private startHeadsTails(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
         const game = new HeadsTailsGame(bmanager.playerMoney);
+        if (isPeriphery) game.updateLimits(true);
         this.activeMinigame = 'heads_tails';
         this.input.pushContext('minigame');
 
@@ -913,13 +1053,17 @@ export class ExplorationScene implements Scene {
             this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('heads_tails');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('heads_tails');
             game.reset(bmanager.playerMoney);
         });
     }
 
-    private startPalitinho() {
+    private startPalitinho(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
         const game = new PalitinhoGame();
+        if (isPeriphery) game.updateLimits(true);
         this.activeMinigame = 'palitinho';
         this.input.pushContext('minigame');
 
@@ -927,13 +1071,17 @@ export class ExplorationScene implements Scene {
             this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('palitinho');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('palitinho');
             game.reset();
         });
     }
 
-    private startFanTan() {
+    private startFanTan(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
         const game = new FanTanGame();
+        if (isPeriphery) game.updateLimits(true);
         this.activeMinigame = 'fan_tan';
         this.input.pushContext('minigame');
 
@@ -941,13 +1089,17 @@ export class ExplorationScene implements Scene {
             this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('fan_tan');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('fan_tan');
             game.reset();
         });
     }
 
-    private startJokenpo() {
+    private startJokenpo(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
         const game = new JokenpoGame(bmanager.playerMoney);
+        if (isPeriphery) game.updateLimits(true);
         this.activeMinigame = 'jokenpo';
         this.input.pushContext('minigame');
 
@@ -955,48 +1107,63 @@ export class ExplorationScene implements Scene {
             this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('jokenpo');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('jokenpo');
             game.reset(bmanager.playerMoney);
         });
     }
 
-    private startDice() {
+    private startDice(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
         this.activeMinigame = 'dice';
         this.input.pushContext('minigame');
         this.diceGame.reset();
+        if (isPeriphery) this.diceGame.updateLimits(true);
 
         this.diceUI = new DiceUI(this.diceGame, (payout: number) => {
             this.handleMinigameExit(this.diceGame, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('dice');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('dice');
             this.diceGame.reset();
         });
     }
 
-    private startRonda() {
+    private startRonda(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
         this.activeMinigame = 'ronda';
         this.input.pushContext('minigame');
         this.rondaGame.reset();
+        if (isPeriphery) this.rondaGame.updateLimits(true);
 
         this.rondaUI = new RondaUI(this.rondaGame, (payout: number) => {
             this.handleMinigameExit(this.rondaGame, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('ronda');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('ronda');
             this.rondaGame.reset();
         });
     }
 
-    private startDomino() {
+    private startDomino(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
         this.activeMinigame = 'domino';
         this.input.pushContext('minigame');
         this.dominoGame.reset();
+        if (isPeriphery) this.dominoGame.updateLimits(true);
 
         this.dominoUI = new DominoUI(this.dominoGame, (payout: number) => {
             this.handleMinigameExit(this.dominoGame, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('domino');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('domino');
             this.dominoGame.reset();
         });
     }
@@ -1016,10 +1183,23 @@ export class ExplorationScene implements Scene {
             this.selectedBarMenuIndex = (this.selectedBarMenuIndex + 1) % 3;
         }
         if (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
-            this.input.popContext();
-            if (this.selectedBarMenuIndex === 0) this.startVideoBingo();
-            else if (this.selectedBarMenuIndex === 1) this.startHorseRacing();
-            else if (this.selectedBarMenuIndex === 2) this.startDogRacing();
+            const pm = ProgressionManager.getInstance();
+            const am = AchievementManager.getInstance();
+            let gameType = '';
+            if (this.selectedBarMenuIndex === 0) gameType = 'video_bingo';
+            else if (this.selectedBarMenuIndex === 1) gameType = 'horse_racing';
+            else if (this.selectedBarMenuIndex === 2) gameType = 'dog_racing';
+
+            if (pm.isGameUnlocked(gameType)) {
+                this.input.popContext();
+                if (gameType === 'video_bingo') this.startVideoBingo();
+                else if (gameType === 'horse_racing') this.startHorseRacing();
+                else if (gameType === 'dog_racing') this.startDogRacing();
+            } else {
+                SoundManager.getInstance().play('lose');
+                const hint = pm.getLockedHint(gameType, am.getPlaysByGame(), am.getWinCount());
+                BichoManager.getInstance().addNotification(`🔒 ${hint}`, 3);
+            }
         }
         if (this.input.wasPressed('Escape')) {
             this.activeMinigame = 'none';
@@ -1043,14 +1223,35 @@ export class ExplorationScene implements Scene {
             'sinuca': { label: 'SINUCA', icon: '🎱', color: '#009966' },
         };
 
-        const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy'; icon: string; color: string }[] = [
-            { label: 'COMPRAR CRÉDITOS', cost: '2 por R$10', gameType: 'buy', icon: '💰', color: '#ffcc00' }
+        const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy'; icon: string; color: string; isLocked: boolean; hint?: string }[] = [
+            { label: 'COMPRAR CRÉDITOS', cost: '2 por R$10', gameType: 'buy', icon: '💰', color: '#ffcc00', isLocked: false }
         ];
+
+        const pm = ProgressionManager.getInstance();
+        const am = AchievementManager.getInstance();
 
         const availableGames: ArcadeGameType[] = this.currentArcade?.games || [];
         for (const game of availableGames) {
             const info = GAME_INFO[game];
-            items.push({ label: info.label, cost: '1 crédito', gameType: game, icon: info.icon, color: info.color });
+            let mappedType: string = game;
+            if (game === 'air_pong') mappedType = 'arcade_pong';
+            else if (game === 'tank_attack') mappedType = 'arcade_tank';
+            else if (game === 'faroeste') mappedType = 'arcade_faroeste';
+            else if (game === 'risca_faca') mappedType = 'arcade_risca';
+            else if (game === 'sinuca') mappedType = 'arcade_sinuca';
+
+            const isLocked = !pm.isGameUnlocked(mappedType);
+            const hint = isLocked ? pm.getLockedHint(mappedType, am.getPlaysByGame(), am.getWinCount()) : undefined;
+
+            items.push({ 
+                label: isLocked ? 'BLOQUEADO' : info.label, 
+                cost: isLocked ? '???' : '1 crédito', 
+                gameType: game, 
+                icon: isLocked ? '🔒' : info.icon, 
+                color: isLocked ? '#555555' : info.color,
+                isLocked,
+                hint
+            });
         }
 
         return items;
@@ -1102,7 +1303,10 @@ export class ExplorationScene implements Scene {
         }
         if (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
             const selected = items[this.selectedArcadeMenuIndex];
-            if (selected.gameType === 'buy') {
+            if ((selected as any).isLocked) {
+                SoundManager.getInstance().play('lose');
+                BichoManager.getInstance().addNotification(`🔒 ${(selected as any).hint}`, 3);
+            } else if (selected.gameType === 'buy') {
                 const bmanager = BichoManager.getInstance();
                 if (bmanager.playerMoney >= 10) {
                     bmanager.playerMoney -= 10;
@@ -1112,7 +1316,7 @@ export class ExplorationScene implements Scene {
                     bmanager.addNotification('Dinheiro insuficiente!', 2);
                 }
             } else if (this.arcadeCredits >= 1) {
-                this.launchArcadeGame(selected.gameType);
+                this.launchArcadeGame(selected.gameType as ArcadeGameType);
             } else {
                 BichoManager.getInstance().addNotification('Sem créditos! Compre mais.', 2);
             }
@@ -1143,8 +1347,12 @@ export class ExplorationScene implements Scene {
             (payout) => {
                 if (payout > 0) {
                     bmanager.playerMoney += payout;
+                    AchievementManager.getInstance().recordMinigameWin('horse_racing');
                     SoundManager.getInstance().play('coin_gain');
+                } else {
+                    AchievementManager.getInstance().recordMinigameLoss();
                 }
+                AchievementManager.getInstance().recordMinigamePlay('horse_racing');
                 this.horseRacingGame.reset();
             }
         );
@@ -1166,8 +1374,12 @@ export class ExplorationScene implements Scene {
             (payout) => {
                 if (payout > 0) {
                     bmanager.playerMoney += payout;
+                    AchievementManager.getInstance().recordMinigameWin('dog_racing');
                     SoundManager.getInstance().play('coin_gain');
+                } else {
+                    AchievementManager.getInstance().recordMinigameLoss();
                 }
+                AchievementManager.getInstance().recordMinigamePlay('dog_racing');
                 this.dogRacingGame.reset();
             }
         );
@@ -1189,8 +1401,12 @@ export class ExplorationScene implements Scene {
             (payout) => {
                 if (payout > 0) {
                     bmanager.playerMoney += payout;
+                    AchievementManager.getInstance().recordMinigameWin('video_bingo');
                     SoundManager.getInstance().play('coin_gain');
+                } else {
+                    AchievementManager.getInstance().recordMinigameLoss();
                 }
+                AchievementManager.getInstance().recordMinigamePlay('video_bingo');
                 this.videoBingoGame.reset();
             }
         );
@@ -1227,11 +1443,26 @@ export class ExplorationScene implements Scene {
         ctx.fillText('ESCOLHA SUA DIVERSÃO', cx, h * 0.16);
 
         // Game options as decorative cards
-        const options = [
-            { name: 'VIDEO BINGO', icon: '🎰', desc: 'Bingo eletrônico com cartelas', color: '#7b2dff' },
-            { name: 'CORRIDA CAVALOS', icon: '🐎', desc: 'Apostas em tempo real', color: '#228b22' },
-            { name: 'CORRIDA DE CÃES', icon: '🐕', desc: 'Galgos em alta velocidade', color: '#ff6b00' },
+        const pm = ProgressionManager.getInstance();
+        const am = AchievementManager.getInstance();
+        
+        const rawOptions = [
+            { id: 'video_bingo', name: 'VIDEO BINGO', icon: '🎰', desc: 'Bingo eletrônico com cartelas', color: '#7b2dff' },
+            { id: 'horse_racing', name: 'CORRIDA CAVALOS', icon: '🐎', desc: 'Apostas em tempo real', color: '#228b22' },
+            { id: 'dog_racing', name: 'CORRIDA DE CÃES', icon: '🐕', desc: 'Galgos em alta velocidade', color: '#ff6b00' },
         ];
+
+        const options = rawOptions.map((opt) => {
+            const isLocked = !pm.isGameUnlocked(opt.id);
+            return {
+                ...opt,
+                name: isLocked ? 'BLOQUEADO' : opt.name,
+                icon: isLocked ? '🔒' : opt.icon,
+                desc: isLocked ? pm.getLockedHint(opt.id, am.getPlaysByGame(), am.getWinCount()) : opt.desc,
+                color: isLocked ? '#555555' : opt.color,
+                isLocked
+            };
+        });
 
         const cardW = Math.min(s(mobile ? 280 : 320), w * 0.85);
         const cardH = s(mobile ? 65 : 75);
@@ -1248,14 +1479,14 @@ export class ExplorationScene implements Scene {
             ctx.save();
             if (isSelected) {
                 ctx.shadowBlur = s(18);
-                ctx.shadowColor = opt.color;
+                ctx.shadowColor = opt.isLocked ? '#888' : opt.color;
             }
             ctx.fillStyle = '#1a1a1a';
             ctx.beginPath();
             ctx.roundRect(cardX, y, cardW, cardH, s(10));
             ctx.fill();
 
-            ctx.strokeStyle = isSelected ? opt.color : 'rgba(255, 255, 255, 0.2)';
+            ctx.strokeStyle = isSelected ? (opt.isLocked ? '#888' : opt.color) : 'rgba(255, 255, 255, 0.2)';
             ctx.lineWidth = isSelected ? s(2.5) : s(1.5);
             ctx.stroke();
             ctx.restore();
@@ -1265,8 +1496,10 @@ export class ExplorationScene implements Scene {
             ctx.font = `${iconSize}px "Segoe UI Emoji", Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
+            ctx.globalAlpha = opt.isLocked ? 0.3 : 1;
             ctx.fillText(opt.icon, cardX + s(35), y + cardH / 2);
             ctx.textBaseline = 'alphabetic';
+            ctx.globalAlpha = 1;
 
             // Name - Solid white for maximum clarity
             ctx.fillStyle = '#ffffff';
@@ -1584,6 +1817,10 @@ export class ExplorationScene implements Scene {
 
         this.renderPoliceOverlay(ctx);
 
+        if (this.showBankruptcyOverlay) {
+            this.drawBankruptcyOverlay(ctx);
+        }
+
         // 8. Achievement Toasts (above everything except newspaper)
         this.achievementUI.update(0.016); // Approximate dt for render-time toasts
         this.achievementUI.render(ctx, this.screenW, this.screenH);
@@ -1860,6 +2097,73 @@ export class ExplorationScene implements Scene {
         if (PoliceManager.getInstance().isPeriphery(px, py)) {
             ach.recordLocationVisit('high_risk');
         }
+    }
+
+    private drawBankruptcyOverlay(ctx: CanvasRenderingContext2D) {
+        if (!this.bankruptcyData) return;
+
+        const s = UIScale.s.bind(UIScale);
+        const mobile = isMobile();
+        const w = this.screenW;
+        const h = this.screenH;
+        const cx = w / 2;
+        const cy = h / 2;
+
+        // Overlay mask
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        const boxW = s(mobile ? 340 : 420);
+        const boxH = s(mobile ? 180 : 200);
+        const boxX = cx - boxW / 2;
+        const boxY = cy - boxH / 2;
+
+        // Box
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxW, boxH, s(15));
+        ctx.fill();
+
+        ctx.strokeStyle = '#ff9900';
+        ctx.lineWidth = s(3);
+        ctx.stroke();
+
+        // Warning Top Ribbon
+        ctx.fillStyle = '#ff9900';
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxW, s(35), s(15));
+        // Reset bottom corners to square out the top ribbon
+        ctx.fillRect(boxX, boxY + s(15), boxW, s(20));
+        ctx.fill();
+
+        ctx.font = `bold ${UIScale.r(mobile ? 16 : 18)}px "Segoe UI"`;
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText("VOCÊ QUEBROU!", cx, boxY + s(17));
+        ctx.textBaseline = 'alphabetic';
+
+        // Character Name
+        ctx.font = `bold ${UIScale.r(mobile ? 18 : 22)}px "Segoe UI"`;
+        ctx.fillStyle = '#ff9900';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.bankruptcyData.character.toUpperCase(), cx, cy - s(20));
+
+        // Message
+        ctx.font = `italic ${UIScale.r(mobile ? 14 : 16)}px "Segoe UI"`;
+        ctx.fillStyle = '#fff';
+        this.drawTextWrapped(ctx, `"${this.bankruptcyData.message}"`, cx, cy + s(15), boxW - s(40), UIScale.r(20));
+
+        // Amount credited
+        ctx.font = `bold ${UIScale.r(mobile ? 12 : 14)}px monospace`;
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillText(`+ R$${this.bankruptcyData.amount} ADQUIRIDOS`, cx, cy + s(60));
+
+        // Hint
+        ctx.font = `bold ${UIScale.r(mobile ? 12 : 14)}px monospace`;
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        const hint = mobile ? "[ OK ] PEGAR O DINHEIRO" : "[ ESPAÇO / ENTER ] PEGAR O DINHEIRO";
+        ctx.fillText(hint, cx, cy + (boxH / 2) - s(15));
     }
 }
 

@@ -15,28 +15,26 @@ export interface NewsItem {
  * - Evitar descrições longas; focar no que mudou ou em pistas rápidas.
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v1.9.0",
+    id: "v2.2.1",
     title: "SANTA CRUZ EM FOCO",
-    date: "Março, 2026",
+    date: "Abril, 2026",
     description: [
-        "Confira as novidades do nosso bairro:",
+        "SEGURA O CORAÇÃO, SANTA CRUZ!",
         "",
-        "• EXPLORAÇÃO: A prefeitura agora premia com R$10 a descoberta de locais icônicos e estabelecimentos.",
-        "• TRADIÇÃO: A Praça Herval e o Marco Imperial seguem como o coração do Dominó e da Purrinha.",
-        "• SEGURANÇA: Cuidado com as batidas policiais! O 'alto índice de achacamento' é real nas periferias.",
-        "• AMBIENTE: O protótipo ganha vida sonora, trazendo a imersão das ruas para o PC e Mobile.",
-        "",
-        "--- COMUNICADO ESPECIAL ---",
-        "• NOTÁVEL: Saudamos a Madame M (renomada Dra. em Maricá). Que o Dominó na palma da mão traga as melhores lembranças!",
+        "• SUBIDA DO MORRO: O bairro é escada, parceiro! Ganhe moral no Shopping e mure conquistas para abrir o Subsolo. Malandragem pura!",
+        "• RETA DA BASE: Quer forrar o bolso? Vá pras beiras do mapa! Na periferia a aposta dobra e o coração dispara. Ação real!",
+        "• DINHEIRO NA MÃO: Esquece o troco! Agora é só nota de dez pra cima. Ganhou, levou, sem moedinha pra atrasar a banca.",
+        "• INCENSO DOIDO: Srs. S, P e Madame M... a PM sentiu a 'brisa' no corredor e tá doida pra achar o terreiro. Abre o olho, tá na pista!",
+        "• ÚLTIMO SUSPIRO: A vovó te salva UMA VEZ com 50 mangos. Zerou de novo? É vala! Game Over sem choro. Se garanta no taco!",
         "",
     ]
 };
 
 const RECOMMENDATIONS = [
-    "DICA: A Praça Marques de Herval é famosa pelo Dominó. Veteranos dizem que a sorte aceita desafios por lá.",
-    "VISITA: Pelas calçadas do Marco Imperial ruge a Purrinha sob os olhos da história. Cuidado com quem desafia.",
-    "LAZER: Novos fliperamas estão espalhados pelo mapa. Dizem que os vizinhos nunca têm os mesmos jogos.",
-    "ESTRATÉGIA: Na Sinuca Mata-Mata, uma tacada na branca concede liberdade dupla ao adversário. Mire bem.",
+    "DICA: O Cassino da Estação só abre pra quem já é veterano. Ganhe moral no Shopping primeiro.",
+    "AVISO: A vovó só dá os 50 mangos uma vez. Gastou, perdeu. Jogue cada real como se fosse o último!",
+    "BICA NO CANTO: Se o NPC estiver 'em cooldown', aproveite para explorar outras rodas. O fiscal não dorme!",
+    "ESTRATÉGIA: Agora as conquistas iniciais dão apenas prestígio. Dinheiro de verdade vem com a fama alta.",
 ];
 
 export function getFullNews(): NewsItem {

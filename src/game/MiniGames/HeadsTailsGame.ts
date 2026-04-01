@@ -28,8 +28,8 @@ export class HeadsTailsGame implements IMinigame {
         this.selectedBet = this.minBet;
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
         this.selectedBet = Math.max(this.minBet, Math.min(this.selectedBet, this.maxBet));

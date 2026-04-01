@@ -1,4 +1,5 @@
 import { EconomyManager } from '../Core/EconomyManager';
+import { GameConfig } from '../Core/GameConfig';
 import type { IMinigame } from './BaseMinigame';
 
 /**
@@ -48,8 +49,8 @@ export class PokerGame implements IMinigame {
         this.updateLimits();
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
     }
@@ -89,18 +90,79 @@ export class PokerGame implements IMinigame {
         this.activePlayerIndex = 0; // Human starts
     }
 
-    /** Allow player to increase the bet (NPCs automatically call) */
+    private static readonly FOLD_MESSAGES: string[] = [
+        'Tô fora. Não vou bancar essa loucura.',
+        'Fold. Tu tá blefando, mas não pago pra ver.',
+        'Tá maluco? Essa aposta é absurda. Passo.',
+        'Saí. Meu bolso não aguenta essa pressão.',
+        'Nessa eu não entro. Boa sorte com o resto.',
+        'Fold. Prefiro perder pouco do que perder tudo.',
+        'Tu acha que eu sou trouxa? Fold.',
+        'Essa mão não vale esse preço. Tô fora.',
+    ];
+
+    /** Allow player to increase the bet. NPCs decide independently whether to fold. */
     public raiseHand(extraAmount: number) {
         if (extraAmount <= 0) return;
 
-        this.players.forEach(p => {
-            p.currentBet += extraAmount;
-            this.pot += extraAmount;
-            p.lastAction = 'Raise';
-        });
+        // Human always raises
+        const human = this.players[0];
+        const potCap = GameConfig.POKER_POT_CAP;
+
+        // Cap the raise so pot doesn't exceed POKER_POT_CAP
+        let effectiveRaise = extraAmount;
+        if (this.pot + effectiveRaise * this.players.filter(p => !p.folded).length > potCap) {
+            const activePlayers = this.players.filter(p => !p.folded).length;
+            effectiveRaise = Math.max(0, Math.floor((potCap - this.pot) / (activePlayers * 10)) * 10);
+        }
+        if (effectiveRaise <= 0) return;
+
+        human.currentBet += effectiveRaise;
+        this.pot += effectiveRaise;
+        human.lastAction = 'Raise';
+
+        // Each NPC decides independently
+        for (const npc of this.players.filter(p => !p.isHuman && !p.folded)) {
+            const totalBetAfterCall = npc.currentBet + effectiveRaise;
+            if (this.shouldNPCFold(npc, totalBetAfterCall)) {
+                npc.folded = true;
+                npc.lastAction = PokerGame.FOLD_MESSAGES[Math.floor(Math.random() * PokerGame.FOLD_MESSAGES.length)];
+            } else {
+                npc.currentBet += effectiveRaise;
+                this.pot += effectiveRaise;
+                npc.lastAction = 'Call';
+            }
+        }
+
+        // Check if only human remains (all NPCs folded)
+        const active = this.players.filter(p => !p.folded);
+        if (active.length === 1 && active[0].isHuman) {
+            this.winner = active[0];
+            this.resultMessage = `Todos foldaram! ${active[0].name} ganhou R$${this.pot}!`;
+            this.phase = 'result';
+        }
+    }
+
+    /** Determine if an NPC should fold based on bet-to-bankroll ratio */
+    private shouldNPCFold(npc: PokerPlayer, totalBet: number): boolean {
+        const ratio = totalBet / npc.money;
+        if (ratio > 0.7) return Math.random() < 0.85;
+        if (ratio > 0.5) return Math.random() < 0.60;
+        if (ratio > 0.3) return Math.random() < 0.30;
+        if (ratio > 0.15) return Math.random() < 0.10;
+        return false;
     }
 
     public nextPhase() {
+        // Check if only one player remains
+        const active = this.players.filter(p => !p.folded);
+        if (active.length === 1) {
+            this.winner = active[0];
+            this.resultMessage = `Todos foldaram! ${active[0].name} ganhou R$${this.pot}!`;
+            this.phase = 'result';
+            return;
+        }
+
         if (this.phase === 'pre_flop') {
             this.phase = 'flop';
             this.communityCards = [this.deck.pop()!, this.deck.pop()!, this.deck.pop()!];
@@ -123,11 +185,11 @@ export class PokerGame implements IMinigame {
         for (const p of activePlayers) {
             let score = this.evaluateHand(p.hand, this.communityCards);
 
-            // House Edge: NPCs get a 10% base bonus and a 20% chance to "bluff/play aggressive" (extra 15% bonus)
+            // House Edge: NPCs get a 5% base bonus and a 15% chance to "bluff/play aggressive" (extra 10% bonus)
             if (!p.isHuman) {
-                score *= 1.10; // Base 10% bonus
-                if (Math.random() < 0.20) {
-                    score *= 1.15; // Aggressive/Bluff bonus
+                score *= 1.05; // Base 5% bonus
+                if (Math.random() < 0.15) {
+                    score *= 1.10; // Aggressive/Bluff bonus
                     p.lastAction = 'Agressivo';
                 }
             }

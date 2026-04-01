@@ -6,6 +6,7 @@
 import { DiceGame } from './DiceGame';
 import { BichoManager } from '../BichoManager';
 import { InputManager } from '../Core/InputManager';
+import { EconomyManager } from '../Core/EconomyManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
@@ -230,11 +231,18 @@ export class DiceUI implements IMinigameUI {
         ctx.textAlign = 'center';
         ctx.fillText('VALOR DA APOSTA', cx, zoneTop + zoneH * 0.2);
 
-        ctx.fillStyle = '#fff';
         ctx.font = `bold ${r(mobile ? 40 : 54)}px ${theme.titleFont}`;
         ctx.shadowBlur = s(15);
         ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
-        ctx.fillText(`R$ ${this.betAmount}`, cx, zoneTop + zoneH * 0.58);
+        
+        const isBroke = BichoManager.getInstance().playerMoney < this.game.minBet;
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.fillText('SEM GRANA!', cx, zoneTop + zoneH * 0.58);
+        } else {
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`R$ ${this.betAmount}`, cx, zoneTop + zoneH * 0.58);
+        }
         ctx.shadowBlur = 0;
 
         const helpHint = mobile
@@ -257,13 +265,14 @@ export class DiceUI implements IMinigameUI {
             if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) {
                 this.humanChoices[this.activeChoice] = Math.max(1, this.humanChoices[this.activeChoice] - 1);
             }
+            const { step } = EconomyManager.getInstance().getBetLimits();
             if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) {
-                this.betAmount = Math.min(this.game.maxBet, this.betAmount + 10);
+                this.betAmount = Math.min(this.game.maxBet, this.betAmount + step);
             }
             if (input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) {
-                this.betAmount = Math.max(this.game.minBet, this.betAmount - 10);
+                this.betAmount = Math.max(this.game.minBet, this.betAmount - step);
             }
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 if (bmanager.playerMoney >= this.betAmount) {
                     bmanager.playerMoney -= this.betAmount;
                     this.game.startRound(this.humanChoices, this.betAmount);
@@ -275,11 +284,20 @@ export class DiceUI implements IMinigameUI {
                 }
             }
         } else if (this.game.phase === 'result') {
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
+                const bmanager = BichoManager.getInstance();
                 const winAmount = this.game.winner?.isHuman ? this.game.betAmount * 5 : 0;
-                this.onPlayAgain(winAmount);
-                this.betAmount = 10;
-                this.game.reset();
+                const totalMoney = bmanager.playerMoney + winAmount;
+
+                if (totalMoney < this.game.minBet) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onClose(winAmount); // Exit if broke
+                } else {
+                    this.onPlayAgain(winAmount);
+                    this.betAmount = 10;
+                    this.game.reset();
+                }
             }
         }
 

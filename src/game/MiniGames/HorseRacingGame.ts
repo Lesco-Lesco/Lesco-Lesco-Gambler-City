@@ -10,6 +10,7 @@ export interface Horse {
     personality: HorsePersonality;
     acceleration: number;
     stamina: number;
+    baseSpeedMod: number; // Used to bias the speed calculation
     isFinished: boolean;
     finishTime?: number;
 }
@@ -59,6 +60,9 @@ export class HorseRacingGame {
             if (personality === 'closer') baseOdds += 2;
             if (personality === 'sprinter') baseOdds -= 1;
 
+            // Calculate intrinsic capability based on odds. Lower odds = better capability.
+            const oddsFactor = 1.0 + (6.0 - baseOdds) * 0.04;
+
             return {
                 id: i,
                 name: name,
@@ -67,10 +71,11 @@ export class HorseRacingGame {
                 position: 0,
                 speed: 0,
                 personality: personality,
-                acceleration: 0.5 + Math.random() * 0.5,
-                stamina: 1.0,
+                acceleration: (0.5 + Math.random() * 0.5) * oddsFactor,
+                stamina: 1.0 * oddsFactor,
+                baseSpeedMod: oddsFactor,
                 isFinished: false
-            };
+            } as Horse;
         });
     }
 
@@ -83,7 +88,7 @@ export class HorseRacingGame {
         this.horses.forEach(h => {
             h.position = 0;
             h.speed = 0;
-            h.stamina = 1.0;
+            h.stamina = 1.0 * h.baseSpeedMod;
             h.isFinished = false;
         });
     }
@@ -100,7 +105,7 @@ export class HorseRacingGame {
             allFinished = false;
 
             // Physics-based movement with personality
-            let targetSpeed = 80 + Math.random() * 40;
+            let targetSpeed = (80 + Math.random() * 40) * horse.baseSpeedMod;
             const progress = horse.position / this.RACE_DISTANCE;
 
             switch (horse.personality) {

@@ -1,4 +1,5 @@
 import { EconomyManager } from '../Core/EconomyManager';
+import { BuffManager } from '../Core/BuffManager';
 import type { IMinigame } from './BaseMinigame';
 /**
  * DiceGame (Dados) Logic — Overhauled to 5-player "Stones Style"
@@ -35,8 +36,8 @@ export class DiceGame implements IMinigame {
         this.updateLimits();
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
     }
@@ -95,6 +96,15 @@ export class DiceGame implements IMinigame {
 
         // Randomly pick one winner if tie
         this.winner = winners[Math.floor(Math.random() * winners.length)];
+
+        // Luck Bonus: 10% chance to force player win if they lost
+        if (this.winner && !this.winner.isHuman) {
+            const luck = BuffManager.getInstance().getLuckBonus();
+            if (luck > 0 && Math.random() < luck) {
+                this.winner = this.players[0];
+                bestScore = this.players[0].score;
+            }
+        }
 
         if (this.winner.isHuman) {
             const detail = bestScore === 0 ? "em cheio" : `(margem ${bestScore})`;

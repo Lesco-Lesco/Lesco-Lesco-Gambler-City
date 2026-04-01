@@ -1,4 +1,5 @@
 import { EconomyManager } from '../Core/EconomyManager';
+import { BuffManager } from '../Core/BuffManager';
 import type { IMinigame } from './BaseMinigame';
 
 /**
@@ -29,8 +30,8 @@ export class JokenpoGame implements IMinigame {
         this.selectedBet = this.minBet;
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         // Cap max bet by both economy limits and player money
         this.maxBet = Math.min(this.playerMoney, limits.max * 2);
@@ -80,9 +81,15 @@ export class JokenpoGame implements IMinigame {
         else if (pChoice === 'paper') { winningMove = 'scissors'; losingMove = 'rock'; }
         else if (pChoice === 'scissors') { winningMove = 'rock'; losingMove = 'paper'; }
 
-        if (r < 0.35) return losingMove;   // Jogador ganha
-        if (r < 0.68) return pChoice;      // Empate (0.68 - 0.35 = 0.33)
-        return winningMove;                // NPC ganha (1.0 - 0.68 = 0.32)
+        const luck = BuffManager.getInstance().getLuckBonus();
+        // Base: 35% win, 33% draw, 32% loss
+        // With Luck: max 40% win, 28% draw, 32% loss (luck is typically max 0.1)
+        const winThreshold = 0.35 + (luck * 0.5);
+        const drawThreshold = 0.68; // We keep total range 1.0, but shift the first cut
+
+        if (r < winThreshold) return losingMove;   // Jogador ganha
+        if (r < drawThreshold) return pChoice;      // Empate
+        return winningMove;                // NPC ganha
     }
 
     public determineWinner() {

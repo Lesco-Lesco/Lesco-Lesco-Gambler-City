@@ -11,8 +11,10 @@ import { TileMap } from '../World/TileMap';
 import { TILE_TYPES } from '../World/MapData';
 import { drawCharacter } from './CharacterRenderer';
 import type { CharacterAppearance } from './CharacterRenderer';
+import { ProgressionManager } from '../Core/ProgressionManager';
+import { AchievementManager } from '../Core/AchievementManager';
 
-export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police' | 'casino_promoter';
+export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police' | 'casino_promoter' | 'preacher';
 export type MinigameType = 'purrinha' | 'dice' | 'ronda' | 'domino' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | null;
 
 interface NPCAppearance extends CharacterAppearance {
@@ -177,6 +179,16 @@ const DIALOGUES = {
         ["O patrão mandou dizer que a mesa está posta. O banquete é de fichas.", "Viu aquele sorriso de quem saiu por ali agora? Pode ser o seu."],
         ["As máquinas estão inquietas hoje, parece que o jackpot está para explodir.", "Sabe a diferença entre um comprador e um vencedor? A direção que eles tomam."],
         ["O destino sussurrou seu nome lá embaixo. Eu só estou aqui para repetir.", "A oportunidade não bate na porta, ela fica esperando você descer a escada."]
+    ],
+    preacher: [
+        ["A salvação não custa nada, mas vale tudo!", "Arrependam-se, o fim está próximo!"],
+        ["Deus abençoe Santa Cruz!", "Busquem o Reino de Deus em primeiro lugar."],
+        ["O jogo tira o pão, mas a fé traz a vida.", "Jesus te ama, irmão!"],
+        ["A sorte é passageira, mas a glória de Deus é eterna.", "Venha ouvir a palavra!"],
+        ["Troque os dados pela Bíblia!", "Não há jackpot maior que a paz de espírito."],
+        ["A porta da igreja está aberta para todos os humildes.", "Deus não olha a carteira, olha o coração."],
+        ["Fuja das tentações do subsolo!", "A luz de Deus brilha mais que o neon."],
+        ["Um minuto de oração vale mais que uma hora de aposta.", "Deus tem um plano para você."],
     ]
 };
 
@@ -187,6 +199,7 @@ export class NPC {
     public name: string;
     public gameName?: string;
     public dialogue: string[] = [];
+    private originalDialogue: string[] | null = null;
 
     // Appearance
     private appearance: NPCAppearance;
@@ -246,6 +259,7 @@ export class NPC {
         const seed = x * 1000 + y;
         this.appearance = this.generateAppearance(seed);
         this.dialogue = this.generateDialogue(seed);
+        this.originalDialogue = [...this.dialogue];
         this.wanderTimer = seededRandom(seed) * 3;
     }
 
@@ -310,6 +324,9 @@ export class NPC {
         } else if (this.type === 'casino_promoter') {
             const set = DIALOGUES.casino_promoter;
             return set[Math.floor(seededRandom(seed) * set.length)];
+        } else if (this.type === 'preacher') {
+            const set = (DIALOGUES as any).preacher;
+            return set[Math.floor(seededRandom(seed) * set.length)];
         } else {
             // Citizen/Info
             if (seededRandom(seed) > 0.7) {
@@ -326,6 +343,10 @@ export class NPC {
             }
             return lines;
         }
+    }
+
+    public getUniqueId(): string {
+        return `npc_${this.name}_${Math.floor(this.originX)}_${Math.floor(this.originY)}`;
     }
 
     public update(dt: number, playerX: number, playerY: number, tileMap: TileMap) {
@@ -475,6 +496,25 @@ export class NPC {
             this.showDialogue = true;
             this.currentDialogueIdx = 0;
             this.dialogueTimer = 0;
+
+            // Dynamic logic: override dialogue if locked or on cooldown
+            const pm = ProgressionManager.getInstance();
+            const am = AchievementManager.getInstance();
+            const uid = this.getUniqueId();
+
+            if (this.minigameType && !pm.isGameUnlocked(this.minigameType)) {
+                this.dialogue = [pm.getLockedHint(this.minigameType, am.getPlaysByGame(), am.getWinCount())];
+            } else if (pm.isOnCooldown(uid)) {
+                this.dialogue = [pm.getCooldownMessage(uid, 'street_npc')];
+            } else {
+                // Restore original dialogue if needed? 
+                // Actually NPC is reconstructed/reset if we want, but let's just re-generate for now if we were overridden
+                // Better: store originalDialogue
+                if (!this.originalDialogue) {
+                    this.originalDialogue = [...this.dialogue];
+                }
+                this.dialogue = [...this.originalDialogue!];
+            }
         }
 
         if (this.showDialogue) {

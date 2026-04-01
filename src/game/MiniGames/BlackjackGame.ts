@@ -34,8 +34,8 @@ export class BlackjackGame implements IMinigame {
         this.updateLimits();
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
     }
@@ -143,9 +143,9 @@ export class BlackjackGame implements IMinigame {
         if (this.winner === 'player') {
             // Check for Blackjack (2 cards totaling 21)
             if (this.playerHand.length === 2 && this.calculatePoints(this.playerHand) === 21) {
-                return Math.floor(this.betAmount * 1.5); // Restored bonus to 1.5x
+                return this.betAmount * 2; // Blackjack Bonus (Modified to 2x for Gold Rule)
             }
-            return this.betAmount;
+            return this.betAmount; // Regular win (Profit 1x)
         } else if (this.winner === 'push') {
             return 0;
         } else {

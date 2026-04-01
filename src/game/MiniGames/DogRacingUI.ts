@@ -5,6 +5,9 @@ import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
 import { SoundManager } from '../Core/SoundManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import { InputManager } from '../Core/InputManager';
+import { BichoManager } from '../BichoManager';
 
 
 export class DogRacingUI implements IMinigameUI {
@@ -23,23 +26,23 @@ export class DogRacingUI implements IMinigameUI {
     }
 
     public update(dt: number) {
-        const input = (window as any).gameInput;
-        if (!input) return;
+        const input = InputManager.getInstance();
+        const bmanager = BichoManager.getInstance();
         const mobile = isMobile();
 
         if (this.game.phase === 'betting') {
             // Selection logic
-            if (input.wasPressed('ArrowUp')) this.game.selectedDog = (this.game.selectedDog - 1 + 8) % 8;
-            if (input.wasPressed('ArrowDown')) this.game.selectedDog = (this.game.selectedDog + 1) % 8;
+            if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) this.game.selectedDog = (this.game.selectedDog - 1 + 8) % 8;
+            if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) this.game.selectedDog = (this.game.selectedDog + 1) % 8;
 
             // Bet adjustment
+            const { step, max } = EconomyManager.getInstance().getBetLimits();
             const left = input.wasPressed('ArrowLeft') || (mobile && input.wasPressed('KeyA'));
             const right = input.wasPressed('ArrowRight') || (mobile && input.wasPressed('KeyD'));
-            if (left) this.game.betAmount = Math.max(10, this.game.betAmount - 10);
-            if (right) this.game.betAmount = Math.min(500, this.game.betAmount + 10);
+            if (left) this.game.betAmount = Math.max(10, this.game.betAmount - step);
+            if (right) this.game.betAmount = Math.min(max, this.game.betAmount + step);
 
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
-                const bmanager = (window as any).bmanager;
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 if (bmanager && bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startRace(this.game.selectedDog, this.game.betAmount);
@@ -49,10 +52,18 @@ export class DogRacingUI implements IMinigameUI {
         } else if (this.game.phase === 'racing') {
             this.game.update(dt);
         } else if (this.game.phase === 'result') {
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE') || input.wasPressed('KeyR')) {
                 const payout = this.game.getPayout();
-                SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
-                this.onPlayAgain(payout);
+                const totalMoney = (bmanager?.playerMoney || 0) + payout;
+
+                if (totalMoney < 10) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager?.addNotification("Você está sem grana para apostar!", 3);
+                    this.onExit(payout); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    this.onPlayAgain(payout);
+                }
             }
         }
 
@@ -123,8 +134,6 @@ export class DogRacingUI implements IMinigameUI {
             // Name
             ctx.font = `bold ${r(mobile ? 14 : 17)}px ${theme.titleFont}`;
             ctx.fillStyle = isSelected ? '#fff' : '#aaa';
-            ctx.fillText(dog.name.toUpperCase(), listX + s(50), y + itemH / 2);
-
             // Odds
             ctx.textAlign = 'right';
             ctx.fillStyle = isSelected ? theme.accent : theme.textMuted;
@@ -137,11 +146,20 @@ export class DogRacingUI implements IMinigameUI {
         ctx.textAlign = 'center';
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
+
         ctx.fillText("VALOR DA APOSTA", cx, betY);
 
-        ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(48)}px ${theme.titleFont}`;
-        ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(45));
+        const bmanager = (window as any).bmanager;
+        const isBroke = (bmanager?.playerMoney || 0) < 10;
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
+            ctx.fillText("SEM GRANA!", cx, betY + s(45));
+        } else {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(48)}px ${theme.titleFont}`;
+            ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(45));
+        }
 
         const hint = mobile ? '[DPAD] Selecionar • [OK] Correr' : '↑↓ SELECIONAR • ←→ APOSTA • ESPAÇO INICIAR';
         drawMinigameFooter(ctx, w, h, theme, hint);

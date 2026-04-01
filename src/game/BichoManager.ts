@@ -54,6 +54,13 @@ export class BichoManager {
         return BichoManager.instance;
     }
 
+    /** Reset state (clear pending bets and notifications) */
+    public reset(): void {
+        this.pendingBets = [];
+        this.notifications = [];
+        this.internalTimer = 0;
+    }
+
     public placeBet(animal: number, amount: number) {
         const economy = EconomyManager.getInstance();
         if (economy.balance < amount) return;

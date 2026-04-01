@@ -20,6 +20,8 @@ import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import { SoundManager } from '../Core/SoundManager';
 import { AchievementManager } from '../Core/AchievementManager';
+import { ProgressionManager } from '../Core/ProgressionManager';
+import { EconomyManager } from '../Core/EconomyManager';
 
 /** Objeto visual de uma máquina no cassino (slot ou bicho) */
 interface CasinoMachine {
@@ -279,6 +281,8 @@ export class CasinoScene implements Scene {
         const isPlayingPoker = this.state === 'poker' && this.poker && this.poker.game.phase !== 'betting';
         const hasActiveBicho = bmanager.hasPendingBets();
 
+        // 0. Game Over Check
+        AchievementManager.getInstance().checkAchievements();
         if (bmanager.playerMoney <= 0 && !hasActiveBicho && !this.slotSpinning && !isPlayingBlackjack && !isPlayingPoker) {
             if (this.onGameOver) this.onGameOver();
             return;
@@ -337,6 +341,14 @@ export class CasinoScene implements Scene {
             bmanager.playerMoney += payout;
         }
 
+        // Start cooldown on exit
+        const m = this.machines[this.selectedMachine];
+        const uniqueId = `casino_${this.type}_${m.type}_${this.selectedMachine}`;
+        let cooldownType: any = m.type;
+        if (m.type === 'slot') cooldownType = 'slots';
+        
+        ProgressionManager.getInstance().startCooldown(uniqueId, cooldownType);
+
         this.state = 'floor';
     }
 
@@ -387,8 +399,30 @@ export class CasinoScene implements Scene {
             SoundManager.getInstance().play('menu_select');
         }
         if (this.input.wasPressed('KeyE') || this.input.wasPressed('Enter')) {
-            SoundManager.getInstance().play('menu_confirm');
             const m = this.machines[this.selectedMachine];
+            const pm = ProgressionManager.getInstance();
+            const am = AchievementManager.getInstance();
+            const bmanager = BichoManager.getInstance();
+
+            // 1. Check if game is unlocked
+            let gameId: any = m.type;
+            if (m.type === 'slot') gameId = 'slots';
+
+            if (!pm.isGameUnlocked(gameId)) {
+                const hint = pm.getLockedHint(gameId, am.getPlaysByGame(), am.getWinCount());
+                bmanager.addNotification(hint, 4);
+                return;
+            }
+
+            // 2. Check cooldown
+            const uniqueId = `casino_${this.type}_${m.type}_${this.selectedMachine}`;
+            if (pm.isOnCooldown(uniqueId)) {
+                bmanager.addNotification(pm.getCooldownMessage(uniqueId, m.type as any), 3);
+                return;
+            }
+
+            // 3. Enter game
+            SoundManager.getInstance().play('menu_confirm');
             if (m.type === 'bicho') {
                 this.state = 'bicho';
                 this.bichoMessage = '';
@@ -423,6 +457,7 @@ export class CasinoScene implements Scene {
                 bmanager.playerMoney += this.slotResult.payout;
                 SoundManager.getInstance().play('slot_stop');
                 if (this.slotResult.payout > 0) {
+                    AchievementManager.getInstance().recordMinigameWin('slots');
                     this.spawnWinParticles(this.screenW / 2, this.screenH / 2);
                     if (this.slotResult.isJackpot) {
                         SoundManager.getInstance().play('slot_jackpot');
@@ -430,13 +465,15 @@ export class CasinoScene implements Scene {
                         SoundManager.getInstance().play('win_small');
                     }
                 } else {
+                    AchievementManager.getInstance().recordMinigameLoss();
                     SoundManager.getInstance().play('lose');
                 }
             }
         } else {
             const bmanager = BichoManager.getInstance();
             const limits = bmanager.getBetLimits();
-            const step = limits.max > 10000 ? 500 : limits.max > 1000 ? 100 : 10;
+            const { step } = EconomyManager.getInstance().getBetLimits();
+            const isBroke = bmanager.playerMoney < limits.min;
 
             if (this.input.wasPressed('ArrowUp')) {
                 this.slotBet = Math.min(this.slotBet + step, bmanager.playerMoney, limits.max);
@@ -445,12 +482,16 @@ export class CasinoScene implements Scene {
                 this.slotBet = Math.max(this.slotBet - step, limits.min);
             }
             const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
-            if (okPressed && bmanager.playerMoney >= this.slotBet) {
+            if (okPressed && bmanager.playerMoney >= this.slotBet && !isBroke) {
                 bmanager.playerMoney -= this.slotBet;
                 this.slotSpinning = true;
                 this.slotSpinTimer = 1.5;
                 this.slotResult = null;
                 SoundManager.getInstance().play('slot_spin');
+                AchievementManager.getInstance().recordMinigamePlay('slots');
+            } else if (okPressed && isBroke) {
+                SoundManager.getInstance().play('lose');
+                bmanager.addNotification("Você está sem grana para jogar!", 3);
             }
         }
 
@@ -464,25 +505,33 @@ export class CasinoScene implements Scene {
 
         const bmanager = BichoManager.getInstance();
         const limits = bmanager.getBetLimits();
-        const step = limits.max > 10000 ? 500 : limits.max > 1000 ? 100 : 10;
+        const { step } = EconomyManager.getInstance().getBetLimits();
+        const isBroke = bmanager.playerMoney < limits.min;
 
         const isShift = this.input.isDown('ShiftLeft') || this.input.isDown('ShiftRight');
         const adjustUp = this.input.wasPressed('Equal') || this.input.wasPressed('NumpadAdd') || (isShift && this.input.wasPressed('ArrowUp'));
         const adjustDown = this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract') || (isShift && this.input.wasPressed('ArrowDown'));
 
-        if (adjustUp) this.bichoBet = Math.min(this.bichoBet + step, bmanager.playerMoney, limits.max);
-        if (adjustDown) this.bichoBet = Math.max(this.bichoBet - step, limits.min);
-
-        if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
-            if (bmanager.playerMoney >= this.bichoBet) {
-                bmanager.placeBet(this.bichoSelectedAnimal, this.bichoBet);
-                const animalName = JogoDoBicho.ANIMALS[this.bichoSelectedAnimal].name;
-                this.bichoMessage = `Apostou R$${this.bichoBet} no ${animalName}!`;
-                this.bichoPendingBets.push({ animal: this.bichoSelectedAnimal, amount: this.bichoBet });
-                SoundManager.getInstance().play('bet_place');
-            } else {
-                this.bichoMessage = 'Dinheiro insuficiente!';
-            }
+        if (adjustUp) {
+             this.bichoBet = Math.min(this.bichoBet + step, bmanager.playerMoney, limits.max);
+             SoundManager.getInstance().play('menu_select');
+        }
+        if (adjustDown) {
+             this.bichoBet = Math.max(this.bichoBet - step, limits.min);
+             SoundManager.getInstance().play('menu_select');
+        }
+ 
+        if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
+             if (bmanager.playerMoney >= this.bichoBet && !isBroke) {
+                 bmanager.placeBet(this.bichoSelectedAnimal, this.bichoBet);
+                 const animalName = JogoDoBicho.ANIMALS[this.bichoSelectedAnimal].name;
+                 this.bichoMessage = `Apostou R$${this.bichoBet} no ${animalName}!`;
+                 this.bichoPendingBets.push({ animal: this.bichoSelectedAnimal, amount: this.bichoBet });
+                 SoundManager.getInstance().play('bet_place');
+             } else {
+                 this.bichoMessage = isBroke ? 'SEM GRANA!' : 'Dinheiro insuficiente!';
+                 if (isBroke) SoundManager.getInstance().play('lose');
+             }
         }
     }
 
@@ -640,10 +689,17 @@ export class CasinoScene implements Scene {
             const isSelected = idx === this.selectedMachine;
             const glowPulse = Math.sin(this.time * 1.5 + m.glowPhase) * 0.5 + 0.5;
 
+            // Check if unlocked
+            const pm = ProgressionManager.getInstance();
+            let gameId: any = m.type;
+            if (m.type === 'slot') gameId = 'slots';
+            const isUnlocked = pm.isGameUnlocked(gameId);
+
             // ── Corpo sólido ──
             // Gradiente vertical para dar volume à máquina
             const bodyGrad = ctx.createLinearGradient(m.x, m.y, m.x, m.y + m.height);
-            bodyGrad.addColorStop(0, m.color);
+            const mainColor = isUnlocked ? m.color : '#333333';
+            bodyGrad.addColorStop(0, mainColor);
 
             let bottomColor = '#000';
             if (m.type === 'bicho') {
@@ -664,12 +720,23 @@ export class CasinoScene implements Scene {
             ctx.shadowBlur = 0;
 
             // ── Borda neon espessa ──
-            ctx.strokeStyle = m.glowColor;
+            ctx.strokeStyle = isUnlocked ? m.glowColor : '#555555';
             ctx.lineWidth = s(isSelected ? 4 : 3);
-            ctx.shadowBlur = isSelected ? s(18) : s(6);
-            ctx.shadowColor = m.glowColor;
+            ctx.shadowBlur = isSelected ? s(18) : (isUnlocked ? s(6) : 0);
+            ctx.shadowColor = isUnlocked ? m.glowColor : 'transparent';
             ctx.strokeRect(m.x, m.y, m.width, m.height);
             ctx.shadowBlur = 0;
+
+            // ── Lock Icon if locked ──
+            if (!isUnlocked) {
+                ctx.font = `${s(mobile ? 20 : 28)}px "Segoe UI Emoji", Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fillText('🔒', m.x + m.width / 2, m.y + m.height / 2);
+                ctx.textBaseline = 'alphabetic';
+                return; // Skip drawing internal details
+            }
 
             // ── Seleção: destaque extra ──
             if (isSelected) {
@@ -917,9 +984,19 @@ export class CasinoScene implements Scene {
         ctx.textAlign = 'center';
         ctx.fillText('APOSTA', cx, controlY);
 
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(44)}px ${theme.titleFont}`;
-        ctx.fillText(`R$ ${this.slotBet}`, cx, controlY + s(mobile ? 40 : 50));
+        const bmanager = BichoManager.getInstance();
+        const limits = bmanager.getBetLimits();
+        const isBroke = bmanager.playerMoney < limits.min;
+
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
+            ctx.fillText('SEM GRANA!', cx, controlY + s(mobile ? 40 : 50));
+        } else {
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${r(44)}px ${theme.titleFont}`;
+            ctx.fillText(`R$ ${this.slotBet}`, cx, controlY + s(mobile ? 40 : 50));
+        }
 
         const hint = mobile ? '[↑↓] Aposta • [OK] GIRA' : 'SETAS ↑↓ AJUSTAR • ENTER GIRAR • ESC SAIR';
         drawMinigameFooter(ctx, this.screenW, this.screenH, theme, hint);
@@ -1036,9 +1113,19 @@ export class CasinoScene implements Scene {
         ctx.textAlign = 'center';
         ctx.fillText('APOSTA', cx, footerY);
 
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(mobile ? 46 : 36)}px ${theme.titleFont}`;
-        ctx.fillText(`R$ ${this.bichoBet}`, cx, footerY + s(mobile ? 32 : 45));
+        const bmanager_b = BichoManager.getInstance();
+        const limits_b = bmanager_b.getBetLimits();
+        const isBroke_b = bmanager_b.playerMoney < limits_b.min;
+
+        if (isBroke_b) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
+            ctx.fillText('SEM GRANA!', cx, footerY + s(mobile ? 32 : 45));
+        } else {
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${r(mobile ? 46 : 36)}px ${theme.titleFont}`;
+            ctx.fillText(`R$ ${this.bichoBet}`, cx, footerY + s(mobile ? 32 : 45));
+        }
 
         const hint = mobile ? '[DPAD] Mover • [+/-] Aposta • [OK] Apostar' : '[SETAS] ESCOLHER • [+/-] APOSTA • ENTER CONFIRMAR';
         drawMinigameFooter(ctx, this.screenW, this.screenH, theme, hint);

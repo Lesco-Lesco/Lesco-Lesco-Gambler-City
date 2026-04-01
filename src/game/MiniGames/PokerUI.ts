@@ -7,6 +7,7 @@ import { isMobile } from '../Core/MobileDetect';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import { SoundManager } from '../Core/SoundManager';
+import { EconomyManager } from '../Core/EconomyManager';
 
 export class PokerUI implements IMinigameUI {
     private game: PokerGame;
@@ -26,9 +27,10 @@ export class PokerUI implements IMinigameUI {
         const humanCurrentBet = () => this.game.players[0].currentBet;
 
         if (this.game.phase === 'betting') {
-            this.game.betAmount = 10;
+            const { min } = EconomyManager.getInstance().getBetLimits();
+            this.game.betAmount = min;
             const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
-            if (okPressed) {
+            if (okPressed || this.input.wasPressed('KeyE')) {
                 if (bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startMatch();
@@ -40,21 +42,30 @@ export class PokerUI implements IMinigameUI {
                 }
             }
         } else if (this.game.phase === 'result') {
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 const profit = this.game.settle();
                 const payout = humanCurrentBet() + profit;
+                const totalMoney = (bmanager.playerMoney + payout);
+
                 if (payout > 0) {
                     bmanager.playerMoney += payout;
                     SoundManager.getInstance().play('win_small');
                 } else if (payout < 0 || profit < 0) {
                     SoundManager.getInstance().play('lose');
                 }
-                this.game.reset();
+
+                const { min } = EconomyManager.getInstance().getBetLimits();
+                if (totalMoney < min) { // Dynamic min bet
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onExit(payout); // Exit if broke
+                } else {
+                    this.game.reset();
+                }
             }
         } else {
             // Mid-game phases
             if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
-                const step = 10;
+                const { step } = EconomyManager.getInstance().getBetLimits();
                 const up = this.input.wasPressed('ArrowUp') || (mobile && this.input.wasPressed('KeyW'));
                 const down = this.input.wasPressed('ArrowDown') || (mobile && this.input.wasPressed('KeyS'));
 
@@ -65,7 +76,7 @@ export class PokerUI implements IMinigameUI {
                     this.pendingRaise = Math.max(0, this.pendingRaise - step);
                 }
 
-                if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+                if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                     if (this.pendingRaise > 0) {
                         if (bmanager.playerMoney >= this.pendingRaise) {
                             bmanager.playerMoney -= this.pendingRaise;
@@ -80,7 +91,7 @@ export class PokerUI implements IMinigameUI {
                     SoundManager.getInstance().play('card_deal');
                 }
             } else {
-                if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+                if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                     this.game.nextPhase();
                     SoundManager.getInstance().play('card_deal');
                 }
@@ -172,10 +183,15 @@ export class PokerUI implements IMinigameUI {
 
         // ── Footer Instructions ──
         let footerHint = '';
+        const bmanager = BichoManager.getInstance();
+        const { min } = EconomyManager.getInstance().getBetLimits();
+        const isBroke = bmanager.playerMoney < min;
+
         if (this.game.phase === 'betting') {
-            footerHint = mobile ? '[OK] Iniciar' : 'ENTER Iniciar Partida • ESC Sair';
+            footerHint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? '[OK] Iniciar' : 'ENTER Iniciar Partida • ESC Sair');
         } else if (this.game.phase === 'result') {
-            footerHint = mobile ? '[OK] Continuar' : 'ENTER Continuar • ESC Sair';
+            const nextMatchBroke = (bmanager.playerMoney + (this.game.phase === 'result' ? (this.game.players[0].currentBet + this.game.settle()) : 0)) < min;
+            footerHint = nextMatchBroke ? 'SALDO INSUFICIENTE - [OK] SAIR' : (mobile ? '[OK] Continuar' : 'ENTER Continuar • ESC Sair');
         } else if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
             footerHint = mobile ? '[DPAD ↑↓] Ajustar • [OK] Confirmar' : '↑↓ Ajustar Aumento • ENTER Confirmar';
         } else {

@@ -5,6 +5,9 @@ import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
 import { SoundManager } from '../Core/SoundManager';
+import { EconomyManager } from '../Core/EconomyManager';
+import { InputManager } from '../Core/InputManager';
+import { BichoManager } from '../BichoManager';
 
 export class HorseRacingUI implements IMinigameUI {
     private game: HorseRacingGame;
@@ -22,20 +25,20 @@ export class HorseRacingUI implements IMinigameUI {
     }
 
     public update(dt: number) {
-        const input = (window as any).gameInput;
-        if (!input) return;
+        const input = InputManager.getInstance();
+        const bmanager = BichoManager.getInstance();
 
         if (this.game.phase === 'betting') {
             // Selection logic
-            if (input.wasPressed('ArrowUp')) this.game.selectedHorse = (this.game.selectedHorse - 1 + 8) % 8;
-            if (input.wasPressed('ArrowDown')) this.game.selectedHorse = (this.game.selectedHorse + 1) % 8;
+            if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) this.game.selectedHorse = (this.game.selectedHorse - 1 + 8) % 8;
+            if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) this.game.selectedHorse = (this.game.selectedHorse + 1) % 8;
 
             // Bet adjustment
-            if (input.wasPressed('ArrowLeft')) this.game.betAmount = Math.max(10, this.game.betAmount - 10);
-            if (input.wasPressed('ArrowRight')) this.game.betAmount = Math.min(500, this.game.betAmount + 10);
+            const { step, max } = EconomyManager.getInstance().getBetLimits();
+            if (input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) this.game.betAmount = Math.max(10, this.game.betAmount - step);
+            if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) this.game.betAmount = Math.min(max, this.game.betAmount + step);
 
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
-                const bmanager = (window as any).bmanager;
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 if (bmanager && bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.startRace(this.game.selectedHorse, this.game.betAmount);
@@ -45,10 +48,18 @@ export class HorseRacingUI implements IMinigameUI {
         } else if (this.game.phase === 'racing') {
             this.game.update(dt);
         } else if (this.game.phase === 'result') {
-            if (input.wasPressed('Space') || input.wasPressed('Enter')) {
+            if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE') || input.wasPressed('KeyR')) {
                 const payout = this.game.getPayout();
-                SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
-                this.onPlayAgain(payout);
+                const totalMoney = (bmanager?.playerMoney || 0) + payout;
+
+                if (totalMoney < 10) { // Horse racing min bet is fixed at 10 in this UI
+                    SoundManager.getInstance().play('lose');
+                    bmanager?.addNotification("Você está sem grana para apostar!", 3);
+                    this.onExit(payout); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    this.onPlayAgain(payout);
+                }
             }
         }
 
@@ -116,6 +127,7 @@ export class HorseRacingUI implements IMinigameUI {
             ctx.fillText(horse.name.toUpperCase(), listX + s(50), y + itemH / 2);
 
             // Odds
+            // Odds
             ctx.textAlign = 'right';
             ctx.fillStyle = isSelected ? theme.accent : theme.textMuted;
             ctx.font = `bold ${r(mobile ? 12 : 15)}px ${theme.bodyFont}`;
@@ -129,9 +141,17 @@ export class HorseRacingUI implements IMinigameUI {
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
         ctx.fillText("APOSTA ATUAL", cx, betY);
 
-        ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(42)}px ${theme.titleFont}`;
-        ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(40));
+        const bmanager = (window as any).bmanager;
+        const isBroke = (bmanager?.playerMoney || 0) < 10;
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
+            ctx.fillText("SEM GRANA!", cx, betY + s(40));
+        } else {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(42)}px ${theme.titleFont}`;
+            ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(40));
+        }
 
         const hint = mobile ? 'DPAD Selecionar • [OK] Apostar' : '↑↓ SELECIONAR • ←→ VALOR • ESPAÇO CONFIRMAR';
         drawMinigameFooter(ctx, w, h, theme, hint);

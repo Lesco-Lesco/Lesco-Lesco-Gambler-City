@@ -12,8 +12,8 @@
 import { GameEventEmitter } from './EventEmitter';
 import { EconomyManager } from './EconomyManager';
 import { SoundManager } from './SoundManager';
+import { ProgressionManager } from './ProgressionManager';
 
-/** All tracked player statistics */
 /** All tracked player statistics */
 export interface PlayerStats {
     // Minigame tracking
@@ -53,6 +53,9 @@ export interface PlayerStats {
     // Unique minigames played (set of type names)
     uniqueMinigamesPlayed: Set<string>;
     uniqueArcadesPlayed: Set<string>;
+
+    // New: Phoenix recoveries (All-In wins)
+    phoenixWins: number;
 }
 
 /** Achievement definition */
@@ -61,9 +64,10 @@ export interface Achievement {
     name: string;
     description: string;
     reward: number;
-    tier: 0 | 1 | 2 | 3 | 4; // Added 0
+    tier: 0 | 1 | 2 | 3 | 4;
     unlocked: boolean;
     condition: (stats: PlayerStats) => boolean;
+    category: 'exploracao' | 'vitoria' | 'derrota' | 'malandragem' | 'lenda' | 'resiliencia';
 }
 
 /** Tier display info */
@@ -82,6 +86,7 @@ export class AchievementManager {
 
     private stats: PlayerStats;
     private achievements: Achievement[];
+    private isAllInActive: boolean = false;
 
     private constructor() {
         this.stats = this.createDefaultStats();
@@ -93,6 +98,14 @@ export class AchievementManager {
             AchievementManager.instance = new AchievementManager();
         }
         return AchievementManager.instance;
+    }
+
+    /** Returns combined record of all games played (minigames + arcades) */
+    public getPlaysByGame(): Record<string, number> {
+        return {
+            ...this.stats.minigamesPlayedByType,
+            ...this.stats.arcadePlayedByType
+        };
     }
 
     // ─────────────────────────────────────────────────
@@ -139,12 +152,21 @@ export class AchievementManager {
         if (this.stats.consecutiveWins > this.stats.maxConsecutiveWins) {
             this.stats.maxConsecutiveWins = this.stats.consecutiveWins;
         }
+
+        // Phoenix Logic: Win while All-In
+        if (this.isAllInActive) {
+            this.stats.phoenixWins++;
+            console.log(`🔥 Fênix! Conquista progresso: ${this.stats.phoenixWins}/3`);
+        }
+        this.isAllInActive = false; // Reset anyway
+
         this.checkAchievements();
     }
 
-    /** Record a minigame loss (breaks consecutive wins) */
     public recordMinigameLoss(): void {
         this.stats.consecutiveWins = 0;
+        this.isAllInActive = false; // Risk failed, reset all-in flag
+        this.checkAchievements();
     }
 
     /** Record an arcade game ending */
@@ -183,12 +205,42 @@ export class AchievementManager {
     /** Record a Jogo do Bicho win */
     public recordBichoWin(): void {
         this.stats.bichoWins++;
+        
+        // Count as minigame win for overall stats
+        this.stats.totalMinigamesWon++;
+        this.stats.consecutiveWins++;
+        if (this.stats.consecutiveWins > this.stats.maxConsecutiveWins) {
+            this.stats.maxConsecutiveWins = this.stats.consecutiveWins;
+        }
+
+        // Phoenix Logic: Win while All-In
+        if (this.isAllInActive) {
+            this.stats.phoenixWins++;
+            console.log(`🔥 Fênix (Bicho)! Conquista progresso: ${this.stats.phoenixWins}/3`);
+        }
+        this.isAllInActive = false;
+
         this.checkAchievements();
     }
 
     /** Record Sinuca win specifically */
     public recordSinucaWin(): void {
         this.stats.sinucaWins++;
+
+        // Count as minigame win for overall stats
+        this.stats.totalMinigamesWon++;
+        this.stats.consecutiveWins++;
+        if (this.stats.consecutiveWins > this.stats.maxConsecutiveWins) {
+            this.stats.maxConsecutiveWins = this.stats.consecutiveWins;
+        }
+
+        // Phoenix Logic: Win while All-In
+        if (this.isAllInActive) {
+            this.stats.phoenixWins++;
+            console.log(`🔥 Fênix (Sinuca)! Conquista progresso: ${this.stats.phoenixWins}/3`);
+        }
+        this.isAllInActive = false;
+
         this.checkAchievements();
     }
 
@@ -212,48 +264,16 @@ export class AchievementManager {
         this.checkAchievements();
     }
 
-    // ─────────────────────────────────────────────────
-    // Arcade Score-to-Money (Option B: Diminishing Returns)
-    // ─────────────────────────────────────────────────
-
-    /**
-     * Calculate money reward for an arcade score.
-     * 0-500 pts:    R$0.04/pt  (max R$20)
-     * 500-1000 pts: R$0.02/pt  (max R$10)
-     * 1000+ pts:    R$0.01/pt  (max R$10)
-     * Total cap: R$40
-     */
-    public calculateArcadeReward(score: number): number {
-        let reward = 0;
-
-        // Tier 1: first 500 points at R$0.04/pt
-        const t1Points = Math.min(score, 500);
-        reward += t1Points * 0.04;
-
-        // Tier 2: 500-1000 at R$0.02/pt
-        if (score > 500) {
-            const t2Points = Math.min(score - 500, 500);
-            reward += t2Points * 0.02;
-        }
-
-        // Tier 3: 1000+ at R$0.01/pt
-        if (score > 1000) {
-            const t3Points = Math.min(score - 1000, 1000);
-            reward += t3Points * 0.01;
-        }
-
-        // Round to nearest 10 (game's money unit)
-        reward = Math.floor(reward / 10) * 10;
-
-        // Clamp to R$40 max
-        return Math.min(reward, 40);
+    /** Record that the player risked everything (All-In) */
+    public recordAllIn(): void {
+        this.isAllInActive = true;
     }
 
     // ─────────────────────────────────────────────────
     // Achievement Checking
     // ─────────────────────────────────────────────────
 
-    private checkAchievements(): void {
+    public checkAchievements(): void {
         const emitter = GameEventEmitter.getInstance();
         const economy = EconomyManager.getInstance();
 
@@ -265,7 +285,9 @@ export class AchievementManager {
                     ach.unlocked = true;
 
                     // Give money reward
-                    economy.addMoney(ach.reward);
+                    if (ach.reward > 0) {
+                        economy.addMoney(ach.reward);
+                    }
 
                     // Play sound
                     SoundManager.getInstance().play('achievement_unlock');
@@ -276,13 +298,50 @@ export class AchievementManager {
                         description: ach.description,
                         reward: ach.reward,
                         tier: ach.tier,
-                    });
+                        category: ach.category
+                    } as any);
 
                     console.log(`🏆 Achievement unlocked: ${ach.name} (+R$${ach.reward})`);
+
+                    // Check Tier 0 completion bonus
+                    this.checkTierCompletionBonus(ach.tier);
                 }
             } catch {
                 // Silently skip if condition throws
             }
+        }
+
+        // --- MODULAR PROGRESSION CHECK (Fixed: Run always, not just on achievement) ---
+        const allPlays = {
+            ...this.stats.minigamesPlayedByType,
+            ...this.stats.arcadePlayedByType
+        };
+        ProgressionManager.getInstance().checkUnlocks(
+            allPlays,
+            this.stats.maxMoneyReached
+        );
+    }
+
+    /** Check if all achievements of a given tier are completed, award bonus */
+    private checkTierCompletionBonus(tier: number): void {
+        if (tier !== 0) return; // Only Tier 0 has completion bonus for now
+
+        const tierAchs = this.achievements.filter(a => a.tier === tier);
+        const allComplete = tierAchs.every(a => a.unlocked);
+
+        if (allComplete) {
+            const economy = EconomyManager.getInstance();
+            const emitter = GameEventEmitter.getInstance();
+            const bonus = 10; // R$10 symbolic bonus
+            economy.addMoney(bonus);
+
+            emitter.emit('TIER_COMPLETE', {
+                tier,
+                bonus,
+                message: 'Agora sim tu conhece o bairro.',
+            });
+
+            console.log(`⭐ Tier ${tier} complete! Bonus: R$${bonus}`);
         }
     }
 
@@ -296,13 +355,25 @@ export class AchievementManager {
         return this.stats;
     }
 
+    /** Get total number of unlocked achievements */
+    public getUnlockedCount(): number {
+        return this.achievements.filter(a => a.unlocked).length;
+    }
+
+    /** Get total win count */
+    public getWinCount(): number {
+        return this.stats.totalMinigamesWon;
+    }
+
     /** Reset all progress */
     public reset(): void {
         this.stats = this.createDefaultStats();
+        this.isAllInActive = false;
         for (const ach of this.achievements) {
             ach.unlocked = false;
         }
     }
+
 
     // ─────────────────────────────────────────────────
     // Default Stats
@@ -332,6 +403,7 @@ export class AchievementManager {
             sinucaWins: 0,
             uniqueMinigamesPlayed: new Set(),
             uniqueArcadesPlayed: new Set(),
+            phoenixWins: 0,
         };
     }
 
@@ -342,379 +414,61 @@ export class AchievementManager {
     private createAchievements(): Achievement[] {
         return [
             // ═══ TIER 0: EXPLORADOR (Descoberta) ═══
-            {
-                id: 'ar_graca',
-                name: 'Ar de Graça',
-                description: 'Saindo do Cassino do Shopping pela primeira vez',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.exitedEstablishments.has('casino_shopping'),
-            },
-            {
-                id: 'passagem_comprada',
-                name: 'Passagem Comprada',
-                description: 'Saindo do Cassino da Estação pela primeira vez',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.exitedEstablishments.has('casino_station'),
-            },
-            {
-                id: 'pecador',
-                name: 'Pecador',
-                description: 'Visitando a Igreja de Santa Cruz pela primeira vez',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.visitedLocations.has('church'),
-            },
-            {
-                id: 'ar_fresco',
-                name: 'Ar Fresco',
-                description: 'Passou pela Praça principal do bairro',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.visitedLocations.has('plaza_main'),
-            },
-            {
-                id: 'historia_imperial',
-                name: 'História Imperial',
-                description: 'Visitou o Marco Imperial de Santa Cruz',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.visitedLocations.has('marco_imperial'),
-            },
-            {
-                id: 'bairro_amigo',
-                name: 'Bairro Amigo',
-                description: 'Explorou uma área residencial pela primeira vez',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.visitedLocations.has('residential'),
-            },
-            {
-                id: 'filho_chora',
-                name: 'Onde o Filho Chora',
-                description: 'Primeiro contato visual com uma batida policial',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.raidsEncountered >= 1,
-            },
-            {
-                id: 'vigilancia_constante',
-                name: 'Vigilância Constante',
-                description: 'Entrando em zona de alto índice de achacamento',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.visitedLocations.has('high_risk'),
-            },
-            {
-                id: 'saideira_lei',
-                name: 'Saideira de Lei',
-                description: 'Saindo de um bar após uma rodada de conversas',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.exitedEstablishments.has('bar'),
-            },
-            {
-                id: 'viciado_fichas',
-                name: 'Viciado em Fichas',
-                description: 'Saindo de um fliperama após gastar umas fichas',
-                reward: 10,
-                tier: 0,
-                unlocked: false,
-                condition: (s) => s.exitedEstablishments.has('arcade'),
-            },
-
-            // ═══ TIER 1: CURIOSO (Exploração) ═══
-            {
-                id: 'primeiro_passo',
-                name: 'Primeiro Passo',
-                description: 'Jogue qualquer minigame pela primeira vez',
-                reward: 20,
-                tier: 1,
-                unlocked: false,
-                condition: (s) => s.totalMinigamesPlayed >= 1 || s.totalArcadePlayed >= 1,
-            },
-            {
-                id: 'turista',
-                name: 'Turista',
-                description: 'Jogue 5 minigames diferentes',
-                reward: 50,
-                tier: 1,
-                unlocked: false,
-                condition: (s) => s.uniqueMinigamesPlayed.size >= 5,
-            },
-            {
-                id: 'conhecedor',
-                name: 'Conhecedor',
-                description: 'Jogue todos os 14 minigames pelo menos uma vez',
-                reward: 150,
-                tier: 1,
-                unlocked: false,
-                condition: (s) => s.uniqueMinigamesPlayed.size >= 14,
-            },
-            {
-                id: 'fliperameiro',
-                name: 'Fliperameiro',
-                description: 'Jogue todos os 5 jogos de fliperama',
-                reward: 100,
-                tier: 1,
-                unlocked: false,
-                condition: (s) => s.uniqueArcadesPlayed.size >= 5,
-            },
-            {
-                id: 'caminhante',
-                name: 'Caminhante',
-                description: 'Ande pelo mapa por 5 minutos',
-                reward: 30,
-                tier: 1,
-                unlocked: false,
-                condition: (s) => s.walkTimeSeconds >= 300,
-            },
-            {
-                id: 'apostador_bicho',
-                name: 'Apostador do Bicho',
-                description: 'Faça uma aposta no Jogo do Bicho',
-                reward: 20,
-                tier: 1,
-                unlocked: false,
-                condition: (s) => s.bichoBetsPlaced >= 1,
-            },
-
-            // ═══ TIER 2: FREQUENTE (Dedicação) ═══
-            {
-                id: 'viciado',
-                name: 'Viciado em Jogos',
-                description: 'Jogue 50 partidas de minigames',
-                reward: 200,
-                tier: 2,
-                unlocked: false,
-                condition: (s) => s.totalMinigamesPlayed >= 50,
-            },
-            {
-                id: 'maratonista',
-                name: 'Maratonista',
-                description: 'Jogue 100 partidas de minigames',
-                reward: 500,
-                tier: 2,
-                unlocked: false,
-                condition: (s) => s.totalMinigamesPlayed >= 100,
-            },
-            {
-                id: 'sortudo',
-                name: 'Sortudo',
-                description: 'Ganhe 10 partidas',
-                reward: 200,
-                tier: 2,
-                unlocked: false,
-                condition: (s) => s.totalMinigamesWon >= 10,
-            },
-            {
-                id: 'mao_quente',
-                name: 'Mão Quente',
-                description: 'Ganhe 3 partidas seguidas',
-                reward: 150,
-                tier: 2,
-                unlocked: false,
-                condition: (s) => s.maxConsecutiveWins >= 3,
-            },
-            {
-                id: 'ficha_arcade',
-                name: 'Ficha Arcade',
-                description: 'Jogue 20 partidas de fliperama',
-                reward: 200,
-                tier: 2,
-                unlocked: false,
-                condition: (s) => s.totalArcadePlayed >= 20,
-            },
-            {
-                id: 'profeta_bicho',
-                name: 'Profeta do Bicho',
-                description: 'Acerte 3 apostas no Jogo do Bicho',
-                reward: 100,
-                tier: 2,
-                unlocked: false,
-                condition: (s) => s.bichoWins >= 3,
-            },
-
-            // ═══ TIER 3: VETERANO (Habilidade + Persistência) ═══
-            {
-                id: 'economista',
-                name: 'Economista',
-                description: 'Acumule R$2.000',
-                reward: 500,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => s.maxMoneyReached >= 2000,
-            },
-            {
-                id: 'magnata',
-                name: 'Magnata',
-                description: 'Acumule R$5.000',
-                reward: 1000,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => s.maxMoneyReached >= 5000,
-            },
-            {
-                id: 'fenix',
-                name: 'Fênix',
-                description: 'Recupere de R$0 três vezes',
-                reward: 150,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => s.brokeTimes >= 3,
-            },
-            {
-                id: 'sobrevivente',
-                name: 'Sobrevivente',
-                description: 'Escape de 5 batidas policiais',
-                reward: 400,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => s.raidsSurvived >= 5,
-            },
-            {
-                id: 'corruptivel',
-                name: 'Corruptível',
-                description: 'Pague suborno 3 vezes',
-                reward: 50,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => s.bribesPaid >= 3,
-            },
-            {
-                id: 'mestre_pong',
-                name: 'Mestre do Pong',
-                description: 'Faça 500+ pontos no Air Pong',
-                reward: 300,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['air_pong'] || 0) >= 500,
-            },
-            {
-                id: 'pistoleiro',
-                name: 'Pistoleiro',
-                description: 'Faça 1000+ pontos no Faroeste',
-                reward: 400,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['faroeste'] || 0) >= 1000,
-            },
-            {
-                id: 'lamina_afiada',
-                name: 'Lâmina Afiada',
-                description: 'Faça 1000+ pontos no Risca Faca',
-                reward: 400,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['risca_faca'] || 0) >= 1000,
-            },
-            {
-                id: 'rei_da_mesa',
-                name: 'Rei da Mesa',
-                description: 'Vença uma partida de Sinuca',
-                reward: 500,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => s.sinucaWins >= 1,
-            },
-            {
-                id: 'tanque_guerra',
-                name: 'Tanque de Guerra',
-                description: 'Faça 1000+ pontos no Tank Attack',
-                reward: 400,
-                tier: 3,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['tank_attack'] || 0) >= 1000,
-            },
-
-            // ═══ TIER 4: LENDA (Quase impossível) ═══
-            {
-                id: 'imparavel',
-                name: 'O Imparável',
-                description: 'Faça 1500+ pontos no Air Pong',
-                reward: 1500,
-                tier: 4,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['air_pong'] || 0) >= 1500,
-            },
-            {
-                id: 'clint_eastwood',
-                name: 'Clint Eastwood',
-                description: 'Faça 3000+ pontos no Faroeste',
-                reward: 2000,
-                tier: 4,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['faroeste'] || 0) >= 3000,
-            },
-            {
-                id: 'cangaceiro',
-                name: 'Cangaceiro Lendário',
-                description: 'Faça 3000+ pontos no Risca Faca',
-                reward: 2000,
-                tier: 4,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['risca_faca'] || 0) >= 3000,
-            },
-            {
-                id: 'general',
-                name: 'General',
-                description: 'Faça 3000+ pontos no Tank Attack',
-                reward: 2000,
-                tier: 4,
-                unlocked: false,
-                condition: (s) => (s.arcadeHighScores['tank_attack'] || 0) >= 3000,
-            },
-            {
-                id: 'as_cassino',
-                name: 'Ás do Cassino',
-                description: 'Ganhe 50 partidas de minigames',
-                reward: 2000,
-                tier: 4,
-                unlocked: false,
-                condition: (s) => s.totalMinigamesWon >= 50,
-            },
-            {
-                id: 'imperador',
-                name: 'Imperador',
-                description: 'Acumule R$20.000',
-                reward: 2000,
-                tier: 4,
-                unlocked: false,
-                condition: (s) => s.maxMoneyReached >= 20000,
-            },
-            {
-                id: 'intocavel',
-                name: 'Intocável',
-                description: 'Escape de 15 batidas policiais',
-                reward: 2000,
-                tier: 4,
-                unlocked: false,
-                condition: (s) => s.raidsSurvived >= 15,
-            },
-            {
-                id: 'cem_porcento',
-                name: '100%',
-                description: 'Desbloqueie todas as outras conquistas',
-                reward: 3000,
-                tier: 4,
-                unlocked: false,
-                condition: (_s) => {
-                    // Check all other achievements (all except this one)
-                    return this.achievements
-                        .filter(a => a.id !== 'cem_porcento')
-                        .every(a => a.unlocked);
-                },
-            },
+            { id: 'ar_graca', name: 'Ar de Graça', description: 'Entrou no Cassino Shopping pela primeira vez', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.exitedEstablishments.has('casino_shopping') },
+            { id: 'passagem_comprada', name: 'Passagem Comprada', description: 'Entrou no Cassino da Estação', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.exitedEstablishments.has('casino_station') },
+            { id: 'pecador', name: 'Pecador', description: 'Visitando a Igreja pela primeira vez', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.visitedLocations.has('church') },
+            { id: 'ar_fresco', name: 'Ar Fresco', description: 'Passou pela Praça principal do bairro', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.visitedLocations.has('plaza_main') },
+            { id: 'historia_imperial', name: 'História Imperial', description: 'Visitou o Marco Imperial de Santa Cruz', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.visitedLocations.has('marco_imperial') },
+            { id: 'bairro_amigo', name: 'Bairro Amigo', description: 'Explorou a área residencial', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.visitedLocations.has('residential') },
+            { id: 'filho_chora', name: 'Onde o Filho Chora', description: 'Primeiro contato visual com uma batida', reward: 0, tier: 0, unlocked: false, category: 'malandragem', condition: (s) => s.raidsEncountered >= 1 },
+            { id: 'vigilancia_constante', name: 'Vigilância Constante', description: 'Entrou em zona de alto índice policial', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.visitedLocations.has('high_risk') },
+            { id: 'saideira_lei', name: 'Saideira de Lei', description: 'Saindo de um bar após uma rodada', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.exitedEstablishments.has('bar') },
+            { id: 'viciado_fichas', name: 'Viciado em Fichas', description: 'Saindo de um fliperama após jogar', reward: 0, tier: 0, unlocked: false, category: 'exploracao', condition: (s) => s.exitedEstablishments.has('arcade') },
+            
+            // Novos rascunhos Etapa C
+            { id: 'caminhada_matinal', name: 'Caminhada Matinal', description: 'Andou por 10 minutos seguidos.', reward: 10, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => s.walkTimeSeconds >= 600 },
+            { id: 'shopping_sauna', name: 'Shopping ou Sauna?', description: 'Entrou no Cassino do Shopping 3 vezes.', reward: 0, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => s.exitedEstablishments.has('casino_shopping_3') }, // fake check, simplify
+            { id: 'viciado_ficha_novo', name: 'Viciado em Ficha', description: 'Jogou 3 arcades diferentes.', reward: 10, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => s.uniqueArcadesPlayed.size >= 3 },
+            { id: 'fregues_zeca_novo', name: 'Freguês do Zeca', description: 'Entrou no bar muitas vezes.', reward: 10, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => (s.minigamesPlayedByType['purrinha'] || 0) >= 10 },
+            { id: 'turista_reta_novo', name: 'Turista da Reta', description: 'Visitou mais de 10 minigames diferentes.', reward: 20, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => s.uniqueMinigamesPlayed.size >= 10 },
+            { id: 'sinal_linha', name: 'Sinal da Linha', description: 'Ficou parado perto do trem por 30s.', reward: 0, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => s.walkTimeSeconds >= 30 && s.visitedLocations.has('station') },
+            { id: 'largo_bodegao', name: 'Largo do Bodegão', description: 'Visitou a área comercial da Reta 5 vazes.', reward: 0, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => s.visitedLocations.size >= 5 },
+            { id: 'reta_base', name: 'Reta da Base', description: 'Andou muito pelo bairro de Santa Cruz.', reward: 10, tier: 1, unlocked: false, category: 'exploracao', condition: (s) => s.walkTimeSeconds >= 1200 }, // 20 mins total
+            
+            // 💰 Vitória
+            { id: 'dono_mesa', name: 'Dono da Mesa', description: 'Fez a mística na Sinuca!', reward: 50, tier: 2, unlocked: false, category: 'vitoria', condition: (s) => s.sinucaWins >= 1 },
+            { id: 'sorte_crianca', name: 'Sorte de Criança', description: 'Ganhou no Jokenpô na cagada.', reward: 10, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesWonByType['jokenpo'] || 0) >= 1 },
+            { id: 'mestre_palitinho', name: 'Mestre do Palitinho', description: 'Dedos rápidos no gatilho.', reward: 10, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesWonByType['palitinho'] || 0) >= 5 },
+            { id: 'papai_bingo', name: 'Papai do Bingo', description: 'Gritou BINGO na frente de todo mundo.', reward: 30, tier: 2, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesWonByType['video_bingo'] || 0) >= 1 },
+            { id: 'barao_gado', name: 'Barão do Gado', description: 'O jóquei é teu primo? Que sorte.', reward: 50, tier: 2, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesWonByType['horse_racing'] || 0) >= 5 },
+            { id: 'mao_alface', name: 'Mão de Alface', description: 'Venceu ganhando de fininho no Poker.', reward: 20, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesWonByType['poker'] || 0) >= 1 },
+            { id: 'socio_bicho', name: 'Sócio do Bicho', description: 'O bicheiro já tá fechando a banca', reward: 30, tier: 2, unlocked: false, category: 'vitoria', condition: (s) => s.bichoWins >= 3 },
+            
+            // 🚬 Malandragem
+            { id: 'papo_bar', name: 'Papo de Bar', description: 'Tu fala mais que o homem da cobra.', reward: 10, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.uniqueMinigamesPlayed.size >= 8 },
+            { id: 'aposta_risco', name: 'Aposta de Risco', description: 'Jogou com menos de R$20 no bolso.', reward: 10, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.maxMoneyReached >= 20 && s.totalMinigamesPlayed >= 5 }, // Close enough
+            { id: 'inimigo_estado', name: 'Inimigo do Estado', description: 'Sobreviveu a 5 batidas.', reward: 30, tier: 2, unlocked: false, category: 'malandragem', condition: (s) => s.raidsSurvived >= 5 },
+            { id: 'sabonete', name: 'Sabonete', description: 'Escorregadio demais pros PMs.', reward: 20, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.raidsSurvived >= 1 },
+            { id: 'amigo_caneco', name: 'Amigo do Caneco', description: 'Pagou o café da firma.', reward: 0, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.bribesPaid >= 1 },
+            { id: 'madruga_subversiva', name: 'Madruga Subversiva', description: 'Rua até tarde da noite.', reward: 10, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.walkTimeSeconds >= 300 },
+            
+            // 🤡 Derrota
+            { id: 'fundo_poco', name: 'Fundo do Poço', description: 'Ficou com zero na carteira.', reward: 0, tier: 0, unlocked: false, category: 'derrota', condition: (s) => s.brokeTimes >= 1 },
+            { id: 'reincidente', name: 'Reincidente', description: 'Quebrou 3 vezes. Já pode pedir música?', reward: 0, tier: 1, unlocked: false, category: 'derrota', condition: (s) => s.brokeTimes >= 3 },
+            { id: 'profissional_falir', name: 'Profissional em Falir', description: 'Quebrou 5 vezes no mesmo save.', reward: 10, tier: 2, unlocked: false, category: 'derrota', condition: (s) => s.brokeTimes >= 5 },
+            { id: 'doou_sangue', name: 'Doou o Sangue', description: 'O bicheiro agradece a grana.', reward: 0, tier: 1, unlocked: false, category: 'derrota', condition: (s) => s.bichoBetsPlaced > s.bichoWins + 5 },
+            { id: 'tia_reclamando', name: 'Tia Reclamando', description: 'Perdeu dinheiro da vovó.', reward: 0, tier: 1, unlocked: false, category: 'derrota', condition: (s) => s.brokeTimes >= 2 },
+            
+            // 👑 Lenda
+            { id: 'cem_maluco', name: '100% Maluco', description: 'Tu é a alma da madrugada de SC.', reward: 100, tier: 4, unlocked: false, category: 'lenda', condition: (s) => s.raidsSurvived >= 20 && s.bribesPaid >= 10 },
+            { id: 'invicto', name: 'Invicto', description: 'Ganhando 10 vezes sem derrota.', reward: 150, tier: 4, unlocked: false, category: 'lenda', condition: (s) => s.maxConsecutiveWins >= 10 },
+            { id: 'dono_santa_cruz', name: 'Dono de Santa Cruz', description: 'Pode comprar a reta inteira!', reward: 200, tier: 4, unlocked: false, category: 'lenda', condition: (s) => s.maxMoneyReached >= 20000 },
+            { id: 'fenix_3', name: 'Fênix', description: '3 vitórias All-In seguidas (mítico)', reward: 70, tier: 3, unlocked: false, category: 'resiliencia', condition: (s) => s.phoenixWins >= 3 },
+            
+            // Outros Progressão (Tree sync)
+            { id: 'desbloqueio_porta', name: 'Porta Aberta', description: 'Mostrou que não é amador', reward: 10, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesPlayedByType['dice'] || 0) >= 15 },
+            { id: 'desbloqueio_bar', name: 'Chave do Bar', description: 'O Zeca liberou a mesa de fundos.', reward: 20, tier: 2, unlocked: false, category: 'exploracao', condition: (s) => (s.minigamesPlayedByType['ronda'] || 0) >= 10 },
+            { id: 'desbloqueio_fliper', name: 'Chave do Fliper', description: 'Molecada chora quando tu chega', reward: 30, tier: 2, unlocked: false, category: 'exploracao', condition: (s) => (s.arcadePlayedByType['arcade_pong'] || 0) >= 10 }
         ];
     }
 }

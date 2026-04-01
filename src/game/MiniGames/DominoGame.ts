@@ -1,4 +1,5 @@
 import { EconomyManager } from '../Core/EconomyManager';
+import { BuffManager } from '../Core/BuffManager';
 import type { IMinigame } from './BaseMinigame';
 /**
  * DominoGame Logic — Classic 3-player gambling style.
@@ -46,8 +47,8 @@ export class DominoGame implements IMinigame {
         this.updateLimits();
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
     }
@@ -190,6 +191,15 @@ export class DominoGame implements IMinigame {
             if (i !== stuckPlayerIndex && s < minScore) {
                 minScore = s;
                 bestPlayer = p;
+            }
+        }
+
+        // Luck Bonus: 10% chance to force human win if they lost
+        if (bestPlayer && !bestPlayer.isHuman) {
+            const luck = BuffManager.getInstance().getLuckBonus();
+            if (luck > 0 && Math.random() < luck) {
+                const human = this.players.find(p => p.isHuman);
+                if (human) bestPlayer = human;
             }
         }
 

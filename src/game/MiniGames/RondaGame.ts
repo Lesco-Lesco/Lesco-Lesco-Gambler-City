@@ -132,8 +132,8 @@ export class RondaGame implements IMinigame {
         return `${ranks[card.rank - 1]} de ${card.suit}`;
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
         this.betAmount = Math.max(this.minBet, Math.min(this.betAmount, this.maxBet));

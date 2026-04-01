@@ -1,5 +1,6 @@
 import { Camera } from '../Core/Camera';
 import { ARCADES } from '../World/MapData';
+import { ProgressionManager as import_ProgressionManager } from '../Core/ProgressionManager';
 import { SoundManager } from '../Core/SoundManager';
 
 interface ArcadeState {
@@ -55,8 +56,17 @@ export class ArcadeDialogueManager {
     }
 
     private triggerDialogue(arcade: ArcadeState) {
-        // Use the arcade's own unique phrases
-        const phrase = arcade.phrases[Math.floor(Math.random() * arcade.phrases.length)];
+        // Dynamic logic: override dialogue if locked
+        const pm = import_ProgressionManager.getInstance();
+        let phrase = '';
+
+        if (!pm.isGameUnlocked('arcade')) {
+            phrase = pm.getArcadeLockedHint();
+        } else {
+            // Use the arcade's own unique phrases
+            phrase = arcade.phrases[Math.floor(Math.random() * arcade.phrases.length)];
+        }
+        
         arcade.activeDialogue = phrase;
         arcade.activeTimer = 3.5;
         SoundManager.getInstance().play('dialogue_bip');

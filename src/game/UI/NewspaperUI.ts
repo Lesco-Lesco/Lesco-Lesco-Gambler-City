@@ -100,9 +100,9 @@ export class NewspaperUI {
         this.drawTextWrapped(ctx, this.activeNews.title, px + paperW / 2, headlineY, contentW, s(30));
 
         // News Content (Static, no scroll)
-        const newsStartYSchool = headlineY + s(mobile ? 60 : 70);
+        const newsStartYSchool = headlineY + s(mobile ? 50 : 70);
         ctx.textAlign = 'left';
-        ctx.font = r(16) + 'px serif';
+        ctx.font = r(mobile ? 13 : 16) + 'px serif';
         ctx.fillStyle = '#222';
 
         let currentY = newsStartYSchool;

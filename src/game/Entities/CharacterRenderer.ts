@@ -19,6 +19,7 @@ export interface CharacterAnimState {
     isRunning: boolean;
     animFrame: number;
     direction: 'down' | 'up' | 'left' | 'right';
+    isSitting?: boolean;
 }
 
 /**
@@ -47,29 +48,36 @@ export function drawCharacter(
 
     // Legs
     ctx.fillStyle = appearance.legColor;
-    ctx.fillRect(sx - 3 * z, sy - 8 * z - bodyBob, 2.5 * z, 8 * z + legOffset);
-    ctx.fillRect(sx + 0.5 * z, sy - 8 * z - bodyBob, 2.5 * z, 8 * z - legOffset);
+    if (anim.isSitting) {
+        // Horizontal legs (sitting)
+        ctx.fillRect(sx - 5 * z, sy - 3 * z, 5 * z, 2.5 * z);
+        ctx.fillRect(sx + 0 * z, sy - 3 * z, 5 * z, 2.5 * z);
+    } else {
+        ctx.fillRect(sx - 3 * z, sy - 8 * z - bodyBob, 2.5 * z, 8 * z + legOffset);
+        ctx.fillRect(sx + 0.5 * z, sy - 8 * z - bodyBob, 2.5 * z, 8 * z - legOffset);
+    }
 
     // Body
     ctx.fillStyle = appearance.bodyColor;
-    ctx.fillRect(sx - 4 * z, sy - 18 * z - bodyBob, 8 * z, 10 * z);
+    const sitShift = anim.isSitting ? 4 * z : 0;
+    ctx.fillRect(sx - 4 * z, sy - 18 * z - bodyBob + sitShift, 8 * z, 10 * z);
 
     // Head
     ctx.fillStyle = appearance.skinColor;
-    ctx.fillRect(sx - 3 * z, sy - 23 * z - bodyBob, 6 * z, 5 * z);
+    ctx.fillRect(sx - 3 * z, sy - 23 * z - bodyBob + sitShift, 6 * z, 5 * z);
 
     // Hair or Hat
     if (appearance.hasHat && appearance.hatColor) {
         ctx.fillStyle = appearance.hatColor;
-        ctx.fillRect(sx - 3.5 * z, sy - 24 * z - bodyBob, 7 * z, 2.5 * z);
+        ctx.fillRect(sx - 3.5 * z, sy - 24 * z - bodyBob + sitShift, 7 * z, 2.5 * z);
     } else if (appearance.hairColor) {
         ctx.fillStyle = appearance.hairColor;
-        ctx.fillRect(sx - 3.5 * z, sy - 24 * z - bodyBob, 7 * z, 2 * z);
+        ctx.fillRect(sx - 3.5 * z, sy - 24 * z - bodyBob + sitShift, 7 * z, 2 * z);
     }
 
     // Eyes (only when player or when facing down/sideways)
     ctx.fillStyle = '#ffffff';
-    const eyeY = sy - 21 * z - bodyBob;
+    const eyeY = sy - 21 * z - bodyBob + sitShift;
     if (anim.direction === 'down' || anim.direction === 'left') {
         ctx.fillRect(sx - 2 * z, eyeY, 1.5 * z, 1.5 * z);
     }

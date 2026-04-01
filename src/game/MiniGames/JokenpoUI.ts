@@ -1,6 +1,7 @@
 import { JokenpoGame } from './JokenpoGame';
 import type { JokenpoChoice } from './JokenpoGame';
 import { InputManager } from '../Core/InputManager';
+import { EconomyManager } from '../Core/EconomyManager';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { BichoManager } from '../BichoManager';
@@ -27,13 +28,14 @@ export class JokenpoUI implements IMinigameUI {
         const phase = this.game.phase;
 
         if (phase === 'betting') {
+            const { step } = EconomyManager.getInstance().getBetLimits();
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
-                this.game.selectedBet = Math.min(this.game.maxBet, this.game.selectedBet + 10);
+                this.game.selectedBet = Math.min(this.game.maxBet, this.game.selectedBet + step);
             }
             if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
-                this.game.selectedBet = Math.max(this.game.minBet, this.game.selectedBet - 10);
+                this.game.selectedBet = Math.max(this.game.minBet, this.game.selectedBet - step);
             }
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
                 SoundManager.getInstance().play('bet_place');
             }
@@ -62,17 +64,20 @@ export class JokenpoUI implements IMinigameUI {
                 this.game.determineWinner();
             }
         } else if (phase === 'result') {
-            const canPlayAgain = BichoManager.getInstance().playerMoney + this.game.settle() >= this.game.minBet;
-            if (canPlayAgain && (this.input.wasPressed('Space') || this.input.wasPressed('KeyR'))) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE') || this.input.wasPressed('KeyR')) {
+                const bmanager = BichoManager.getInstance();
                 const payout = this.game.settle();
-                SoundManager.getInstance().play(payout > 0 ? 'win_small' : (payout < 0 ? 'lose' : 'draw'));
-                this.onPlayAgain(payout);
-                this.showdownTimer = 0;
-            } else if (!canPlayAgain && (this.input.wasPressed('Space') || this.input.wasPressed('KeyR'))) {
-                // Flash money or show notification? ExplorationScene handles notifications.
-                // We'll just force them to exit if they can't afford the minimum.
-                const moneyChange = this.game.settle();
-                this.onClose(moneyChange);
+                const totalMoney = bmanager.playerMoney + payout;
+
+                if (totalMoney < this.game.minBet) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onClose(payout); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(payout > 0 ? 'win_small' : (payout < 0 ? 'lose' : 'draw'));
+                    this.onPlayAgain(payout);
+                    this.showdownTimer = 0;
+                }
             }
         }
 
@@ -120,16 +125,18 @@ export class JokenpoUI implements IMinigameUI {
         const s = UIScale.s.bind(UIScale);
         const r = UIScale.r.bind(UIScale);
 
-        ctx.fillStyle = theme.textMuted;
-        ctx.font = `600 ${r(14)}px ${theme.bodyFont}`;
-        ctx.textAlign = 'center';
-        ctx.fillText('QUANTO VAI APOSTAR?', cx, cy - s(60));
-
-        ctx.fillStyle = theme.accent;
-        ctx.font = `800 ${r(64)}px ${theme.titleFont}`;
-        ctx.shadowBlur = s(25);
-        ctx.shadowColor = theme.accent + '88';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(15));
+        const isBroke = BichoManager.getInstance().playerMoney < this.game.minBet;
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `600 ${r(14)}px ${theme.bodyFont}`;
+            ctx.fillText('SEM GRANA!', cx, cy + s(15));
+        } else {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `800 ${r(64)}px ${theme.titleFont}`;
+            ctx.shadowBlur = s(25);
+            ctx.shadowColor = theme.accent + '88';
+            ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(15));
+        }
         ctx.shadowBlur = 0;
     }
 

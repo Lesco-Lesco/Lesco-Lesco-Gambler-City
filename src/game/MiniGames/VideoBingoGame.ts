@@ -22,7 +22,7 @@ export class VideoBingoGame {
     public cards: BingoCard[] = [];
     public drawnNumbers: Set<number> = new Set();
     public phase: 'betting' | 'picking' | 'playing' | 'result' = 'betting';
-    public betAmount: number = 0;
+    public betAmount: number = 10;
     public totalPayout: number = 0;
     public selectedCardIndex: number = -1;
     public winners: number[] = []; // Indices of winning cards
@@ -177,8 +177,8 @@ export class VideoBingoGame {
 
         // Player only gets paid if their card is in the winners list
         if (this.winners.includes(this.selectedCardIndex)) {
-            // Maximum payout is the total pot (4 cards * 10 bet = 40)
-            this.totalPayout = 40;
+            // Maximum payout is the total pot (4 cards * bet)
+            this.totalPayout = this.betAmount * 4;
         } else {
             this.totalPayout = 0;
         }

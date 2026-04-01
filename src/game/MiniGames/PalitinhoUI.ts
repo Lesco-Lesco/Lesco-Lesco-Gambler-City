@@ -1,6 +1,8 @@
 import { PalitinhoGame } from './PalitinhoGame';
 import { InputManager } from '../Core/InputManager';
+import { EconomyManager } from '../Core/EconomyManager';
 import { isMobile } from '../Core/MobileDetect';
+import { BichoManager } from '../BichoManager';
 import { UIScale } from '../Core/UIScale';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
@@ -26,13 +28,14 @@ export class PalitinhoUI implements IMinigameUI {
         const phase = this.game.phase;
 
         if (phase === 'betting') {
+            const { step } = EconomyManager.getInstance().getBetLimits();
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
-                this.game.selectedBet = Math.min(this.game.maxBet, this.game.selectedBet + 10);
+                this.game.selectedBet = Math.min(this.game.maxBet, this.game.selectedBet + step);
             }
             if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
-                this.game.selectedBet = Math.max(this.game.minBet, this.game.selectedBet - 10);
+                this.game.selectedBet = Math.max(this.game.minBet, this.game.selectedBet - step);
             }
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
                 SoundManager.getInstance().play('bet_place');
             }
@@ -43,15 +46,24 @@ export class PalitinhoUI implements IMinigameUI {
             if (this.input.wasPressed('ArrowRight') || this.input.wasPressed('KeyD')) {
                 this.selectedIdx = (this.selectedIdx + 1) % 4;
             }
-            if (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.chooseMatchstick(this.selectedIdx);
                 SoundManager.getInstance().play('dice_roll'); // "Pick" sound
             }
         } else if (phase === 'result') {
-            if (this.input.wasPressed('Space') || this.input.wasPressed('KeyR')) {
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE') || this.input.wasPressed('KeyR')) {
+                const bmanager = BichoManager.getInstance();
                 const payout = this.game.settle();
-                SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
-                this.onPlayAgain(payout);
+                const totalMoney = bmanager.playerMoney + payout;
+
+                if (totalMoney < this.game.minBet) {
+                    SoundManager.getInstance().play('lose');
+                    bmanager.addNotification("Você está sem grana para apostar!", 3);
+                    this.onClose(payout); // Exit if broke
+                } else {
+                    SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    this.onPlayAgain(payout);
+                }
             }
         }
 
@@ -122,11 +134,18 @@ export class PalitinhoUI implements IMinigameUI {
         ctx.textAlign = 'center';
         ctx.fillText('VALOR DA APOSTA', cx, cy - s(60));
 
-        ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(mobile ? 60 : 64)}px ${theme.titleFont}`;
-        ctx.shadowBlur = s(20);
-        ctx.shadowColor = theme.accent + '66';
-        ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(10));
+        const isBroke = BichoManager.getInstance().playerMoney < this.game.minBet;
+        if (isBroke) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(mobile ? 24 : 32)}px ${theme.titleFont}`;
+            ctx.fillText('SEM GRANA!', cx, cy + s(10));
+        } else {
+            ctx.fillStyle = theme.accent;
+            ctx.font = `bold ${r(mobile ? 60 : 64)}px ${theme.titleFont}`;
+            ctx.shadowBlur = s(20);
+            ctx.shadowColor = theme.accent + '66';
+            ctx.fillText(`R$ ${this.game.selectedBet}`, cx, cy + s(10));
+        }
         ctx.shadowBlur = 0;
 
         // Mobile arrows

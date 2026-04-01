@@ -1,4 +1,5 @@
 import { EconomyManager } from '../Core/EconomyManager';
+import { BuffManager } from '../Core/BuffManager';
 import type { IMinigame } from './BaseMinigame';
 /**
  * Purrinha Mini-Game
@@ -77,8 +78,8 @@ export class PurrinhaGame implements IMinigame {
         this.updateLimits();
     }
 
-    public updateLimits() {
-        const limits = EconomyManager.getInstance().getBetLimits();
+    public updateLimits(isPeriphery: boolean = false) {
+        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
         // Ensure current bet is within valid range? 
@@ -176,6 +177,16 @@ export class PurrinhaGame implements IMinigame {
     private calculateWinner() {
         let bestPlayer: PurrinhaPlayer | null = null;
         let bestDiff = Infinity;
+
+        // Luck Bonus: 10% chance to force player win if they lost
+        const human = this.players.find(p => p.isHuman);
+        if (human) {
+            const luck = BuffManager.getInstance().getLuckBonus();
+            if (luck > 0 && Math.random() < luck) {
+                // Adjust totalStones to match human guess
+                this.totalStones = human.guess;
+            }
+        }
 
         for (const p of this.players) {
             const diff = Math.abs(p.guess - this.totalStones);

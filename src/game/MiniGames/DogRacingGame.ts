@@ -11,6 +11,7 @@ export interface Dog {
     personality: DogPersonality;
     acceleration: number;
     stamina: number;
+    baseSpeedMod: number; // Used to bias the speed calculation
     isFinished: boolean;
     finishTime?: number;
 }
@@ -63,6 +64,11 @@ export class DogRacingGame {
             if (personality === 'closer') baseOdds += 2;
             if (personality === 'sprinter') baseOdds -= 1;
 
+            // Calculate intrinsic capability based on odds. Lower odds = better capability
+            // Max odds is around 12, min odds is around 3.
+            // Let's create a speed modifier where 3 odds gives 1.1x speed, 12 odds gives 0.9x speed.
+            const oddsFactor = 1.0 + (7.5 - baseOdds) * 0.03;
+
             return {
                 id: i,
                 name: name,
@@ -72,10 +78,11 @@ export class DogRacingGame {
                 position: 0,
                 speed: 0,
                 personality: personality,
-                acceleration: 0.6 + Math.random() * 0.4,
-                stamina: 1.0,
+                acceleration: (0.6 + Math.random() * 0.4) * oddsFactor,
+                stamina: 1.0 * oddsFactor,
+                baseSpeedMod: oddsFactor,
                 isFinished: false
-            };
+            } as Dog;
         });
     }
 
@@ -90,7 +97,7 @@ export class DogRacingGame {
             d.speed = 0;
             d.isFinished = false;
             d.finishTime = undefined;
-            d.stamina = 0.9 + Math.random() * 0.2;
+            d.stamina = (0.9 + Math.random() * 0.2) * d.baseSpeedMod;
         });
     }
 
@@ -107,7 +114,7 @@ export class DogRacingGame {
 
             // Logic based on personality and race progress
             const progress = dog.position / this.RACE_DISTANCE;
-            let targetSpeed = 160 + Math.random() * 60; // Base speed for dogs (slightly faster than horses in units)
+            let targetSpeed = (160 + Math.random() * 60) * dog.baseSpeedMod; // Base speed influenced by odds
 
             if (dog.personality === 'sprinter' && progress < 0.4) targetSpeed *= 1.25;
             if (dog.personality === 'sprinter' && progress > 0.7) targetSpeed *= 0.8;
