@@ -383,33 +383,33 @@ export class TileRenderer {
                             // If Shopping or Tall Building near shopping coordinates
                             // Customize colors or details to look less "standardized"
 
-                            let h = 4 + rand * 14;
+                            let h = 5 + rand * 17;
                             let top, left, right;
 
                             if (tile === TILE_TYPES.BUILDING_LOW) {
-                                h = 4 + rand * 14;
+                                h = 5 + rand * 17;
                                 const ci = Math.floor(rand * BUILDING_COLORS.low.length);
                                 const c = BUILDING_COLORS.low[ci];
                                 top = c.top; left = c.left; right = c.right;
                             } else if (tile === TILE_TYPES.BUILDING_TALL) {
-                                h = 15 + rand * 15;
+                                h = 18 + rand * 18;
                                 const ci = Math.floor(rand * BUILDING_COLORS.tall.length);
                                 const c = BUILDING_COLORS.tall[ci];
                                 top = c.top; left = c.left; right = c.right;
                             } else if (tile === (TILE_TYPES.BAR as number)) {
-                                h = 25 + rand * 10;
+                                h = 30 + rand * 12;
                                 const barInfoActive = BARS.find(b => b.x === tileX && b.y === tileY);
                                 const ci = barInfoActive?.variation !== undefined ? barInfoActive.variation : Math.floor(rand * BUILDING_COLORS.bar.length);
                                 const c = BUILDING_COLORS.bar[ci % BUILDING_COLORS.bar.length];
                                 top = c.top; left = c.left; right = c.right;
                             } else if (tile === (TILE_TYPES.ARCADE as number)) {
-                                h = 25 + rand * 10;
+                                h = 30 + rand * 12;
                                 const arcadeInfoActive = ARCADES.find(a => a.x === tileX && a.y === tileY);
                                 const ci = arcadeInfoActive?.variation !== undefined ? arcadeInfoActive.variation : Math.floor(rand * BUILDING_COLORS.arcade.length);
                                 const c = BUILDING_COLORS.arcade[ci % BUILDING_COLORS.arcade.length];
                                 top = c.top; left = c.left; right = c.right;
                             } else { // Shopping
-                                h = 10;
+                                h = 12;
                                 const c = BUILDING_COLORS.shopping;
                                 top = c.top; left = c.left; right = c.right;
                             }
@@ -450,8 +450,8 @@ export class TileRenderer {
                         y: tileX + tileY + 0.5,
                         draw: () => {
                             // Church Visuals
-                            // Tall (40)
-                            const h = 40;
+                            // Tall (48)
+                            const h = 48;
                             const top = '#e0e0e0'; // White/Cream
                             const left = '#c0c0c0';
                             const right = '#d0d0d0';
@@ -565,8 +565,8 @@ export class TileRenderer {
                             };
 
                             // 2-Tier Shopping Mall Design
-                            const h1 = 22; // Base height
-                            const h2 = 14; // Top height
+                            const h1 = 26; // Base height
+                            const h2 = 17; // Top height
 
                             // Base Layer
                             drawStacked(0, h1, 1.0);

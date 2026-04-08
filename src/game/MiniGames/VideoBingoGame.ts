@@ -177,8 +177,13 @@ export class VideoBingoGame {
 
         // Player only gets paid if their card is in the winners list
         if (this.winners.includes(this.selectedCardIndex)) {
-            // Maximum payout is the total pot (4 cards * bet)
-            this.totalPayout = this.betAmount * 4;
+            if (this.winners.length > 1) {
+                // EMPATE: If there are multiple winners, player gets only their bet back
+                this.totalPayout = this.betAmount;
+            } else {
+                // SOLO WIN: If player is the only winner, they get the full pot (4 cards * bet)
+                this.totalPayout = this.betAmount * 4;
+            }
         } else {
             this.totalPayout = 0;
         }

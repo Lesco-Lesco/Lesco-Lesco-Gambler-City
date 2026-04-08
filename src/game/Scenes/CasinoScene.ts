@@ -341,13 +341,10 @@ export class CasinoScene implements Scene {
             bmanager.playerMoney += payout;
         }
 
-        // Start cooldown on exit
-        const m = this.machines[this.selectedMachine];
-        const uniqueId = `casino_${this.type}_${m.type}_${this.selectedMachine}`;
-        let cooldownType: any = m.type;
-        if (m.type === 'slot') cooldownType = 'slots';
-        
-        ProgressionManager.getInstance().startCooldown(uniqueId, cooldownType);
+        // Start cooldown on exit - REMOVED for immersion
+        // const m = this.machines[this.selectedMachine];
+        // ...
+        // ProgressionManager.getInstance().startCooldown(uniqueId, cooldownType);
 
         this.state = 'floor';
     }
@@ -414,12 +411,9 @@ export class CasinoScene implements Scene {
                 return;
             }
 
-            // 2. Check cooldown
-            const uniqueId = `casino_${this.type}_${m.type}_${this.selectedMachine}`;
-            if (pm.isOnCooldown(uniqueId)) {
-                bmanager.addNotification(pm.getCooldownMessage(uniqueId, m.type as any), 3);
-                return;
-            }
+            // 2. Cooldown check - REMOVED for immersion
+            // const uniqueId = `casino_${this.type}_${m.type}_${this.selectedMachine}`;
+            // if (pm.isOnCooldown(uniqueId)) { ... }
 
             // 3. Enter game
             SoundManager.getInstance().play('menu_confirm');

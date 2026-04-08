@@ -20,8 +20,8 @@
  *   video_bingo (always in bar) ──3 plays──▶ horse_racing ──4 plays──▶ dog_racing
  *
  * ── FLIPERAMA ─────────────────────────────────────────────────────────────
- *   arcade_pong (always) ──10──▶ arcade_faroeste ──10──▶ arcade_risca
- *   arcade_risca ──8──▶ arcade_tank ──5──▶ arcade_sinuca
+ *   arcade_pong (always) ──1──▶ arcade_faroeste ──1──▶ arcade_risca
+ *   arcade_risca ──1──▶ arcade_tank ──1──▶ arcade_sinuca
  */
 
 import { GameEventEmitter } from './EventEmitter';
@@ -93,10 +93,10 @@ const UNLOCK_TREE: Partial<Record<string, UnlockCondition>> = {
 
     // ── FLIPERAMA ──
     arcade_pong:     {},   // always lit
-    arcade_faroeste: { requiresPlays: { game: 'arcade_pong',     count: 12 } },
-    arcade_risca:    { requiresPlays: { game: 'arcade_faroeste', count: 12 } },
-    arcade_tank:     { requiresPlays: { game: 'arcade_risca',    count: 8  } },
-    arcade_sinuca:   { requiresPlays: { game: 'arcade_tank',     count: 6  } }, // Tank can be long
+    arcade_faroeste: { requiresPlays: { game: 'arcade_pong',     count: 1  } },
+    arcade_risca:    { requiresPlays: { game: 'arcade_faroeste', count: 1  } },
+    arcade_tank:     { requiresPlays: { game: 'arcade_risca',    count: 1  } },
+    arcade_sinuca:   { requiresPlays: { game: 'arcade_tank',     count: 1  } }, // Tank can be long
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -287,10 +287,10 @@ export class ProgressionManager {
     public startCooldown(id: string, type: CooldownType): void {
         const durations: Record<CooldownType, number> = {
             street_npc: 30,
-            bar: 45,
-            slots: 15,
-            blackjack: 45,
-            poker: 60,
+            bar: 0,
+            slots: 0,
+            blackjack: 0,
+            poker: 0,
         };
         this.cooldowns.set(id, durations[type] ?? 30);
     }
@@ -330,7 +330,7 @@ export class ProgressionManager {
     // ─────────────────────────────────────────────────
 
     private getMaxCooldown(type: CooldownType): number {
-        const m: Record<CooldownType, number> = { street_npc: 30, bar: 45, slots: 15, blackjack: 45, poker: 60 };
+        const m: Record<CooldownType, number> = { street_npc: 30, bar: 0, slots: 0, blackjack: 0, poker: 0 };
         return m[type] ?? 30;
     }
 

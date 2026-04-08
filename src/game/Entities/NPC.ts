@@ -12,7 +12,7 @@ import { TILE_TYPES } from '../World/MapData';
 import { drawCharacter } from './CharacterRenderer';
 import type { CharacterAppearance } from './CharacterRenderer';
 import { ProgressionManager } from '../Core/ProgressionManager';
-import { AchievementManager } from '../Core/AchievementManager';
+
 
 export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police' | 'casino_promoter' | 'preacher';
 export type MinigameType = 'purrinha' | 'dice' | 'ronda' | 'domino' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | null;
@@ -499,11 +499,11 @@ export class NPC {
 
             // Dynamic logic: override dialogue if locked or on cooldown
             const pm = ProgressionManager.getInstance();
-            const am = AchievementManager.getInstance();
             const uid = this.getUniqueId();
 
             if (this.minigameType && !pm.isGameUnlocked(this.minigameType)) {
-                this.dialogue = [pm.getLockedHint(this.minigameType, am.getPlaysByGame(), am.getWinCount())];
+                // Don't show dialogue bubble for locked games to avoid redundancy with the bottom HUD bar
+                this.dialogue = [];
             } else if (pm.isOnCooldown(uid)) {
                 this.dialogue = [pm.getCooldownMessage(uid, 'street_npc')];
             } else {

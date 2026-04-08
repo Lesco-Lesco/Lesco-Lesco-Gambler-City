@@ -4,6 +4,7 @@
  */
 
 import { InputManager } from './InputManager';
+import { BuffManager } from './BuffManager';
 
 export interface Scene {
     name: string;
@@ -94,6 +95,9 @@ export class GameLoop {
         // Update + Render active scene
         try {
             if (this.activeScene) {
+                // Global Managers Update (Sem exceção)
+                BuffManager.getInstance().update(dt);
+                
                 this.activeScene.update(dt);
 
                 // Limpa o canvas e reseta estado antes de cada render

@@ -304,7 +304,7 @@ export class ExplorationScene implements Scene {
             bmanager.addNotification("Alto Índice de Achacamento!", 4);
         }
         this.wasInHighRiskArea = inHighRisk;
-        BuffManager.getInstance().update(dt);
+        // BuffManager update moved to global Loop.ts (Loop.ts line 94)
 
         // 1. Minigame Logic / Interruption
         if (pm.phase !== 'none') {
@@ -766,9 +766,13 @@ export class ExplorationScene implements Scene {
 
         achManager.updateMaxMoney(bmanager.playerMoney);
 
-        // Start cooldown if we had an interaction ID
-        if (this.currentInteractionId && this.currentInteractionType) {
+        // Start cooldown if we had an interaction ID (Street NPC or Domino)
+        if (this.currentInteractionId && this.currentInteractionType === 'street_npc') {
             ProgressionManager.getInstance().startCooldown(this.currentInteractionId, this.currentInteractionType);
+            this.currentInteractionId = null;
+            this.currentInteractionType = null;
+        } else {
+            // Just clear for buildings/bars
             this.currentInteractionId = null;
             this.currentInteractionType = null;
         }
@@ -926,14 +930,10 @@ export class ExplorationScene implements Scene {
                 if (this.input.wasPressed('KeyE')) {
                     // Check bar cooldown
                     const barId = `bar_${nearBar.name}`;
-                    if (pm.isOnCooldown(barId)) {
-                        BichoManager.getInstance().addNotification(pm.getCooldownMessage(barId, 'bar'), 3);
-                    } else {
                         this.currentInteractionId = barId;
                         this.currentInteractionType = 'bar';
                         SoundManager.getInstance().play('door_enter');
                         this.startBarActivities(nearBar);
-                    }
                 }
             }
             return;

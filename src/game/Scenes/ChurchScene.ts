@@ -207,7 +207,7 @@ export class ChurchScene implements Scene {
         this.nextCommandTimer = 4.0;
         
         const buffMgr = BuffManager.getInstance();
-        buffMgr.addBuff('comungado', 90); // 90 seconds buff
+        buffMgr.addBuff('comungado', 120); // 120 seconds buff (2 minutes)
         buffMgr.setCooldown('church', 300); // 5 min cooldown
 
         SoundManager.getInstance().play('win_small');

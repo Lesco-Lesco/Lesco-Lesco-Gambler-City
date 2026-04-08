@@ -468,7 +468,7 @@ export class AchievementManager {
             // Outros Progressão (Tree sync)
             { id: 'desbloqueio_porta', name: 'Porta Aberta', description: 'Mostrou que não é amador', reward: 10, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesPlayedByType['dice'] || 0) >= 15 },
             { id: 'desbloqueio_bar', name: 'Chave do Bar', description: 'O Zeca liberou a mesa de fundos.', reward: 20, tier: 2, unlocked: false, category: 'exploracao', condition: (s) => (s.minigamesPlayedByType['ronda'] || 0) >= 10 },
-            { id: 'desbloqueio_fliper', name: 'Chave do Fliper', description: 'Molecada chora quando tu chega', reward: 30, tier: 2, unlocked: false, category: 'exploracao', condition: (s) => (s.arcadePlayedByType['arcade_pong'] || 0) >= 10 }
+            { id: 'desbloqueio_fliper', name: 'Chave do Fliper', description: 'Molecada chora quando tu chega', reward: 30, tier: 2, unlocked: false, category: 'exploracao', condition: (s) => (s.arcadePlayedByType['arcade_pong'] || 0) >= 1 }
         ];
     }
 }
