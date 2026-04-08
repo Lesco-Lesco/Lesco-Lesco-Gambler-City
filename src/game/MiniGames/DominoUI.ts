@@ -64,6 +64,7 @@ export class DominoUI implements IMinigameUI {
                         if (success) {
                             this.selectedPieceIndex = 0;
                             SoundManager.getInstance().play('dice_roll');
+                            SoundManager.getInstance().playArpeggio('domino');
                         }
                     }
                 }
@@ -84,10 +85,12 @@ export class DominoUI implements IMinigameUI {
                 
                 if (bmanager.playerMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('domino', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(win); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(win > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('domino', win > 0 ? 'win' : 'lose');
                     this.onPlayAgain(win);
                     this.game.reset();
                 }

@@ -52,6 +52,7 @@ export class PurrinhaUI implements IMinigameUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.chooseStones(this.game.selectedStones);
                 SoundManager.getInstance().play('dice_roll');
+                SoundManager.getInstance().playArpeggio('purrinha');
             }
         } else if (phase === 'guessing') {
             if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
@@ -73,10 +74,12 @@ export class PurrinhaUI implements IMinigameUI {
 
                 if (totalMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('purrinha', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(moneyChange); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(moneyChange > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('purrinha', moneyChange > 0 ? 'win' : 'lose');
                     this.onPlayAgain(moneyChange);
                 }
             }

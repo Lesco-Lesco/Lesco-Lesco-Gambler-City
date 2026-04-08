@@ -8,6 +8,7 @@
  */
 
 import { Howl, Howler } from 'howler';
+import { MINIGAME_MUSIC_PROFILES } from './MinigameMusicProfiles';
 
 /** Sound categories for volume control */
 type SoundCategory = 'sfx' | 'ambient' | 'music';
@@ -125,6 +126,9 @@ export class SoundManager {
 
     // Currently playing loop IDs
     private activeLoops: Map<SoundName, number> = new Map();
+
+    // Step counters for procedural arpeggio (one counter per profile id)
+    private arpStepCounters: Map<string, number> = new Map();
 
     private constructor() { }
 
@@ -300,6 +304,129 @@ export class SoundManager {
     public resumeContext(): void {
         if (Howler.ctx && Howler.ctx.state === 'suspended') {
             Howler.ctx.resume();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  🎵 PROCEDURAL CHIPTUNE ENGINE
+    //  Sintetiza notas musicais via Web Audio API sem nenhum arquivo.
+    //  Respeita mute global e usa o AudioContext do Howler.
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Toca a próxima nota procedural do perfil musical do minigame.
+     * Avança o step counter ciclicamente (ou aleatoriamente, conforme o perfil).
+     *
+     * @param profileId  ID do minigame (ex: 'videobingo', 'blackjack')
+     * @param volumeOverride  Volume opcional (sobrescreve o padrão do perfil)
+     */
+    public playArpeggio(profileId: string, volumeOverride?: number): void {
+        if (this.muted) return;
+        const ctx = Howler.ctx as AudioContext | undefined;
+        if (!ctx || ctx.state === 'suspended') return;
+
+        const profile = MINIGAME_MUSIC_PROFILES[profileId];
+        if (!profile) return;
+
+        const scale = profile.scale;
+        let step = this.arpStepCounters.get(profileId) ?? 0;
+
+        let freq: number;
+        if (profile.stepMode === 'cycle') {
+            freq = scale[step % scale.length];
+            this.arpStepCounters.set(profileId, step + 1);
+        } else {
+            // 'random' — escolhe aleatoriamente dentro da escala
+            freq = scale[Math.floor(Math.random() * scale.length)];
+            // Guarda mesmo assim para poder resetar
+            this.arpStepCounters.set(profileId, step + 1);
+        }
+
+        this._synthesizeNote(ctx, freq, profile.waveform, volumeOverride ?? profile.volume, profile.noteDuration);
+    }
+
+    /**
+     * Toca a fanfara de vitória ou derrota do minigame.
+     * Sequência de notas com delay de 90ms entre cada uma.
+     *
+     * @param profileId  ID do minigame
+     * @param type       'win' | 'lose'
+     */
+    public playFanfare(profileId: string, type: 'win' | 'lose'): void {
+        if (this.muted) return;
+        const ctx = Howler.ctx as AudioContext | undefined;
+        if (!ctx || ctx.state === 'suspended') return;
+
+        const profile = MINIGAME_MUSIC_PROFILES[profileId];
+        if (!profile) return;
+
+        const notes = type === 'win' ? profile.winFanfare : profile.loseFanfare;
+        const fanfareVolume = type === 'win' ? 0.20 : 0.15;
+        const noteDuration = type === 'win' ? 200 : 170;
+        const noteGap = 95; // ms entre notas
+
+        notes.forEach((freq, i) => {
+            setTimeout(() => {
+                const c = Howler.ctx as AudioContext | undefined;
+                if (!c || c.state === 'suspended') return;
+                // Última nota da vitória dura mais
+                const dur = (type === 'win' && i === notes.length - 1) ? noteDuration * 2 : noteDuration;
+                this._synthesizeNote(c, freq, profile.waveform, fanfareVolume, dur);
+            }, i * noteGap);
+        });
+    }
+
+    /**
+     * Reseta o step counter de um perfil (chamar ao reiniciar o minigame).
+     */
+    public resetArpeggioStep(profileId: string): void {
+        this.arpStepCounters.set(profileId, 0);
+    }
+
+    /**
+     * Motor interno de síntese — cria oscilador + envelope ADSR simplificado.
+     * @private
+     */
+    private _synthesizeNote(
+        ctx: AudioContext,
+        frequency: number,
+        waveform: OscillatorType,
+        volume: number,
+        durationMs: number
+    ): void {
+        try {
+            const t = ctx.currentTime;
+            const durSec = durationMs / 1000;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = waveform;
+            osc.frequency.setValueAtTime(frequency, t);
+
+            // Envelope ADSR suave:
+            //   Attack  10ms  — entrada gradual
+            //   Decay   40ms  — queda para sustain
+            //   Sustain 60%   — nível de sustain
+            //   Release       — fade até o fim da nota
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(volume, t + 0.010);             // Attack
+            gain.gain.linearRampToValueAtTime(volume * 0.6, t + 0.050);       // Decay
+            gain.gain.setValueAtTime(volume * 0.6, t + durSec - 0.040);       // Sustain hold
+            gain.gain.linearRampToValueAtTime(0, t + durSec);                 // Release
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(t);
+            osc.stop(t + durSec + 0.01);
+
+            // Limpeza automática após término
+            osc.onended = () => {
+                try { osc.disconnect(); gain.disconnect(); } catch (_) { /* ignore */ }
+            };
+        } catch (_) {
+            // Silencia qualquer erro de AudioContext
         }
     }
 }

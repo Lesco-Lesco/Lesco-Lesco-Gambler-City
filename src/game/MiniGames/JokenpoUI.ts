@@ -43,12 +43,15 @@ export class JokenpoUI implements IMinigameUI {
             if (this.input.wasPressed('Digit1') || (this.game.playerChoice === 'rock' && (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')))) {
                 this.game.play('rock');
                 this.showdownTimer = 2.0;
+                SoundManager.getInstance().playArpeggio('jokenpo');
             } else if (this.input.wasPressed('Digit2') || (this.game.playerChoice === 'paper' && (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')))) {
                 this.game.play('paper');
                 this.showdownTimer = 2.0;
+                SoundManager.getInstance().playArpeggio('jokenpo');
             } else if (this.input.wasPressed('Digit3') || (this.game.playerChoice === 'scissors' && (this.input.wasPressed('Enter') || this.input.wasPressed('KeyE')))) {
                 this.game.play('scissors');
                 this.showdownTimer = 2.0;
+                SoundManager.getInstance().playArpeggio('jokenpo');
             }
 
             // Selection navigation if not using numbers
@@ -71,10 +74,12 @@ export class JokenpoUI implements IMinigameUI {
 
                 if (totalMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('jokenpo', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(payout); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : (payout < 0 ? 'lose' : 'draw'));
+                    SoundManager.getInstance().playFanfare('jokenpo', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
                     this.showdownTimer = 0;
                 }

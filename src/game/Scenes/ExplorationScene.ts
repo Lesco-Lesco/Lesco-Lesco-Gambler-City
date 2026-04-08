@@ -257,10 +257,8 @@ export class ExplorationScene implements Scene {
         ProgressionManager.getInstance().updateCooldowns(dt);
         const bmanager = BichoManager.getInstance();
         const pm = PoliceManager.getInstance();
-        const isInArcade = (this.activeMinigame as string).startsWith('arcade_');
-        const isIllegal = this.activeMinigame !== 'none' &&
-            this.activeMinigame !== 'domino' &&
-            !isInArcade;
+        const streetGames = ['purrinha', 'dice', 'ronda', 'domino', 'heads_tails', 'palitinho', 'fan_tan', 'jokenpo'];
+        const isIllegal = streetGames.includes(this.activeMinigame as string);
 
         // 0. Newspaper Blocking
         if (this.newspaper.isVisible()) {

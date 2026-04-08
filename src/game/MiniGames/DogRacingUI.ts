@@ -5,7 +5,6 @@ import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
 import { SoundManager } from '../Core/SoundManager';
-import { EconomyManager } from '../Core/EconomyManager';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
 
@@ -28,25 +27,18 @@ export class DogRacingUI implements IMinigameUI {
     public update(dt: number) {
         const input = InputManager.getInstance();
         const bmanager = BichoManager.getInstance();
-        const mobile = isMobile();
 
         if (this.game.phase === 'betting') {
             // Selection logic
             if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) this.game.selectedDog = (this.game.selectedDog - 1 + 8) % 8;
             if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) this.game.selectedDog = (this.game.selectedDog + 1) % 8;
 
-            // Bet adjustment
-            const { step, max } = EconomyManager.getInstance().getBetLimits();
-            const left = input.wasPressed('ArrowLeft') || (mobile && input.wasPressed('KeyA'));
-            const right = input.wasPressed('ArrowRight') || (mobile && input.wasPressed('KeyD'));
-            if (left) this.game.betAmount = Math.max(10, this.game.betAmount - step);
-            if (right) this.game.betAmount = Math.min(max, this.game.betAmount + step);
-
             if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 if (bmanager && bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
-                    this.game.startRace(this.game.selectedDog, this.game.betAmount);
+                    this.game.startRace(this.game.selectedDog);
                     SoundManager.getInstance().play('bet_place');
+                    SoundManager.getInstance().playArpeggio('dog');
                 }
             }
         } else if (this.game.phase === 'racing') {
@@ -58,10 +50,12 @@ export class DogRacingUI implements IMinigameUI {
 
                 if (totalMoney < 10) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('dog', 'lose');
                     bmanager?.addNotification("Você está sem grana para apostar!", 3);
                     this.onExit(payout); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('dog', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
                 }
             }
@@ -134,34 +128,30 @@ export class DogRacingUI implements IMinigameUI {
             // Name
             ctx.font = `bold ${r(mobile ? 14 : 17)}px ${theme.titleFont}`;
             ctx.fillStyle = isSelected ? '#fff' : '#aaa';
-            // Odds
-            ctx.textAlign = 'right';
-            ctx.fillStyle = isSelected ? theme.accent : theme.textMuted;
-            ctx.font = `bold ${r(mobile ? 12 : 15)}px ${theme.bodyFont}`;
-            ctx.fillText(`${dog.odds.toFixed(1)}x`, listX + listW - s(10), y + itemH / 2);
+            ctx.textAlign = 'left';
+            ctx.fillText(dog.name.toUpperCase(), listX + s(50), y + itemH / 2);
         });
 
-        // ── Bet Context ──
+        // ── Fixed Bet Display ──
         const betY = h * 0.78;
         ctx.textAlign = 'center';
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-
-        ctx.fillText("VALOR DA APOSTA", cx, betY);
+        ctx.fillText('ENTRADA', cx, betY);
 
         const bmanager = (window as any).bmanager;
-        const isBroke = (bmanager?.playerMoney || 0) < 10;
+        const isBroke = (bmanager?.playerMoney || 0) < this.game.betAmount;
         if (isBroke) {
             ctx.fillStyle = '#f87171';
             ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
-            ctx.fillText("SEM GRANA!", cx, betY + s(45));
+            ctx.fillText('SEM GRANA!', cx, betY + s(45));
         } else {
             ctx.fillStyle = theme.accent;
             ctx.font = `bold ${r(48)}px ${theme.titleFont}`;
             ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(45));
         }
 
-        const hint = mobile ? '[DPAD] Selecionar • [OK] Correr' : '↑↓ SELECIONAR • ←→ APOSTA • ESPAÇO INICIAR';
+        const hint = mobile ? '[DPAD] Selecionar • [OK] Correr' : '↑↓ SELECIONAR • ESPAÇO INICIAR';
         drawMinigameFooter(ctx, w, h, theme, hint);
     }
 
@@ -280,36 +270,66 @@ export class DogRacingUI implements IMinigameUI {
         const r = UIScale.r.bind(UIScale);
         const cx = w / 2;
         const cy = h / 2;
+        const mobile = isMobile();
 
-        ctx.fillStyle = 'rgba(0,0,10,0.85)';
+        ctx.fillStyle = 'rgba(0,0,10,0.90)';
         ctx.fillRect(0, 0, w, h);
 
-        const winner = this.game.winners[0];
-        const isWin = winner.id === this.game.selectedDog;
+        const placement = this.game.getPlacement();
+        const payout = this.game.getPayout();
+        const isWin = placement <= 3;
+        const ordinals = ['', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º'];
+        const prizeLabels: Record<number, string> = {
+            1: `+ R$ ${payout - this.game.betAmount}  (🥇 PRIMEIRO!)`,
+            2: `+ R$ ${payout - this.game.betAmount}  (🥈 SEGUNDO)`,
+            3: `0  (🥉 TERCEIRO — aposta devolvida)`,
+        };
 
-        // Result Status
-        ctx.fillStyle = isWin ? '#4ade80' : '#f87171';
-        ctx.font = `900 ${r(54)}px ${theme.titleFont}`;
+        // Title
+        ctx.fillStyle = theme.accent;
+        ctx.font = `bold ${r(12)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
+        ctx.fillText('RESULTADO DA CORRIDA', cx, cy - s(130));
+
+        // Big placement line
+        ctx.fillStyle = isWin ? '#4ade80' : '#f87171';
+        ctx.font = `900 ${r(mobile ? 34 : 44)}px ${theme.titleFont}`;
         ctx.shadowBlur = s(20);
-        ctx.shadowColor = ctx.fillStyle + '66';
-        ctx.fillText(isWin ? "VITÓRIA!" : "DERROTA!", cx, cy - s(60));
+        ctx.shadowColor = ctx.fillStyle + '88';
+        const placeLine = isWin
+            ? `SEU GALGO CHEGOU EM ${ordinals[placement]} LUGAR!`
+            : `SEU GALGO CHEGOU EM ${ordinals[placement]} LUGAR`;
+        ctx.fillText(placeLine, cx, cy - s(70));
         ctx.shadowBlur = 0;
 
-        // Winner Details
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${r(20)}px ${theme.titleFont}`;
-        ctx.fillText(`1º LUGAR: ${winner.name.toUpperCase()}`, cx, cy + s(10));
-
+        // Prize label or loss
         if (isWin) {
-            ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(28)}px ${theme.bodyFont}`;
-            ctx.fillText(`+ R$ ${this.game.getPayout()}`, cx, cy + s(60));
+            ctx.fillStyle = placement === 3 ? theme.textMuted : theme.accent;
+            ctx.font = `bold ${r(mobile ? 20 : 26)}px ${theme.bodyFont}`;
+            ctx.fillText(prizeLabels[placement], cx, cy - s(20));
+        } else {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(mobile ? 20 : 26)}px ${theme.bodyFont}`;
+            ctx.fillText(`VOCÊ PERDEU — R$ ${this.game.betAmount}`, cx, cy - s(20));
         }
 
+        // Top-3 podium list
+        const podiumLabels = ['🥇', '🥈', '🥉'];
+        const podiumY = cy + s(25);
+        const podiumStep = s(mobile ? 28 : 32);
+        ctx.font = `bold ${r(mobile ? 13 : 15)}px ${theme.bodyFont}`;
+
+        const top3 = this.game.winners.slice(0, 3);
+        top3.forEach((d, idx) => {
+            const isChosen = d.id === this.game.selectedDog;
+            ctx.fillStyle = isChosen ? '#fde047' : (idx === 0 ? '#fff' : theme.textMuted);
+            ctx.textAlign = 'center';
+            ctx.fillText(`${podiumLabels[idx]}  ${d.name.toUpperCase()}${isChosen ? '  ◄' : ''}`, cx, podiumY + idx * podiumStep);
+        });
+
+        // Footer hint
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-        const mobile = isMobile();
-        ctx.fillText(mobile ? "[OK] Sair" : "ESPAÇO PARA SAIR", cx, h - s(80));
+        ctx.fillText(mobile ? '[OK] Sair' : 'ESPAÇO PARA SAIR', cx, h - s(80));
     }
 }

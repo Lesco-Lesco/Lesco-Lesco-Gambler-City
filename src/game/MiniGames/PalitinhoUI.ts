@@ -49,6 +49,7 @@ export class PalitinhoUI implements IMinigameUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.chooseMatchstick(this.selectedIdx);
                 SoundManager.getInstance().play('dice_roll'); // "Pick" sound
+                SoundManager.getInstance().playArpeggio('palitinho');
             }
         } else if (phase === 'result') {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE') || this.input.wasPressed('KeyR')) {
@@ -58,10 +59,12 @@ export class PalitinhoUI implements IMinigameUI {
 
                 if (totalMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('palitinho', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(payout); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('palitinho', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
                 }
             }

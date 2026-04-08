@@ -277,9 +277,13 @@ export class DiceUI implements IMinigameUI {
                     bmanager.playerMoney -= this.betAmount;
                     this.game.startRound(this.humanChoices, this.betAmount);
                     SoundManager.getInstance().play('dice_roll');
+                    SoundManager.getInstance().playArpeggio('dice');
+                    SoundManager.getInstance().resetArpeggioStep('dice');
                     setTimeout(() => {
                         this.game.resolve();
-                        SoundManager.getInstance().play(this.game.winner?.isHuman ? 'win_small' : 'lose');
+                        const won = this.game.winner?.isHuman;
+                        SoundManager.getInstance().play(won ? 'win_small' : 'lose');
+                        SoundManager.getInstance().playFanfare('dice', won ? 'win' : 'lose');
                     }, 1500);
                 }
             }
@@ -291,6 +295,7 @@ export class DiceUI implements IMinigameUI {
 
                 if (totalMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('dice', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(winAmount); // Exit if broke
                 } else {

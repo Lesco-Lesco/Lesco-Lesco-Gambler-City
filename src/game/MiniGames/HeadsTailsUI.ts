@@ -47,6 +47,8 @@ export class HeadsTailsUI implements IMinigameUI {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.chooseSide(this.game.humanChoice);
                 SoundManager.getInstance().play('coin_flip');
+                SoundManager.getInstance().playArpeggio('headstails');
+                SoundManager.getInstance().resetArpeggioStep('headstails');
             }
         } else if (phase === 'flipping') {
             this.game.update(dt);
@@ -58,10 +60,12 @@ export class HeadsTailsUI implements IMinigameUI {
 
                 if (totalMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('headstails', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(payout); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('headstails', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
                 }
             }

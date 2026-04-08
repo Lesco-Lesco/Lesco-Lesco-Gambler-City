@@ -5,7 +5,6 @@ import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import type { IMinigameUI } from './BaseMinigame';
 import { SoundManager } from '../Core/SoundManager';
-import { EconomyManager } from '../Core/EconomyManager';
 import { InputManager } from '../Core/InputManager';
 import { BichoManager } from '../BichoManager';
 
@@ -33,16 +32,12 @@ export class HorseRacingUI implements IMinigameUI {
             if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) this.game.selectedHorse = (this.game.selectedHorse - 1 + 8) % 8;
             if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) this.game.selectedHorse = (this.game.selectedHorse + 1) % 8;
 
-            // Bet adjustment
-            const { step, max } = EconomyManager.getInstance().getBetLimits();
-            if (input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) this.game.betAmount = Math.max(10, this.game.betAmount - step);
-            if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) this.game.betAmount = Math.min(max, this.game.betAmount + step);
-
             if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 if (bmanager && bmanager.playerMoney >= this.game.betAmount) {
                     bmanager.playerMoney -= this.game.betAmount;
-                    this.game.startRace(this.game.selectedHorse, this.game.betAmount);
+                    this.game.startRace(this.game.selectedHorse);
                     SoundManager.getInstance().play('bet_place');
+                    SoundManager.getInstance().playArpeggio('horse');
                 }
             }
         } else if (this.game.phase === 'racing') {
@@ -54,10 +49,12 @@ export class HorseRacingUI implements IMinigameUI {
 
                 if (totalMoney < 10) { // Horse racing min bet is fixed at 10 in this UI
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('horse', 'lose');
                     bmanager?.addNotification("Você está sem grana para apostar!", 3);
                     this.onExit(payout); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('horse', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
                 }
             }
@@ -125,35 +122,28 @@ export class HorseRacingUI implements IMinigameUI {
             const numText = `${i + 1}.`;
             ctx.fillText(numText, listX + s(10), y + itemH / 2);
             ctx.fillText(horse.name.toUpperCase(), listX + s(50), y + itemH / 2);
-
-            // Odds
-            // Odds
-            ctx.textAlign = 'right';
-            ctx.fillStyle = isSelected ? theme.accent : theme.textMuted;
-            ctx.font = `bold ${r(mobile ? 12 : 15)}px ${theme.bodyFont}`;
-            ctx.fillText(`${horse.odds.toFixed(1)}x`, listX + listW - s(10), y + itemH / 2);
         });
 
-        // ── Bet Context ──
+        // ── Fixed Bet Display ──
         const betY = h * 0.80;
         ctx.textAlign = 'center';
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-        ctx.fillText("APOSTA ATUAL", cx, betY);
+        ctx.fillText('ENTRADA', cx, betY);
 
         const bmanager = (window as any).bmanager;
-        const isBroke = (bmanager?.playerMoney || 0) < 10;
+        const isBroke = (bmanager?.playerMoney || 0) < this.game.betAmount;
         if (isBroke) {
             ctx.fillStyle = '#f87171';
             ctx.font = `bold ${r(24)}px ${theme.titleFont}`;
-            ctx.fillText("SEM GRANA!", cx, betY + s(40));
+            ctx.fillText('SEM GRANA!', cx, betY + s(40));
         } else {
             ctx.fillStyle = theme.accent;
             ctx.font = `bold ${r(42)}px ${theme.titleFont}`;
             ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(40));
         }
 
-        const hint = mobile ? 'DPAD Selecionar • [OK] Apostar' : '↑↓ SELECIONAR • ←→ VALOR • ESPAÇO CONFIRMAR';
+        const hint = mobile ? 'DPAD Selecionar • [OK] Apostar' : '↑↓ SELECIONAR • ESPAÇO CONFIRMAR';
         drawMinigameFooter(ctx, w, h, theme, hint);
     }
 
@@ -265,46 +255,68 @@ export class HorseRacingUI implements IMinigameUI {
         const r = UIScale.r.bind(UIScale);
         const cx = w / 2;
         const cy = h / 2;
+        const mobile = isMobile();
 
-        ctx.fillStyle = 'rgba(10,25,10,0.92)'; // Deep green overlay
+        ctx.fillStyle = 'rgba(10,25,10,0.93)';
         ctx.fillRect(0, 0, w, h);
 
-        const winner = this.game.winners[0];
-        const isWin = winner.id === this.game.selectedHorse;
+        const placement = this.game.getPlacement();
+        const payout = this.game.getPayout();
+        const isWin = placement <= 3;
+        const ordinals = ['', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º'];
+        // Prize in reais received (payout already includes bet return for 3rd)
+        const prizeLabels: Record<number, string> = {
+            1: `+ R$ ${payout - this.game.betAmount}  (🥇 PRIMEIRO!)`,
+            2: `+ R$ ${payout - this.game.betAmount}  (🥈 SEGUNDO)`,
+            3: `0  (🥉 TERCEIRO — aposta devolvida)`,
+        };
 
-        // Result Title
+        // Title
         ctx.fillStyle = theme.accent;
-        ctx.font = `bold ${r(14)}px "Press Start 2P", monospace`;
+        ctx.font = `bold ${r(12)}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText("RESULTADO DA CORRIDA", cx, cy - s(110));
+        ctx.fillText('RESULTADO DA CORRIDA', cx, cy - s(130));
 
-        // Result Status (Player Outcome)
+        // Big placement line
         ctx.fillStyle = isWin ? '#fff' : '#ff4444';
-        ctx.font = `900 ${r(isMobile() ? 48 : 58)}px ${theme.titleFont}`;
+        ctx.font = `900 ${r(mobile ? 34 : 44)}px ${theme.titleFont}`;
         ctx.shadowBlur = s(20);
         ctx.shadowColor = isWin ? theme.accent : '#ff0000';
-        ctx.fillText(isWin ? "VOCÊ GANHOU!" : "VOCÊ PERDEU", cx, cy - s(45));
+        const placeLine = isWin
+            ? `SEU CAVALO CHEGOU EM ${ordinals[placement]} LUGAR!`
+            : `SEU CAVALO CHEGOU EM ${ordinals[placement]} LUGAR`;
+        ctx.fillText(placeLine, cx, cy - s(70));
         ctx.shadowBlur = 0;
 
-        // Winning Horse Label
-        ctx.fillStyle = theme.textMuted;
-        ctx.font = `bold ${r(12)}px ${theme.titleFont}`;
-        ctx.fillText("CAVALO CAMPEÃO:", cx, cy + s(10));
-
-        // Winner Name
-        ctx.fillStyle = '#fff';
-        ctx.font = `italic 900 ${r(isMobile() ? 24 : 32)}px ${theme.titleFont}`;
-        ctx.fillText(winner.name.toUpperCase(), cx, cy + s(45));
-
+        // Prize label or loss
         if (isWin) {
-            ctx.fillStyle = theme.accent;
-            ctx.font = `bold ${r(32)}px ${theme.bodyFont}`;
-            ctx.fillText(`+ R$ ${this.game.getPayout()}`, cx, cy + s(95));
+            ctx.fillStyle = placement === 3 ? theme.textMuted : theme.accent;
+            ctx.font = `bold ${r(mobile ? 20 : 26)}px ${theme.bodyFont}`;
+            ctx.fillText(prizeLabels[placement], cx, cy - s(20));
+        } else {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${r(mobile ? 20 : 26)}px ${theme.bodyFont}`;
+            ctx.fillText(`VOCÊ PERDEU — R$ ${this.game.betAmount}`, cx, cy - s(20));
         }
 
+        // Top-3 podium list
+        const podiumLabels = ['🥇', '🥈', '🥉'];
+        const podiumY = cy + s(25);
+        const podiumStep = s(mobile ? 28 : 32);
+        ctx.font = `bold ${r(mobile ? 13 : 15)}px ${theme.bodyFont}`;
+
+        const top3 = this.game.winners.slice(0, 3);
+        top3.forEach((h, idx) => {
+            const isChosen = h.id === this.game.selectedHorse;
+            ctx.fillStyle = isChosen ? theme.accent : (idx === 0 ? '#fff' : theme.textMuted);
+            ctx.textAlign = 'center';
+            ctx.fillText(`${podiumLabels[idx]}  ${h.name.toUpperCase()}${isChosen ? '  ◄' : ''}`, cx, podiumY + idx * podiumStep);
+        });
+
+        // Footer hint
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-        const footerHint = isMobile() ? "[OK] NOVA PARTIDA" : "[ESPAÇO] NOVA PARTIDA";
+        const footerHint = mobile ? '[OK] NOVA PARTIDA' : '[ESPAÇO] NOVA PARTIDA';
         ctx.fillText(footerHint, cx, h - s(80));
     }
 }

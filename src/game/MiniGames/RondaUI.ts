@@ -246,6 +246,7 @@ export class RondaUI implements IMinigameUI {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.chooseCard(0);
                     SoundManager.getInstance().play('card_deal');
+                    SoundManager.getInstance().playArpeggio('ronda');
                 }
             }
             if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD') || input.wasPressed('Enter') || input.wasPressed('Space') || input.wasPressed('KeyE')) {
@@ -253,6 +254,7 @@ export class RondaUI implements IMinigameUI {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.chooseCard(1);
                     SoundManager.getInstance().play('card_deal');
+                    SoundManager.getInstance().playArpeggio('ronda');
                 }
             }
         } else if (this.game.phase === 'result') {
@@ -265,10 +267,12 @@ export class RondaUI implements IMinigameUI {
                 
                 if (totalMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('ronda', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(this.game.winAmount); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(this.game.winAmount > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('ronda', this.game.winAmount > 0 ? 'win' : 'lose');
                     this.onPlayAgain(this.game.winAmount);
                     this.game.reset();
                 }

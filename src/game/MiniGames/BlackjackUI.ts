@@ -38,6 +38,8 @@ export class BlackjackUI implements IMinigameUI {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.deal();
                     SoundManager.getInstance().play('card_deal');
+                    SoundManager.getInstance().playArpeggio('blackjack');
+                    SoundManager.getInstance().resetArpeggioStep('blackjack');
                 } else {
                     bmanager.addNotification("Saldo insuficiente!", 2);
                 }
@@ -45,7 +47,7 @@ export class BlackjackUI implements IMinigameUI {
         } else if (this.game.phase === 'playing') {
             const hit = this.input.wasPressed('KeyH') || (mobile && this.input.wasPressed('Space'));
             const stand = this.input.wasPressed('KeyS') || (mobile && this.input.wasPressed('KeyE'));
-            if (hit) { this.game.hit(); SoundManager.getInstance().play('card_flip'); }
+            if (hit) { this.game.hit(); SoundManager.getInstance().play('card_flip'); SoundManager.getInstance().playArpeggio('blackjack'); }
             if (stand) this.game.stand();
         } else if (this.game.phase === 'result') {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
@@ -56,8 +58,10 @@ export class BlackjackUI implements IMinigameUI {
                 if (payout > 0) {
                     bmanager.playerMoney += payout;
                     SoundManager.getInstance().play(this.game.winner === 'push' ? 'draw' : 'win_small');
+                    SoundManager.getInstance().playFanfare('blackjack', 'win');
                 } else {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('blackjack', 'lose');
                 }
 
                 if (totalMoney < this.game.minBet) {

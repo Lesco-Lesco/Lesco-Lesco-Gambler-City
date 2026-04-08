@@ -1,3 +1,5 @@
+import { EconomyManager } from '../Core/EconomyManager';
+
 export type DogPersonality = 'sprinter' | 'closer' | 'balanced' | 'erratic';
 
 export interface Dog {
@@ -20,13 +22,30 @@ export class DogRacingGame {
     public dogs: Dog[] = [];
     public phase: 'betting' | 'racing' | 'result' = 'betting';
     public selectedDog: number = 0;
-    public betAmount: number = 10;
+    public betAmount: number = 10;   // Set automatically from EconomyManager on init/reset
+    public isPeriphery: boolean = false;
     public winners: Dog[] = [];
     public raceTime: number = 0;
     public readonly RACE_DISTANCE = 1000;
 
-    constructor() {
+    // Fixed prize table (relative to betAmount)
+    // 1st: 6× bet received  → profit +5× bet
+    // 2nd: 2× bet received  → profit +1× bet
+    // 3rd: 1× bet received  → break even
+    // 4th+: 0              → lost
+    private static readonly PRIZE_MULT: Record<number, number> = { 1: 6, 2: 2, 3: 1 };
+
+    constructor(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
+        this._refreshBet();
         this.initDogs();
+    }
+
+    private _refreshBet() {
+        const limits = this.isPeriphery
+            ? EconomyManager.getInstance().getPeripheryBetLimits()
+            : EconomyManager.getInstance().getBetLimits();
+        this.betAmount = limits.min;
     }
 
     private initDogs() {
@@ -86,9 +105,9 @@ export class DogRacingGame {
         });
     }
 
-    public startRace(dogId: number, amount: number) {
+    public startRace(dogId: number) {
         this.selectedDog = dogId;
-        this.betAmount = amount;
+        this._refreshBet();
         this.phase = 'racing';
         this.raceTime = 0;
         this.winners = [];
@@ -146,20 +165,24 @@ export class DogRacingGame {
         }
     }
 
+    /** Returns the finishing position (1-8) of the selected dog, or 9 if not yet finished. */
+    public getPlacement(): number {
+        const idx = this.winners.findIndex(d => d.id === this.selectedDog);
+        return idx === -1 ? 9 : idx + 1;
+    }
+
+    /** Fixed prize: 1st=6×bet, 2nd=2×bet, 3rd=1×bet (break even), 4th+=0 */
     public getPayout(): number {
-        if (this.winners.length > 0 && this.winners[0].id === this.selectedDog) {
-            const rawPayout = this.betAmount * this.winners[0].odds;
-            return Math.floor(rawPayout / 10) * 10;
-        }
-        return 0;
+        const mult = DogRacingGame.PRIZE_MULT[this.getPlacement()] ?? 0;
+        return this.betAmount * mult;
     }
 
     public reset() {
         this.phase = 'betting';
         this.selectedDog = 0;
-        this.betAmount = 10;
         this.winners = [];
         this.raceTime = 0;
+        this._refreshBet();
         this.initDogs();
     }
 }

@@ -16,6 +16,7 @@ export class FanTanUI implements IMinigameUI {
     private onClose: (moneyChange: number) => void;
     private onPlayAgain: (moneyChange: number) => void;
     private selectedPos: number = 1;
+    private _fanTanArpTimer: number = 0; // throttle: toca nota a cada 300ms
 
     constructor(game: FanTanGame, onClose: (moneyChange: number) => void, onPlayAgain: (moneyChange: number) => void) {
         this.game = game;
@@ -54,6 +55,12 @@ export class FanTanUI implements IMinigameUI {
             setTimeout(() => { if (this.game.phase === 'reveal') this.game.phase = 'counting'; }, 1500);
         } else if (phase === 'counting') {
             this.game.update(dt);
+            // Nota sine meditativa a cada grão contado (~300ms)
+            this._fanTanArpTimer -= dt;
+            if (this._fanTanArpTimer <= 0) {
+                SoundManager.getInstance().playArpeggio('fantan');
+                this._fanTanArpTimer = 0.3;
+            }
         } else if (phase === 'result') {
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE') || this.input.wasPressed('KeyR')) {
                 const bmanager = BichoManager.getInstance();
@@ -62,10 +69,12 @@ export class FanTanUI implements IMinigameUI {
 
                 if (totalMoney < this.game.minBet) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('fantan', 'lose');
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onClose(payout); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('fantan', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
                 }
             }

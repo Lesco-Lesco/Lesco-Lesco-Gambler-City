@@ -15,16 +15,16 @@ export interface NewsItem {
  * - Evitar descrições longas; focar no que mudou ou em pistas rápidas.
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v2.2.1",
+    id: "v2.2.2",
     title: "SANTA CRUZ EM FOCO",
     date: "Abril, 2026",
     description: [
         "SEGURA O CORAÇÃO, SANTA CRUZ!",
         "",
-        "• SUBIDA DO MORRO: O bairro é escada, parceiro! Ganhe moral no Shopping e mure conquistas para abrir o Subsolo. Malandragem pura!",
+        "• PAZ NO BOTECO: Novo decreto! A PM não entra mais nos bares. Bingo e corridas estão blindados. O bicho só pega na rua, exceto pra quem joga dominó!",
         "• RETA DA BASE: Quer forrar o bolso? Vá pras beiras do mapa! Na periferia a aposta dobra e o coração dispara. Ação real!",
+        "• SUBIDA DO MORRO: O bairro é escada, parceiro! Ganhe moral no Shopping e abra o Subsolo do Marco Imperial. Malandragem!",
         "• DINHEIRO NA MÃO: Esquece o troco! Agora é só nota de dez pra cima. Ganhou, levou, sem moedinha pra atrasar a banca.",
-        "• INCENSO DOIDO: Srs. S, P e Madame M... a PM sentiu a 'brisa' no corredor e tá doida pra achar o terreiro. Abre o olho, tá na pista!",
         "• ÚLTIMO SUSPIRO: A vovó te salva UMA VEZ com 50 mangos. Zerou de novo? É vala! Game Over sem choro. Se garanta no taco!",
         "",
     ]

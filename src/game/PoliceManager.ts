@@ -127,8 +127,7 @@ export class PoliceManager {
         if (this.raidCooldown > 0) return 0;
 
         if (isInsideBar) {
-            // Raids in bars are much harder to happen (0.5% every 5s base, 1% in periphery)
-            return this.isPeriphery(x, y) ? 0.01 : 0.005;
+            return 0;
         }
 
         // --- STREET RAIDS (Restored to "Perfect" state) ---

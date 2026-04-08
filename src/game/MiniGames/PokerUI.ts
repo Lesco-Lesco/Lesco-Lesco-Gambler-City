@@ -37,6 +37,8 @@ export class PokerUI implements IMinigameUI {
                     this.pendingRaise = 0;
                     SoundManager.getInstance().play('bet_place');
                     SoundManager.getInstance().play('card_deal');
+                    SoundManager.getInstance().playArpeggio('poker');
+                    SoundManager.getInstance().resetArpeggioStep('poker');
                 } else {
                     bmanager.addNotification("Saldo insuficiente para aposta mínima!", 2);
                 }
@@ -50,8 +52,10 @@ export class PokerUI implements IMinigameUI {
                 if (payout > 0) {
                     bmanager.playerMoney += payout;
                     SoundManager.getInstance().play('win_small');
+                    SoundManager.getInstance().playFanfare('poker', 'win');
                 } else if (payout < 0 || profit < 0) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('poker', 'lose');
                 }
 
                 const { min } = EconomyManager.getInstance().getBetLimits();
@@ -89,6 +93,7 @@ export class PokerUI implements IMinigameUI {
                     }
                     this.game.nextPhase();
                     SoundManager.getInstance().play('card_deal');
+                    SoundManager.getInstance().playArpeggio('poker');
                 }
             } else {
                 if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {

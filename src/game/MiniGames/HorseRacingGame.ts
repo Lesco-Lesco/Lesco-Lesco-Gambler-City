@@ -1,3 +1,5 @@
+import { EconomyManager } from '../Core/EconomyManager';
+
 export type HorsePersonality = 'sprinter' | 'closer' | 'balanced' | 'erratic';
 
 export interface Horse {
@@ -19,13 +21,30 @@ export class HorseRacingGame {
     public horses: Horse[] = [];
     public phase: 'betting' | 'racing' | 'result' = 'betting';
     public selectedHorse: number = 0;
-    public betAmount: number = 10;
+    public betAmount: number = 10;   // Set automatically from EconomyManager on init/reset
+    public isPeriphery: boolean = false;
     public winners: Horse[] = []; // Stores top finishers in order
     public raceTime: number = 0;
     public readonly RACE_DISTANCE = 1000;
 
-    constructor() {
+    // Fixed prize table (relative to betAmount, resolved at payout time)
+    // 1st: 6× bet received  → profit +5× bet
+    // 2nd: 2× bet received  → profit +1× bet
+    // 3rd: 1× bet received  → break even
+    // 4th+: 0              → lost
+    private static readonly PRIZE_MULT: Record<number, number> = { 1: 6, 2: 2, 3: 1 };
+
+    constructor(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
+        this._refreshBet();
         this.initHorses();
+    }
+
+    private _refreshBet() {
+        const limits = this.isPeriphery
+            ? EconomyManager.getInstance().getPeripheryBetLimits()
+            : EconomyManager.getInstance().getBetLimits();
+        this.betAmount = limits.min;
     }
 
     private initHorses() {
@@ -79,9 +98,9 @@ export class HorseRacingGame {
         });
     }
 
-    public startRace(horseId: number, amount: number) {
+    public startRace(horseId: number) {
         this.selectedHorse = horseId;
-        this.betAmount = amount;
+        this._refreshBet();
         this.phase = 'racing';
         this.raceTime = 0;
         this.winners = [];
@@ -148,18 +167,23 @@ export class HorseRacingGame {
         }
     }
 
+    /** Returns the finishing position (1-8) of the selected horse, or 9 if not yet finished. */
+    public getPlacement(): number {
+        const idx = this.winners.findIndex(h => h.id === this.selectedHorse);
+        return idx === -1 ? 9 : idx + 1;
+    }
+
+    /** Fixed prize: 1st=6×bet, 2nd=2×bet, 3rd=1×bet (break even), 4th+=0 */
     public getPayout(): number {
-        if (this.winners.length > 0 && this.winners[0].id === this.selectedHorse) {
-            const rawPayout = this.betAmount * this.winners[0].odds;
-            return Math.floor(rawPayout / 10) * 10;
-        }
-        return 0;
+        const mult = HorseRacingGame.PRIZE_MULT[this.getPlacement()] ?? 0;
+        return this.betAmount * mult;
     }
 
     public reset() {
         this.phase = 'betting';
         this.winners = [];
         this.raceTime = 0;
+        this._refreshBet();
         this.initHorses();
     }
 }

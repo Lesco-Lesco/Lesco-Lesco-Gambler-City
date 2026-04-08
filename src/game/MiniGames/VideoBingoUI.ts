@@ -38,6 +38,7 @@ export class VideoBingoUI implements IMinigameUI {
                     bmanager.playerMoney -= this.game.betAmount;
                     this.game.start();
                     SoundManager.getInstance().play('bet_place');
+                    SoundManager.getInstance().resetArpeggioStep('videobingo');
                 }
             }
         } else if (this.game.phase === 'picking') {
@@ -62,10 +63,12 @@ export class VideoBingoUI implements IMinigameUI {
 
                 if (totalMoney < 10) {
                     SoundManager.getInstance().play('lose');
+                    SoundManager.getInstance().playFanfare('videobingo', 'lose');
                     bmanager?.addNotification("Você está sem grana para apostar!", 3);
                     this.onExit(payout); // Exit if broke
                 } else {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
+                    SoundManager.getInstance().playFanfare('videobingo', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
                 }
             }
@@ -84,7 +87,7 @@ export class VideoBingoUI implements IMinigameUI {
         this.drawInterval = setInterval(() => {
             const num = this.game.drawNext();
             if (num !== null) {
-                SoundManager.getInstance().play('dice_roll');
+                SoundManager.getInstance().playArpeggio('videobingo');
             } else {
                 if (this.drawInterval) clearInterval(this.drawInterval);
             }
