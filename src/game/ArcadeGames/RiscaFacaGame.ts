@@ -44,14 +44,18 @@ export class RiscaFacaGame {
         this.startRound();
     }
 
-    private startRound() {
+    private startRound(keepEnemy: boolean = false) {
         this.phase = 'ready';
         this.readyTimer = 1.5;
         this.markerPos = 0;
         this.markerDir = 1;
-        this.roundWon = false;
         this.playerTiming = -1;
-        this.currentEnemy = this.enemyNames[Math.floor(Math.random() * this.enemyNames.length)];
+
+        if (!keepEnemy || !this.currentEnemy) {
+            this.currentEnemy = this.enemyNames[Math.floor(Math.random() * this.enemyNames.length)];
+        }
+        
+        this.roundWon = false;
 
         // Harder each round
         this.markerSpeed = 1.5 + this.round * 0.15;
@@ -88,8 +92,8 @@ export class RiscaFacaGame {
                     this.phase = 'game_over';
                     this.gameOverPhrase = getMotivationalPhrase();
                 } else {
-                    this.round++;
-                    this.startRound();
+                    if (this.roundWon) this.round++;
+                    this.startRound(!this.roundWon);
                 }
             }
         }

@@ -616,8 +616,8 @@ export class ExplorationScene implements Scene {
             this.lastPlayerTileX = tx;
             this.lastPlayerTileY = ty;
 
-            // Trigger music after ~150-200 tiles of walking (clinical feel)
-            if (this.musicCooldown <= 0 && this.distanceSinceLastMusic > 150 + Math.random() * 100) {
+            // Trigger music after ~125-210 tiles of walking (clinical feel, 15% more frequent)
+            if (this.musicCooldown <= 0 && this.distanceSinceLastMusic > 125 + Math.random() * 85) {
                 this.playRandomMusicMotif();
             }
         }
@@ -636,8 +636,8 @@ export class ExplorationScene implements Scene {
         console.log(`🎵 Playing clinical music motif: ${trackName} (Volume: ${volume})`);
         SoundManager.getInstance().play(trackName, { volume });
 
-        // Cooldown: 3 to 6 minutes of silence (classic Sim City feel)
-        this.musicCooldown = 180 + Math.random() * 180;
+        // Cooldown: 2.5 to 5 minutes of silence (classic Sim City feel)
+        this.musicCooldown = 153 + Math.random() * 153;
         this.distanceSinceLastMusic = 0;
     }
 

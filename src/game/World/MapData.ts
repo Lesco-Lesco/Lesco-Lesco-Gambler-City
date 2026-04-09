@@ -1109,4 +1109,108 @@ export const LAMPPOST_POSITIONS = CITY_LIGHTS
     .filter(l => l.type === 'street' || l.type === 'plaza' || l.type === 'alley')
     .map(l => ({ x: l.x, y: l.y }));
 
+const SPECIAL_NAMES = [
+    // Os requisitados pelo usuário
+    'VALA DO SANGUE', 'MATADOURO', 'BECO DA MIJANÇA', 'BECO DO CONSTÂNCIA', 
+    'BECO DOS UNIDOS', 'BECO PIXIPAU', 'CALIPAL', 'BOA VISTA', 
+    'LARGO DO BODEGÃO', 'LARGO DO CRISTIANO',
+    // Os clássicos gerados antes
+    'TOCA DO RATO', 'BURACO QUENTE', 'LADEIRA DO ESCORREGA', 'BECO DO SAPO', 
+    'TRAVESSA SEM SAÍDA', 'ESQUINA DO PECADO', 'BECO DO MACEDO', 'LARGO DO BOI TORTO', 
+    'CAMINHO DO BREJO', 'CURVA DO S', 'BECO DA BAIÚCA', 'PASSAGEM DO TREM', 
+    'FUNDÃO', 'LARGO DO ZUMBI', 'VIELA DA PAZ', 'BECO DO CACHORRO MAGRO',
+    'LARGO DA LAMA', 'RATO MOLHADO', 'ESQUINA DOS AFLITOS', 'VIELA DAS PEDRAS',
+    'BECO ABERTO', 'ESQUINA DO CORTIÇO', 'TRAVESSA DO BURACO', 'BEQUINHO ESCURO'
+];
+
+const ALLEY_PREFIXES = [
+    'BECO', 'TRAVESSA', 'VIELA', 'LARGO', 'RUA'
+]; // 5 Elementos
+
+const ALLEY_SUFFIXES = [
+    // 50 Elementos para cobrir 250 combinações únicas (5 * 50)
+    'DO CAPETA', 'DA TRISTEZA', 'DO PEREIRA', 'DO SACI', 'DAS LÁGRIMAS',
+    'DO AÇOUGUE', 'MOLHADO', 'DE FERRO', 'DO CORVO', 'DA GANGUE',
+    'DO DESESPERO', 'DA FUGA', 'DO CHORO', 'DAS GARRAFAS', 'DO CONTRABANDO',
+    'DA ILUSÃO', 'DOS OSSOS', 'DO FOGO', 'DO PERDÃO', 'DA SAUDADE',
+    'DA AMARGURA', 'DA NOITE', 'DE BRONZE', 'DA FUMAÇA', 'DO ÓDIO',
+    'DO AZAR', 'DO PECADOR', 'DA JUSTIÇA', 'DO CONDENADO', 'DA MALDADE',
+    'DOS TRAÍDOS', 'DO VINGADOR', 'DA PENITÊNCIA', 'DA COBIÇA', 'DA MISÉRIA',
+    'DA LUZ', 'DAS SOMBRAS', 'DO ECLIPSE', 'DA MADRUGADA', 'DA VINGANÇA',
+    'DAS CRUZES', 'DOS MARGINAIS', 'DOS CAÍDOS', 'DA RESSACA', 'DOS PERDIDOS',
+    'DA CHUVA', 'DO FANTASMA', 'DA SORTE', 'DOS GATOS', 'DOS BÊBADOS'
+];
+
+export function getLocationName(x: number, y: number): string {
+    x = Math.floor(x);
+    y = Math.floor(y);
+
+    // 1. Áreas e Pontos de Referência (Expanded Snap-to-Bounds)
+    if (x >= 110 && x <= 147 && y >= 105 && y <= 147) return 'SANTA CRUZ SHOPPING';
+    if (x >= 220 && x <= 265 && y >= 150 && y <= 180) return 'ESTAÇÃO SANTA CRUZ';
+    if (x >= 220 && x <= 250 && y >= 125 && y <= 152) return 'MARCO IMPERIAL ONZE';
+    if (x >= 120 && x <= 140 && y >= 75 && y <= 102) return 'IGREJA N.S. DA CONCEIÇÃO';
+    if (x >= 140 && x <= 175 && y >= 152 && y <= 195) return 'PRAÇA MARQUES DE HERVAL';
+
+    // 2. Ruas Principais e Secundárias (Expanded Widths for sidewalks)
+    if (Math.abs(y - 150) <= 4) return 'R. FELIPE CARDOSO';
+    if (Math.abs(x - 100) <= 3) return 'R. BARÃO DE LAGUNA';
+    if (Math.abs(y - 200) <= 4) return 'R. LUCINDO PASSOS';
+    if (Math.abs(y - 80) <= 3) return 'R. GEN. OLÍMPIO';
+    if (Math.abs(x - 40) <= 3) return 'RUA FERNANDA';
+    if (Math.abs(x - 220) <= 3) return 'R. SEVERIANO DAS CHAGAS';
+    if (Math.abs(x - 160) <= 3 && y > 150) return 'RUA LEMOS';
+    if (Math.abs(y - 30) <= 3) return 'R. DOZE DE FEVEREIRO';
+    if (Math.abs(y - 115) <= 3 && ((x >= 45 && x <= 117) || (x >= 143 && x <= 215))) return 'R. SEN. CAMARÁ';
+    if (Math.abs(x - 110) <= 3 && y >= 80 && y <= 150) return 'R. LOPES DE MOURA';
+    if (Math.abs(x - 190) <= 3 && y >= 80 && y <= 150) return 'R. GEN. CANABARRO';
+    if (Math.abs(y - 60) <= 2 && x >= 170 && x <= 220) return 'R. DO IMPÉRIO';
+    if (Math.abs(x - 180) <= 2 && y >= 60 && y <= 80) return 'R. DO IMPÉRIO';
+    if (Math.abs(y - 110) <= 2 && x >= 150 && x <= 220) return 'R. ÁLVARO ALBERTO';
+    if (Math.abs(x - 70) <= 3 && y >= 35 && y <= 280) return 'R. SÃO BENEDITO';
+    if (Math.abs(y - 240) <= 4 && x >= 10 && x <= 290) return 'AV. ANTARES';
+    if ((Math.abs(y - 45) <= 2 || Math.abs(y - 130) <= 2) && x >= 160 && x <= 220) return 'TV. DAS FLORES';
+    if ((y >= 215 && y <= 227 && x >= 55 && x <= 125) || (x >= 75 && x <= 87 && y >= 200 && y <= 265) || (y >= 255 && y <= 267 && x >= 75 && x <= 155)) return 'BECO DO MATADOURO';
+
+    // 3. Imersão / Fallbacks Baseados no Tipo de Tile e Células de Espaço
+    if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) {
+        const tile = MAP_DATA[y][x];
+        
+        if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL) return 'INTERIOR';
+        
+        if (tile === TILE_TYPES.ALLEY || tile === TILE_TYPES.STREET || tile === TILE_TYPES.SIDEWALK || tile === TILE_TYPES.PLAZA) {
+            
+            // Delimitação estrita das zonas favela/residenciais com uma pequena margem (5 tiles)
+            const inWestFavela = (x >= 5 && x <= 50 && y >= 5 && y <= 295);
+            const inWestRes = (x >= 40 && x <= 100 && y >= 5 && y <= 150);
+            const inEastRes = (x >= 160 && x <= 225 && y >= 5 && y <= 150);
+            const inEastFavela = (x >= 220 && x <= 295 && y >= 5 && y <= 295);
+            const inSouthLoop = (x >= 40 && x <= 225 && y >= 200 && y <= 295);
+            
+            const isFavelaZone = inWestFavela || inWestRes || inEastRes || inEastFavela || inSouthLoop;
+
+            if (isFavelaZone) {
+                // Procedural determinístico de nomes do labirinto
+                const chunkX = Math.floor(x / 20);
+                const chunkY = Math.floor(y / 20);
+                const chunkId = (chunkY * 15) + chunkX;
+
+                if (chunkId < SPECIAL_NAMES.length) {
+                    return SPECIAL_NAMES[chunkId];
+                } else {
+                    const prefix = ALLEY_PREFIXES[chunkId % ALLEY_PREFIXES.length];
+                    const suffix = ALLEY_SUFFIXES[Math.floor(chunkId / ALLEY_PREFIXES.length) % ALLEY_SUFFIXES.length];
+                    return `${prefix} ${suffix}`;
+                }
+            } else {
+                // Fora das zonas periféricas: Fallbacks estruturados do Centro
+                if (tile === TILE_TYPES.PLAZA) return 'PRAÇA COMERCIAL';
+                return 'CENTRO DE SANTA CRUZ';
+            }
+        }
+    }
+
+    return 'SANTA CRUZ';
+}
+
 

@@ -1,6 +1,6 @@
 import { Camera } from '../Core/Camera';
 import { TileMap } from './TileMap';
-import { TILE_TYPES, MAP_WIDTH, STREET_SIGNS, AREA_LABELS, BARS, ARCADES } from './MapData';
+import { TILE_TYPES, MAP_WIDTH, STREET_SIGNS, AREA_LABELS, BARS, ARCADES, getLocationName } from './MapData';
 import { isMobile } from '../Core/MobileDetect';
 import { UIScale } from '../Core/UIScale';
 import { InputManager } from '../Core/InputManager';
@@ -254,10 +254,36 @@ export class Minimap {
         ctx.fill();
 
         // Label
-        ctx.fillStyle = '#888';
-        ctx.font = `${UIScale.r(8)}px monospace`;
+        const locationName = getLocationName(playerX, playerY) + (mobile ? '' : ' (M)');
+        
+        ctx.font = `bold ${UIScale.r(10)}px monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText('SANTA CRUZ (M)', mmX + mmSize / 2, mmY - s(6));
+        ctx.textBaseline = 'middle';
+        
+        const textMetrics = ctx.measureText(locationName);
+        const textWidth = textMetrics.width;
+        const textHeight = UIScale.r(10);
+        
+        const padX = s(8);
+        const padY = s(4);
+        
+        const cx = mmX + mmSize / 2;
+        const cy = mmY - s(10);
+
+        // Background Pill
+        ctx.fillStyle = 'rgba(10, 10, 15, 0.85)';
+        ctx.beginPath();
+        ctx.roundRect(cx - textWidth / 2 - padX, cy - textHeight / 2 - padY, textWidth + padX * 2, textHeight + padY * 2, s(6));
+        ctx.fill();
+
+        // Border for Pill
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = s(1);
+        ctx.stroke();
+
+        // Text
+        ctx.fillStyle = '#f5f5dc'; // Off-white/beige for better contrast
+        ctx.fillText(locationName, cx, cy + s(1));
     }
 
     private renderMaximized(ctx: CanvasRenderingContext2D, screenW: number, screenH: number, playerX: number, playerY: number, npcs: any[]) {

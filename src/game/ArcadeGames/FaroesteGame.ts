@@ -43,13 +43,17 @@ export class FaroesteGame {
         this.startRound();
     }
 
-    private startRound() {
+    private startRound(keepEnemy: boolean = false) {
         this.phase = 'waiting';
         this.waitTimer = 2.0 + Math.random() * 3.0; // Random wait
         this.playerDrew = false;
         this.playerDrawTime = -1;
+
+        if (!keepEnemy || !this.currentEnemy) {
+            this.currentEnemy = this.enemyNames[Math.floor(Math.random() * this.enemyNames.length)];
+        }
+
         this.roundWon = false;
-        this.currentEnemy = this.enemyNames[Math.floor(Math.random() * this.enemyNames.length)];
         // AI gets harder each round
         this.maxDrawTime = Math.max(0.25, 1.0 - this.round * 0.05);
         this.aiDrawTime = 0.15 + Math.random() * this.maxDrawTime;
@@ -108,8 +112,8 @@ export class FaroesteGame {
                     this.phase = 'game_over';
                     this.gameOverPhrase = getMotivationalPhrase();
                 } else {
-                    this.round++;
-                    this.startRound();
+                    if (this.roundWon) this.round++;
+                    this.startRound(!this.roundWon);
                 }
             }
         }
