@@ -569,9 +569,10 @@ export class NPC {
     }
 
     private drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, z: number) {
+        ctx.save();
         ctx.font = `${Math.max(10, 8 * z)}px monospace`;
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic'; // Fix for vertical alignment bug
+        ctx.textBaseline = 'alphabetic'; // Standard baseline for consistent vertical centering within our math
         const metrics = ctx.measureText(text);
         const w = metrics.width + 10 * z;
         const h = 16 * z;
@@ -584,8 +585,8 @@ export class NPC {
         ctx.strokeRect(x - w / 2, y - h, w, h);
 
         ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
         ctx.fillText(text, x, y - 5 * z);
+        ctx.restore();
     }
     public getInteractionType(): string | null {
         if (!this.isPlayerNearby) return null;

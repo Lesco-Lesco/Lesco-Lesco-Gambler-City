@@ -215,6 +215,8 @@ export class Minimap {
         const mmX = screenW - mmSize - mmPad;
         const mmY = mobile ? mmPad : screenH - mmSize - mmPad;
 
+        ctx.save(); // Prevent state leakage
+
         // Background with border
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(mmX - s(3), mmY - s(3), mmSize + s(6), mmSize + s(6));
@@ -284,6 +286,8 @@ export class Minimap {
         // Text
         ctx.fillStyle = '#f5f5dc'; // Off-white/beige for better contrast
         ctx.fillText(locationName, cx, cy + s(1));
+
+        ctx.restore();
     }
 
     private renderMaximized(ctx: CanvasRenderingContext2D, screenW: number, screenH: number, playerX: number, playerY: number, npcs: any[]) {
@@ -339,7 +343,7 @@ export class Minimap {
         ctx.restore();
 
         // --- DRAW STREET NAMES & LABELS (Inside paper, matching zoom) ---
-        ctx.save();
+        ctx.save(); // Prevent state leakage (especially textBaseline)
         ctx.beginPath();
         ctx.rect(px, py, paperSize, paperSize);
         ctx.clip();
@@ -562,6 +566,7 @@ export class Minimap {
         ];
 
         const itemW = width / games.length;
+        ctx.save(); // Prevent state leakage
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.font = `${r(11)}px monospace`;
@@ -573,6 +578,7 @@ export class Minimap {
             ctx.fillStyle = '#e4dcc4';
             ctx.fillText(g.name, gx + s(12), y + s(4));
         });
+        ctx.restore();
     }
 }
 

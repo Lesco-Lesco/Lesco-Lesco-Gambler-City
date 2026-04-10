@@ -1414,6 +1414,7 @@ export class ExplorationScene implements Scene {
     // --- Rendering ---
 
     private renderBarMenu(ctx: CanvasRenderingContext2D) {
+        ctx.save();
         const s = UIScale.s.bind(UIScale);
         const w = this.screenW;
         const h = this.screenH;
@@ -1425,6 +1426,7 @@ export class ExplorationScene implements Scene {
         drawMinigameBackground(ctx, w, h, theme);
 
         // Bar name title
+        ctx.save();
         ctx.shadowBlur = s(20);
         ctx.shadowColor = theme.accent;
         ctx.fillStyle = theme.accent;
@@ -1525,9 +1527,11 @@ export class ExplorationScene implements Scene {
             ? '[↑↓] SELECIONAR  |  [E] ENTRAR  |  [✕] SAIR'
             : '[↑↓] SELECIONAR  |  [ESPAÇO/E] ENTRAR  |  [ESC] SAIR';
         drawMinigameFooter(ctx, w, h, theme, hint);
+        ctx.restore();
     }
 
     private renderArcadeMenu(ctx: CanvasRenderingContext2D) {
+        ctx.save();
         const s = UIScale.s.bind(UIScale);
         const w = this.screenW;
         const h = this.screenH;
@@ -1670,6 +1674,7 @@ export class ExplorationScene implements Scene {
             ? '[D-Pad] SELECIONAR  |  [E] JOGAR  |  [✕] SAIR'
             : '[↑↓ ←→] SELECIONAR  |  [ESPAÇO/E] JOGAR  |  [ESC] SAIR';
         drawMinigameFooter(ctx, w, h, theme, hint);
+        ctx.restore();
     }
 
     private drawMenuJoystickDecoration(ctx: CanvasRenderingContext2D, x: number, y: number, s: (v: number) => number) {

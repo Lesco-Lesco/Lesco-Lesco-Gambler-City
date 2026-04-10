@@ -20,6 +20,7 @@ export class HUD {
         interactionHint: string | null
     ) {
         const s = UIScale.s.bind(UIScale);
+        ctx.textBaseline = 'alphabetic'; // Explicit reset to prevent alignment shifting from leaked state
 
         // --- Top-left: Money ---
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -124,6 +125,7 @@ export class HUD {
         if (notifications.length === 0) return;
 
         const s = UIScale.s.bind(UIScale);
+        ctx.textBaseline = 'alphabetic'; // Explicit reset
 
         const mobile = isMobile();
 

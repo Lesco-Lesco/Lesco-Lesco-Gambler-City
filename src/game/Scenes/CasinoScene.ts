@@ -534,6 +534,7 @@ export class CasinoScene implements Scene {
     // ─────────────────────────────────────────────────────────────
 
     public render(ctx: CanvasRenderingContext2D) {
+        ctx.save();
         const s = UIScale.s.bind(UIScale);
 
         // ── Garantia: reset de estado do canvas a cada frame ──
@@ -541,6 +542,7 @@ export class CasinoScene implements Scene {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
         ctx.shadowBlur = 0;
+        ctx.textBaseline = 'alphabetic'; // Reset baseline
 
         // Fundo + efeitos de ambiente
         this.drawBackground(ctx);
@@ -587,6 +589,7 @@ export class CasinoScene implements Scene {
             : (this.state === 'floor' ? '[ESC] Sair do cassino' : '[ESC] Voltar');
         ctx.fillText(exitHint, this.screenW - s(16), s(28));
         ctx.shadowBlur = 0;
+        ctx.restore();
     }
 
     private renderParticles(ctx: CanvasRenderingContext2D) {
