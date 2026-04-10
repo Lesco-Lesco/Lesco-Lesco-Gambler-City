@@ -42,7 +42,7 @@ export type TileType = typeof TILE_TYPES[keyof typeof TILE_TYPES];
 // ... (existing code) ...
 
 export const AREA_LABELS: { x: number; y: number; name: string; type: 'neighborhood' | 'shopping' }[] = [
-    { x: 130, y: 125, name: 'SANTA CRUZ\nSHOPPING', type: 'shopping' },
+    { x: 130, y: 127, name: 'SANTA CRUZ\nSHOPPING', type: 'shopping' },
     { x: 242, y: 165, name: 'ESTAÇÃO\nSANTA CRUZ', type: 'shopping' },
     { x: 235, y: 135, name: 'MARCO IMPERIAL\nONZE', type: 'neighborhood' },
     { x: 158, y: 170, name: 'PRAÇA MARQUES\nDE HERVAL', type: 'neighborhood' },
@@ -241,7 +241,7 @@ function generateMap(): number[][] {
     const scmY = 115;
     for (let x = 45; x < 215; x++) {
         // Break for Shopping
-        if (x >= 117 && x <= 143) continue;
+        if (x >= 122 && x <= 138) continue;
         set(x, scmY, S);
     }
 
@@ -260,21 +260,58 @@ function generateMap(): number[][] {
 
     // --- ZONES & FILLING ---
 
-    // A. Santa Cruz Shopping Zone (Smaller footprint - 15% reduction)
-    // Original: 115-145 (30) x 110-145 (35) = 1050
-    // Target: ~890. 
-    // New: 117-143 (26) x 112-143 (31) = 806 (approx 23% less, close enough to visually shrink)
-    fill(117, 112, 143, 143, SH);
-    // Entrance facing Felipe Cardoso
-    fill(127, 144, 133, 146, PZ);
-    set(130, 143, DE); // Aesthetic Entrance
+    // --- PARKING LOT & URBAN CONNECTIVITY ---
+    // Connect to Senador Camará (Y=115) and Lopes de Moura (X=110)
+    fill(108, 115, 142, 142, PZ); // Main Pavement
+    
+    // Santa Cruz Shopping Zone (Optimized for performance and visibility)
+    // Draw building AFTER pavement to avoid being overwritten
+    fill(122, 120, 138, 134, SH); // Building body
+    
+    // Parking Spots (Stripes of street/sidewalk)
+    for (let x = 112; x <= 120; x += 2) {
+        fill(x, 116, x, 118, S); // Spots on the west side
+    }
+    for (let x = 139; x <= 142; x += 2) {
+        fill(x, 116, x, 134, S); // Spots on the east side
+    }
+
+    // Decorative touches in parking/plaza
+    set(110, 118, TILE_TYPES.LAMPPOST);
+    set(118, 115, TILE_TYPES.TREE);
+    set(142, 125, TILE_TYPES.LAMPPOST);
+    
+    // Luxury Fountain
+    set(118, 128, TILE_TYPES.FOUNTAIN); // Moved slightly for better symmetry
+    
+    // Perimeter Bollards with Access Gates (FN)
+    // 1. West Edge (Senador Camará connection at Y=115)
+    // CLEAR: Senador Camará flows from West at Y=115. Gap Y=113 to Y=117.
+    fill(108, 118, 108, 142, FN); 
+    
+    // 2. South Edge (Felipe Cardoso and Lopes de Moura)
+    // GAP: Lopes de Moura at X=110. Leave X=108 to X=112 open.
+    // GAP: Main Entrance at X=130. Leave X=126 to X=134 open.
+    fill(113, 142, 125, 142, FN); 
+    fill(135, 142, 142, 142, FN); 
+    
+    // 3. North/East Edges (Marking borders with grass)
+    fill(142, 115, 142, 134, FN); // East border
+    fill(113, 115, 142, 115, FN); // North border (skip X=110)
+
+    // Decorative Planters (Trees in stone boxes)
+    set(112, 138, TILE_TYPES.TREE);
+    set(140, 140, TILE_TYPES.TREE);
+
+    // Main Entrance Pavement (Clear walkway to the street)
+    fill(126, 142, 134, 149, PZ); // Opening the path all the way to Felipe Cardoso
+    set(130, 135, DE); // Aesthetic Entrance precisely at the front wall center
 
     // *** CLANDESTINE CASINO ***
     // Hidden entrance at the back/side of the shopping
-    // Located at (115, 120) - West wall
+    // Now integrated into the parking logic
     set(114, 120, EN); // The secret door
-    // Add a small "alley" leading to it
-    fill(110, 120, 113, 120, A);
+    fill(110, 120, 113, 120, PZ); // Paved "alley" now part of plaza
 
     // B. Station Structure (MOVED to Intersection of Felipe Cardoso & Severiano)
     // Old location removed.
@@ -570,7 +607,6 @@ function generateMap(): number[][] {
     }
 
     // --- FINAL PROTECTION & POLISH ---
-    fill(117, 112, 143, 143, SH);
     for (let x = 0; x < MAP_WIDTH; x++) { set(x, fcY - 1, S); set(x, fcY + 1, S); }
     for (let y = 0; y < MAP_HEIGHT; y++) { set(blX, y, S); set(rfX, y, S); set(scX, y, S); }
 
@@ -607,7 +643,7 @@ function generateMap(): number[][] {
     fill(235, 149, 250, 161, PZ);
 
     // Final specific placements (Aesthetic & Social) - MUST BE LAST TO AVOID OVERWRITE
-    set(130, 143, DE); // Shopping Santa Cruz Entrance facing Felipe Cardoso
+    set(130, 135, DE); // Shopping Santa Cruz Entrance facing Felipe Cardoso
     set(242, 155, TILE_TYPES.INFORMATION_BOOTH); // Estação Santa Cruz Info Booth (Replaced DE)
     set(226, 175, EN); // Hidden Station Casino Entrance
 

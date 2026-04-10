@@ -355,7 +355,7 @@ export class TileRenderer {
                 const tileX = x;
                 const tileY = y;
 
-                if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL || tile === TILE_TYPES.SHOPPING || tile === TILE_TYPES.BAR || tile === TILE_TYPES.ARCADE) {
+                if (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL || tile === TILE_TYPES.BAR || tile === TILE_TYPES.ARCADE) {
                     drawables.push({
                         y: tileX + tileY + 0.5,
                         draw: () => {
@@ -437,7 +437,6 @@ export class TileRenderer {
                                     if (!s) this.drawArcadeEntrance(ctx, camera, tileX, tileY, rand);
                                     this.drawArcadeRoofDecorations(ctx, camera, tileX, tileY, h, rand);
                                 } else if (tile === TILE_TYPES.BUILDING_TALL) {
-                                    this.drawFloorDivision(ctx, camera, tileX, tileY, h);
                                     if (seededRandom(tileX * 7, tileY * 11) > 0.5 && width < 0.9) {
                                         this.drawExternalStaircase(ctx, camera, tileX, tileY, h);
                                     }
@@ -485,100 +484,161 @@ export class TileRenderer {
                         y: tileX + tileY + 0.5,
                         draw: () => {
                             const c = BUILDING_COLORS.shopping;
-                            // 3 Layers representing "crescent layers from bottom up"
-                            // Layer 1 (Base)
-                            renderer.drawIsoBlock(camera, tileX, tileY, 12, c.top, c.left, c.right, 1.0);
-
-                            // Layer 2 (Mid)
-                            // We need to draw ON TOP of the previous block. 
-                            // drawIsoBlock draws from ground z=0. 
-                            // We need a way to stack.
-                            // Actually drawIsoBlock logic takes blockHeight.
-                            // To stack, we'd need to shift the sy (screen Y) upwards by the height of the previous block.
-
-                            // Custom stacking:
                             const z = camera.zoom;
-
-                            // Draw L1
-                            // renderer.drawIsoBlock(camera, tileX, tileY, h1, c.top, c.left, c.right, 1.0);
-                            // To draw L2 sitting on L1, we simulate it by drawing a floating block?
-                            // Renderer doesn't support "elevation".
-                            // BUT, we can just manipulate the screen Y coordinate passed to a custom draw?
-                            // OR, since it's 2D iso, drawing a block at `y - h1` works visually.
-
-                            // Hack: Draw L2 as a VERY tall block that starts at ground but has the bottom cut off? No.
-
-                            // Correct way: Add 'baseHeight' or 'elevation' to drawIsoBlock.
-                            // Since I can't easily change Renderer signature again right now without touching other calls,
-                            // I will implement the stacking manually here by calculating screen coords.
-
-                            // Helper to draw stacked block
-                            const drawStacked = (elevation: number, height: number, scale: number) => {
-                                const { sx, sy } = camera.worldToScreen(tileX, tileY);
-                                // Shift sy UP by elevation * z
-                                const elevatedSy = sy - elevation * z;
-
-                                const hw = (TILE_WIDTH / 2) * z * scale;
-                                const hh = (TILE_HEIGHT / 2) * z * scale;
-                                const h = height * z;
-
-                                // Vertices relative to elevated center
-                                // Top: (0, -hh - h)
-                                // Top-Right: (hw, -h)
-                                // Bottom: (0, 0) -- This is the bottom front corner
-                                // Top-Left: (-hw, -h)
-                                // Wait, standard drawIsoBlock (Renderer.ts:109)
-                                // MoveTo sx-hw, sy (Left Point)
-                                // LineTo sx, sy+hh (Bottom Point)
-                                // LineTo sx, sy+hh-h (Bottom-Top Point?)
-
-                                // Let's just copy the drawing logic locally for this unique building
-                                // Left Face
-                                ctx.beginPath();
-                                ctx.moveTo(sx - hw, elevatedSy);
-                                ctx.lineTo(sx, elevatedSy + hh);
-                                ctx.lineTo(sx, elevatedSy + hh - h);
-                                ctx.lineTo(sx - hw, elevatedSy - h);
-                                ctx.closePath();
-                                ctx.fillStyle = c.left;
-                                ctx.fill();
-
-                                // Right Face
-                                ctx.beginPath();
-                                ctx.moveTo(sx + hw, elevatedSy);
-                                ctx.lineTo(sx, elevatedSy + hh);
-                                ctx.lineTo(sx, elevatedSy + hh - h);
-                                ctx.lineTo(sx + hw, elevatedSy - h);
-                                ctx.closePath();
-                                ctx.fillStyle = c.right;
-                                ctx.fill();
-
-                                // Top Face
-                                ctx.beginPath();
-                                ctx.moveTo(sx, elevatedSy - hh - h);
-                                ctx.lineTo(sx + hw, elevatedSy - h);
-                                ctx.lineTo(sx, elevatedSy + hh - h);
-                                ctx.lineTo(sx - hw, elevatedSy - h);
-                                ctx.closePath();
-                                ctx.fillStyle = c.top;
-                                ctx.fill();
+                            const time = Date.now();
+                            const { sx, sy } = camera.worldToScreen(tileX, tileY);
+                            
+                            // Check connections for UNIFIED BASE
+                            const isSameSH = (tx: number, ty: number) => {
+                                if (tx < 0 || ty < 0 || tx >= mapW || ty >= mapH) return false;
+                                return data[ty][tx] === TILE_TYPES.SHOPPING;
                             };
+                            const n = isSameSH(tileX, tileY - 1);
+                            const s = isSameSH(tileX, tileY + 1);
+                            const w = isSameSH(tileX - 1, tileY);
+                            const eSH = isSameSH(tileX + 1, tileY);
+
+                            // Base connectivity insets
+                            let bMinX = w ? 0 : 0.22;
+                            let bMaxX = eSH ? 1 : 0.78;
+                            let bMinY = n ? 0 : 0.22;
+                            let bMaxY = s ? 1 : 0.78;
 
                             // 2-Tier Shopping Mall Design
-                            const h1 = 26; // Base height
-                            const h2 = 17; // Top height
+                            const h1 = 36; 
+                            const h2 = 24; 
 
-                            // Base Layer
-                            drawStacked(0, h1, 1.0);
+                            // Refactored helper to support STANDARD ISOMETRIC MATH
+                            const drawStackedGallery = (elevation: number, height: number, insets: {minX: number, maxX: number, minY: number, maxY: number}, isBase: boolean) => {
+                                const elevatedSy = sy - elevation * z;
+                                const hFull = height * z;
 
-                            // Top Layer (Set back)
-                            drawStacked(h1, h2, 0.75);
+                                // STANDARD ISOMETRIC PROJECTION HELPER (Matches Renderer.ts)
+                                const localToScreen = (lx: number, ly: number) => {
+                                    const dx = lx - 0.5;
+                                    const dy = ly - 0.5;
+                                    const screenX = (dx - dy) * (TILE_WIDTH * z) / 2;
+                                    const screenY = (dx + dy) * (TILE_HEIGHT * z) / 2;
+                                    return { x: sx + screenX, y: elevatedSy + screenY };
+                                };
 
-                            // Windows on Base
-                            this.drawWindows(renderer, camera, tileX, tileY, h1, rand, TILE_TYPES.SHOPPING, 0, 1.0);
+                                // Get vertices based on insets
+                                const p00 = localToScreen(insets.minX, insets.minY); // Top
+                                const p10 = localToScreen(insets.maxX, insets.minY); // Right
+                                const p01 = localToScreen(insets.minX, insets.maxY); // Left
+                                const p11 = localToScreen(insets.maxX, insets.maxY); // Bottom
 
-                            // Windows on Top
-                            this.drawWindows(renderer, camera, tileX, tileY, h2, rand, TILE_TYPES.SHOPPING, h1, 0.75);
+                                if (isBase) {
+                                    // SOLID BASE: Darker purple walls
+                                    const darkLeft = '#2a1a4a';
+                                    const darkRight = '#352555';
+                                    
+                                    // Left Face: [p01, p11, p11-h, p01-h]
+                                    ctx.beginPath();
+                                    ctx.moveTo(p01.x, p01.y);
+                                    ctx.lineTo(p11.x, p11.y);
+                                    ctx.lineTo(p11.x, p11.y - hFull);
+                                    ctx.lineTo(p01.x, p01.y - hFull);
+                                    ctx.closePath();
+                                    ctx.fillStyle = darkLeft;
+                                    ctx.fill();
+
+                                    // Right Face: [p11, p10, p10-h, p11-h]
+                                    ctx.beginPath();
+                                    ctx.moveTo(p11.x, p11.y);
+                                    ctx.lineTo(p10.x, p10.y);
+                                    ctx.lineTo(p10.x, p10.y - hFull);
+                                    ctx.lineTo(p11.x, p11.y - hFull);
+                                    ctx.closePath();
+                                    ctx.fillStyle = darkRight;
+                                    ctx.fill();
+                                    
+                                    // ARCHITECTURAL LIGHTS (3 points around the visible base)
+                                    const distToEntrance = Math.sqrt(Math.pow(tileX - 130, 2) + Math.pow(tileY - 135, 2));
+                                    const lightDensity = Math.max(0.05, 0.4 - (distToEntrance * 0.06));
+                                    
+                                    ctx.save();
+                                    for (let i = 0; i < 3; i++) {
+                                        if (seededRandom(tileX * 13 + i, tileY * 17) < lightDensity) {
+                                            const flicker = Math.floor(time / 4000 + i * 800) % 2 === 0;
+                                            const lightColor = flicker ? '#fff9ef' : '#e5c100';
+                                            
+                                            ctx.fillStyle = lightColor;
+                                            ctx.shadowBlur = 10 * z;
+                                            ctx.shadowColor = lightColor;
+                                            
+                                            // Place on Right Face (visible one) at different intervals
+                                            const t = (i + 1) / 7;
+                                            const lxPos = p11.x + (p10.x - p11.x) * t;
+                                            const lyPos = p11.y + (p10.y - p11.y) * t;
+                                            ctx.fillRect(lxPos - 0.6 * z, lyPos - hFull * 0.7, 1.2 * z, hFull * 0.4);
+                                        }
+                                    }
+                                    ctx.restore();
+
+                                } else {
+                                    // TOP BLOCK: Standard style
+                                    ctx.beginPath();
+                                    ctx.moveTo(p01.x, p01.y);
+                                    ctx.lineTo(p11.x, p11.y);
+                                    ctx.lineTo(p11.x, p11.y - hFull);
+                                    ctx.lineTo(p01.x, p01.y - hFull);
+                                    ctx.closePath();
+                                    ctx.fillStyle = c.left;
+                                    ctx.fill();
+
+                                    ctx.beginPath();
+                                    ctx.moveTo(p11.x, p11.y);
+                                    ctx.lineTo(p10.x, p10.y);
+                                    ctx.lineTo(p10.x, p10.y - hFull);
+                                    ctx.lineTo(p11.x, p11.y - hFull);
+                                    ctx.closePath();
+                                    ctx.fillStyle = c.right;
+                                    ctx.fill();
+                                }
+
+                                // ROOF (Common for both)
+                                ctx.beginPath();
+                                ctx.moveTo(p00.x, p00.y - hFull);
+                                ctx.lineTo(p10.x, p10.y - hFull);
+                                ctx.lineTo(p11.x, p11.y - hFull);
+                                ctx.lineTo(p01.x, p01.y - hFull);
+                                ctx.closePath();
+                                if (isBase) {
+                                    ctx.fillStyle = '#4a3a6a'; // Darker top for base
+                                    ctx.fill();
+                                } else {
+                                    ctx.fillStyle = c.top;
+                                    ctx.fill();
+                                }
+
+                                // FLASHING ROOF NEONS (Top Tier Only)
+                                if (!isBase) {
+                                    const slowPulse = Math.floor(time / 8000);
+                                    const flicker = slowPulse % 2 === 0;
+                                    const neonColor = flicker ? '#00ffff' : '#ff00ff';
+                                    
+                                    const points = [p00, p10, p01, p11];
+                                    for (let i = 0; i < 4; i++) {
+                                        if (seededRandom(tileX * 13 + i, tileY * 7) > 0.06) continue;
+                                        const pt = points[i];
+                                        ctx.fillStyle = neonColor;
+                                        ctx.shadowBlur = 5 * z;
+                                        ctx.shadowColor = neonColor;
+                                        ctx.fillRect(pt.x - 1 * z, pt.y - hFull - 2 * z, 2 * z, 2.5 * z);
+                                        ctx.shadowBlur = 0;
+                                    }
+                                }
+                            };
+
+                            // Draw Tiers
+                            // Base: Unified insets (0 if connected)
+                            drawStackedGallery(0, h1, {minX: bMinX, maxX: bMaxX, minY: bMinY, maxY: bMaxY}, true);
+                            
+                            // Top: Clustered (Always small footprint)
+                            drawStackedGallery(h1, h2, {minX: 0.25, maxX: 0.75, minY: 0.25, maxY: 0.75}, false);
+
+                            this.drawWindows(renderer, camera, tileX, tileY, h2, rand, TILE_TYPES.SHOPPING, h1, 0.5);
                         },
                     });
                 } else if (tile === TILE_TYPES.DECORATIVE_ENTRANCE) {
@@ -605,13 +665,38 @@ export class TileRenderer {
                     drawables.push({
                         y: tileX + tileY + 0.5,
                         draw: () => {
+                            const time = Date.now();
+                            const { sx, sy } = camera.worldToScreen(tileX, tileY);
+                            const z = camera.zoom;
+
                             // Tiered Fountain
                             // Base (Stone)
                             renderer.drawCustomIsoBlock(camera, tileX, tileY, 4, '#888', '#666', '#777', 0.1, 0.9, 0.1, 0.9);
                             // Mid Tier (Stone)
                             renderer.drawCustomIsoBlock(camera, tileX, tileY, 8, '#999', '#777', '#888', 0.3, 0.7, 0.3, 0.7);
                             // Top Water
-                            renderer.drawCustomIsoBlock(camera, tileX, tileY, 10, '#44aaff', '#3388cc', '#3399dd', 0.4, 0.6, 0.4, 0.6);
+                            renderer.drawCustomIsoBlock(camera, tileX, tileY, 11, '#44aaff', '#3388cc', '#3399dd', 0.4, 0.6, 0.4, 0.6);
+
+                            // --- Water Animation (Pulse & Spray) ---
+                            const sprayH = 11 + Math.sin(time / 200) * 1.5;
+                            const sprayY = sy - sprayH * z;
+                            
+                            // Glowing water core
+                            ctx.fillStyle = '#fff';
+                            ctx.shadowBlur = 10 * z;
+                            ctx.shadowColor = '#44aaff';
+                            ctx.fillRect(sx - 1 * z, sprayY, 2 * z, 2 * z);
+                            ctx.shadowBlur = 0;
+
+                            // Water Spray Particles
+                            for (let i = 0; i < 4; i++) {
+                                const angle = (time / 1000 + (i * Math.PI / 2)) % (Math.PI * 2);
+                                const dist = 4 * z * (0.5 + Math.sin(time / 150) * 0.5);
+                                const px = sx + Math.cos(angle) * dist;
+                                const py = sprayY + Math.sin(angle) * dist * 0.5;
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                                ctx.fillRect(px, py, 1 * z, 1 * z);
+                            }
                         },
                     });
                 } else if (tile === TILE_TYPES.DOMINO_TABLE) {
@@ -666,7 +751,8 @@ export class TileRenderer {
                     drawables.push({
                         y: tileX + tileY + 0.5,
                         draw: () => {
-                            this.drawTree(ctx, camera, tileX, tileY, rand);
+                            const isNobleAreaTree = tileX < 150; 
+                            this.drawTree(ctx, camera, tileX, tileY, rand, isNobleAreaTree);
                         },
                     });
                 }
@@ -772,67 +858,95 @@ export class TileRenderer {
         }
     }
 
-    /** Draw roof detail (corrugated tin or flat concrete) */
+    /** Draw roof detail (water tanks, antennas, AC units) */
     private drawRoofDetail(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, blockHeight: number, seed: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
         const topY = sy - blockHeight * z;
 
-        if (seed > 0.5) {
-            ctx.strokeStyle = 'rgba(100,80,50,0.3)';
-            ctx.lineWidth = 0.5;
-            for (let i = -3; i <= 3; i++) {
-                ctx.beginPath();
-                ctx.moveTo(sx + i * 2 * z, topY - 1 * z);
-                ctx.lineTo(sx + i * 2 * z, topY + 2 * z);
-                ctx.stroke();
-            }
-        } else {
-            ctx.fillStyle = 'rgba(60,50,40,0.15)';
-            ctx.fillRect(sx - 4 * z, topY, 3 * z, 2 * z);
+        // Prioritize water tanks on taller buildings (height > 20)
+        const isTall = blockHeight > 20;
+        const tankThreshold = isTall ? 0.75 : 0.96; // Taller buildings are much more likely to have tanks
+
+        if (seed > tankThreshold) {
+            // Caixa d'água (Muted Blue Tank)
+            this.drawWaterTank(ctx, sx + 2 * z, topY, z);
+        } else if (seed > 0.3) {
+            // TV Antenna
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(sx, topY);
+            ctx.lineTo(sx, topY - 8 * z);
+            ctx.moveTo(sx - 3 * z, topY - 6 * z);
+            ctx.lineTo(sx + 3 * z, topY - 6 * z);
+            ctx.moveTo(sx - 2 * z, topY - 4 * z);
+            ctx.lineTo(sx + 2 * z, topY - 4 * z);
+            ctx.stroke();
         }
     }
 
-    /** Draw floor division line on tall buildings */
-    private drawFloorDivision(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, blockHeight: number) {
-        const { sx, sy } = camera.worldToScreen(tileX, tileY);
-        const z = camera.zoom;
-        const midH = blockHeight * 0.5;
+    private drawWaterTank(ctx: CanvasRenderingContext2D, x: number, y: number, z: number) {
+        const w = 10 * z;
+        const h = 8 * z;
+        
+        // 1. Shadow (Immersion)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.beginPath();
+        ctx.ellipse(x, y, w * 0.6, h * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-        ctx.fillStyle = 'rgba(80,80,100,0.4)';
-        ctx.fillRect(sx - 8 * z, sy - midH * z - 1 * z, 8 * z, 2 * z);
-        ctx.fillRect(sx, sy - midH * z - 1 * z, 8 * z, 2 * z);
+        // 2. Tank Body (Muted Blue-Grey)
+        ctx.fillStyle = '#4a6785';
+        ctx.fillRect(x - w / 2, y - h, w, h);
 
-        ctx.fillStyle = 'rgba(200,200,220,0.3)';
-        ctx.font = `${4 * z}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.fillText('2', sx + 4 * z, sy - (midH + 3) * z);
+        // 3. Pipe (Cano ligando no teto)
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1 * z;
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y - h * 0.3);
+        ctx.lineTo(x + w / 2 + 3 * z, y - h * 0.3);
+        ctx.lineTo(x + w / 2 + 3 * z, y);
+        ctx.stroke();
+
+        // 4. Cover
+        ctx.fillStyle = '#3a5674';
+        ctx.fillRect(x - w / 2 - 0.5 * z, y - h - 1.5 * z, w + 1 * z, 2 * z);
+
+        // 5. High-lights / Rings for detail
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 0.5 * z;
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2, y - h * 0.7);
+        ctx.lineTo(x + w / 2, y - h * 0.7);
+        ctx.moveTo(x - w / 2, y - h * 0.35);
+        ctx.lineTo(x + w / 2, y - h * 0.35);
+        ctx.stroke();
     }
 
-    /** Draw external lateral staircase */
+    /** Draw external lateral staircase - Simplified for minimalist look */
     private drawExternalStaircase(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, blockHeight: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
         const midH = blockHeight * 0.5;
-        const stairX = sx + 7 * z;
+        const stairX = sx + 8 * z;
         const stairBottom = sy;
         const stairTop = sy - midH * z;
-        const steps = 6;
 
-        ctx.strokeStyle = '#5a5a6a';
-        ctx.lineWidth = 1.5 * z;
-        ctx.beginPath(); ctx.moveTo(stairX, stairBottom); ctx.lineTo(stairX, stairTop); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(stairX + 4 * z, stairBottom); ctx.lineTo(stairX + 4 * z, stairTop); ctx.stroke();
+        // Draw a single solid support line (minimalist)
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 2 * z;
+        ctx.beginPath(); 
+        ctx.moveTo(stairX, stairBottom); 
+        ctx.lineTo(stairX, stairTop); 
+        ctx.stroke();
 
-        ctx.strokeStyle = '#7a7a8a';
-        ctx.lineWidth = 1 * z;
-        for (let i = 0; i <= steps; i++) {
-            const stepY = stairBottom - (i / steps) * (stairBottom - stairTop);
-            ctx.beginPath(); ctx.moveTo(stairX, stepY); ctx.lineTo(stairX + 4 * z, stepY); ctx.stroke();
+        // Draw small steps
+        ctx.fillStyle = '#6a6a7a';
+        for (let i = 0; i <= 6; i++) {
+            const stepY = stairBottom - (i / 6) * (stairBottom - stairTop);
+            ctx.fillRect(stairX - 1 * z, stepY, 3 * z, 1 * z);
         }
-
-        ctx.fillStyle = '#4a4a5a';
-        ctx.fillRect(stairX - 1 * z, stairTop - 1 * z, 6 * z, 2 * z);
     }
     private drawBarStripes(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, blockHeight: number, seed: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
@@ -1344,96 +1458,93 @@ export class TileRenderer {
     }
 
     /** Draw windows */
+    /** Draw windows with isometric perspective */
     private drawWindows(renderer: Renderer, camera: Camera, tileX: number, tileY: number, blockHeight: number, seed: number, tileType: number, elevation: number = 0, scale: number = 1) {
         const ctx = renderer.getContext();
         const { sx, sy: baseSy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
-        const s = (val: number) => val * z;
-        const sy = baseSy - elevation * z; // Adjust sy based on elevation
+        const sy = baseSy - elevation * z;
         const h = blockHeight * z;
         const time = Date.now();
 
         const hasFlowerPot = seed > 0.7;
-        const rows = Math.floor(h / (10 * z * scale)); // Adjust rows based on scaled window height
-        const winW = 3 * z * scale;
         const winH = 5 * z * scale;
+        const winW_iso = 3 * z * scale;
         const gap = 2 * z * scale;
         const isShopping = tileType === TILE_TYPES.SHOPPING;
 
-        const drawFace = (faceIndex: number, wxBase: number, yOffBase: number) => {
-            for (let r = 0; r < rows; r++) {
-                const yOff = yOffBase + r * (winH + gap);
-                const wx = wxBase;
-                const wy = sy + yOff;
+        // Isometric wall vectors
+        const hw = (TILE_WIDTH / 2) * z * scale;
+        const hh = (TILE_HEIGHT / 2) * z * scale;
 
-                // Default base
-                ctx.fillStyle = '#1a1a25';
-                ctx.fillRect(wx, wy, winW, winH);
+        const rows = Math.floor((h - winH) * 0.8 / (winH + gap));
 
-                if (isShopping) {
-                    // Decorative Light Scheme: Stable, Bright.
-                    // Rare, sporadic failure (individual bulb)
-                    // Use specific unique seed per window
-                    const unique = tileX * 100 + tileY * 10 + r + elevation;
-                    const tick = Math.floor(time / 200); // Slow ticks (200ms)
+        const drawIsoWindow = (faceIndex: number, row: number) => {
+            const unique = tileX * 100 + tileY * 10 + row + faceIndex + elevation;
+            
+            let px, py;
+            const marginV = 6 * z * scale;
+            const offsetFactor = 0.5; // Single column of windows centered
+            
+            if (faceIndex === 0) { // Left Face
+                px = sx - hw + (hw * offsetFactor);
+                py = sy - h + marginV + row * (winH + gap) + (hh * offsetFactor);
+            } else { // Right Face
+                px = sx + hw - (hw * offsetFactor);
+                py = sy - h + marginV + row * (winH + gap) + (hh * offsetFactor);
+            }
 
-                    // Noise for flicker
-                    const noise = Math.sin(tick * 13.0 + unique * 41.0);
+            const vx = faceIndex === 0 ? winW_iso : -winW_iso;
+            const vy = (winW_iso * (TILE_HEIGHT / TILE_WIDTH));
 
-                    // Very rare failure
-                    if (noise > 0.98) {
-                        ctx.fillStyle = '#666'; // Dim
-                    } else {
-                        // Standard bright decorative
-                        ctx.fillStyle = '#fff9ef'; // Warm white
-                    }
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + vx, py + vy);
+            ctx.lineTo(px + vx, py + vy + winH);
+            ctx.lineTo(px, py + winH);
+            ctx.closePath();
 
-                    ctx.fillRect(wx, wy, winW, winH);
+            let windowColor = '#1a1a25';
+            if (isShopping) {
+                // Permanently "broken" or off windows (60% chance to be off)
+                const isBroken = seededRandom(unique, 999) > 0.4;
+                if (isBroken) {
+                    windowColor = '#1a1a25'; // Very dark
                 } else {
-                    // Residential: Realistic, more stable window lighting
-                    const unique = tileX * 13 + tileY * 7 + r * 3 + faceIndex * 5;
-                    // Significantly slower and subtler breathing effect
-                    const val = Math.sin(time / 4000 + unique);
-                    const alpha = (val + 1) / 2;
-
-                    if (alpha > 0.15) {
-                        // Variety in window color (stable choice per window)
-                        const isCool = seededRandom(tileX * 7, tileY * 11) > 0.8;
-                        const baseColor = isCool ? 'rgba(230, 240, 255' : 'rgba(255, 230, 150';
-
-                        // Lower flicker for real immersion
-                        const flickerAlpha = alpha * (0.9 + Math.sin(time / 800 + unique) * 0.05);
-
-                        // --- OPTIMIZED GLOW (No shadowBlur) ---
-                        // Simulated glow using a larger semi-transparent rect
-                        ctx.fillStyle = `${baseColor}, ${flickerAlpha * 0.35})`;
-                        ctx.fillRect(wx - s(1.5), wy - s(1.5), winW + s(3), winH + s(3));
-
-                        ctx.fillStyle = `${baseColor}, ${flickerAlpha * 0.95})`;
-                        ctx.fillRect(wx, wy, winW, winH);
-
-                        // Subtle window detail: silhoutte or curtain (stable)
-                        if (seededRandom(tileX * 3, unique * 2) > 0.65) {
-                            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                            ctx.fillRect(wx + winW * 0.3, wy, winW * 0.4, winH);
-                        }
-
-                        ctx.shadowBlur = 0;
-                    }
+                    const noise = Math.sin((time / 6000) * 11.0 + unique * 37.0);
+                    // Pulsing effect but mostly off
+                    windowColor = noise > 0.7 ? '#fff9ef' : '#2a2a35';
                 }
-
-                // Flowers on first row of house
-                if (!isShopping && hasFlowerPot && r === 0 && faceIndex === 0) {
-                    ctx.fillStyle = '#d66';
-                    ctx.fillRect(wx, wy + winH - 2 * z * scale, winW, 2 * z * scale);
+            } else {
+                const val = Math.sin(time / 4000 + unique);
+                const alpha = (val + 1) / 2;
+                if (alpha > 0.2) {
+                    const isCool = seededRandom(tileX * 7, tileY * 11 + unique) > 0.8;
+                    const baseRGB = isCool ? '230, 240, 255' : '255, 230, 150';
+                    const flickerAlpha = alpha * (0.8 + Math.sin(time / 800 + unique) * 0.1);
+                    windowColor = `rgba(${baseRGB}, ${flickerAlpha * 0.95})`;
                 }
             }
-        }
 
-        // Left Face
-        drawFace(0, sx - 10 * z * scale, -h + 5 * z * scale + 3 * z * scale);
-        // Right Face
-        drawFace(1, sx + 5 * z * scale, -h + 6 * z * scale + 3 * z * scale);
+            ctx.fillStyle = windowColor;
+            ctx.fill();
+
+            if (!isShopping && hasFlowerPot && row === 0 && faceIndex === 0) {
+                ctx.fillStyle = '#d66';
+                ctx.beginPath();
+                ctx.moveTo(px, py + winH);
+                ctx.lineTo(px + vx, py + vy + winH);
+                ctx.lineTo(px + vx, py + vy + winH + 1.2 * z);
+                ctx.lineTo(px, py + winH + 1.2 * z);
+                ctx.closePath();
+                ctx.fill();
+            }
+        };
+
+        for (let r = 0; r < rows; r++) {
+            drawIsoWindow(0, r);
+            drawIsoWindow(1, r);
+        }
     }
 
     /** Draw door */
@@ -1521,6 +1632,14 @@ export class TileRenderer {
         ctx.restore();
     }
 
+    /** Simplified projection: (tx, ty) base tile + (lx, ly) local fractional offset + lz height */
+    private localToScreen(camera: Camera, tx: number, ty: number, lx: number, ly: number, lz: number = 0) {
+        const x = tx + lx;
+        const y = ty + ly;
+        const { sx, sy } = camera.worldToScreen(x, y);
+        return { sx, sy: sy - lz * camera.zoom };
+    }
+
     /** Draw aesthetic (non-functional) entrance */
     private drawDecorativeEntrance(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
@@ -1529,117 +1648,89 @@ export class TileRenderer {
 
         ctx.save();
 
-        const isShopping = tileX < 150; // Shopping is at ~130, Station ~242
-
+        const isShopping = tileX < 150;
         if (isShopping) {
-            // Isometric Glass Entrance (Left Face Protruding)
-            const hw = 24 * z; // half-width of a tile (wider)
-            const hh = 12 * z; // half-height of a tile (wider)
-            const dh = 24 * z; // door height (taller)
+            // Isometric Monumental Entrance using project geometry
+            const dh = 28; // height in local units? No, screen-z.
+            const h = dh;
 
-            // Calculate the position so it's flush against the shopping's wall
-            // The shopping's wall starts behind the entrance tile.
-            // Move it slightly north-east to glue it to the wall
-            const px = sx + hw * 0.1;
-            const py = sy - hh * 0.1;
+            // Define points on the tile (130, 135)
+            // L=Left, R=Right, F=Front, B=Back
+            // Wider (0.1 to 0.9) and deeper (-0.4) to overlap the shopping border
+            const pLF = this.localToScreen(camera, tileX, tileY, 0.1, 0.6, 0);
+            const pRF = this.localToScreen(camera, tileX, tileY, 0.9, 0.6, 0);
+            const pLB = this.localToScreen(camera, tileX, tileY, 0.1, -0.4, 0);
+            const pRB = this.localToScreen(camera, tileX, tileY, 0.9, -0.4, 0);
 
-            // Geometry of the Protruding Box
-            // Left Face (Faces the street)
-            const lf_p1 = { x: px - hw, y: py };
-            const lf_p2 = { x: px, y: py + hh };
-            const lf_p3 = { x: px, y: py + hh - dh };
-            const lf_p4 = { x: px - hw, y: py - dh };
+            // Roof points
+            const rLF = { sx: pLF.sx, sy: pLF.sy - h * z };
+            const rRF = { sx: pRF.sx, sy: pRF.sy - h * z };
+            const rLB = { sx: pLB.sx, sy: pLB.sy - h * z };
+            const rRB = { sx: pRB.sx, sy: pRB.sy - h * z };
 
-            // Right Face of the protrusion (Connects back to wall)
-            const rf_p1 = { x: px, y: py + hh };
-            const rf_p2 = { x: sx, y: sy + hh };
-            const rf_p3 = { x: sx, y: sy + hh - dh };
-            const rf_p4 = { x: px, y: py + hh - dh };
-
-            // Roof of the protrusion (Awning)
-            const top_p1 = { x: px - hw, y: py - dh };
-            const top_p2 = { x: px, y: py + hh - dh };
-            const top_p3 = { x: sx, y: sy + hh - dh };
-            const top_p4 = { x: sx - hw, y: sy - dh };
-
-            // --- DRAW RIGHT FACE ---
-            ctx.fillStyle = 'rgba(80, 180, 220, 0.4)';
+            // --- SIDE WALLS ---
+            ctx.fillStyle = '#2a1a4a';
+            // Left Side
             ctx.beginPath();
-            ctx.moveTo(rf_p1.x, rf_p1.y);
-            ctx.lineTo(rf_p2.x, rf_p2.y);
-            ctx.lineTo(rf_p3.x, rf_p3.y);
-            ctx.lineTo(rf_p4.x, rf_p4.y);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.strokeStyle = '#00cccc';
-            ctx.lineWidth = 1 * z;
-            ctx.stroke();
-
-            // --- DRAW LEFT FACE (The Main Glass Doors) ---
-            ctx.fillStyle = 'rgba(120, 230, 255, 0.4)';
+            ctx.moveTo(pLF.sx, pLF.sy); ctx.lineTo(pLB.sx, pLB.sy);
+            ctx.lineTo(rLB.sx, rLB.sy); ctx.lineTo(rLF.sx, rLF.sy);
+            ctx.closePath(); ctx.fill();
+            // Right Side
             ctx.beginPath();
-            ctx.moveTo(lf_p1.x, lf_p1.y);
-            ctx.lineTo(lf_p2.x, lf_p2.y);
-            ctx.lineTo(lf_p3.x, lf_p3.y);
-            ctx.lineTo(lf_p4.x, lf_p4.y);
-            ctx.closePath();
-            ctx.fill();
+            ctx.moveTo(pRF.sx, pRF.sy); ctx.lineTo(pRB.sx, pRB.sy);
+            ctx.lineTo(rRB.sx, rRB.sy); ctx.lineTo(rRF.sx, rRF.sy);
+            ctx.closePath(); ctx.fill();
 
-            ctx.strokeStyle = '#00ffff';
+            // --- LOBBY BACK WALL (Warm Glow) ---
+            const grad = ctx.createLinearGradient(rLB.sx, rLB.sy, pRB.sx, pRB.sy);
+            grad.addColorStop(0, '#4a3a6a');
+            grad.addColorStop(0.5, '#fff9ef');
+            grad.addColorStop(1, '#4a3a6a');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(pLB.sx, pLB.sy); ctx.lineTo(pRB.sx, pRB.sy);
+            ctx.lineTo(rRB.sx, rRB.sy); ctx.lineTo(rLB.sx, rLB.sy);
+            ctx.closePath(); ctx.fill();
+
+            // --- GLASS DOORS (Front Face) ---
+            ctx.fillStyle = 'rgba(120, 230, 255, 0.3)';
+            ctx.beginPath();
+            ctx.moveTo(pLF.sx, pLF.sy); ctx.lineTo(pRF.sx, pRF.sy);
+            ctx.lineTo(rRF.sx, rRF.sy); ctx.lineTo(rLF.sx, rLF.sy);
+            ctx.closePath(); ctx.fill();
+            
+            // Door Frames
+            ctx.strokeStyle = '#fff9ef';
             ctx.lineWidth = 1.5 * z;
-            ctx.stroke();
-
-            // Glass Dividers on Left Face
             ctx.beginPath();
-            ctx.moveTo(px - hw * 0.33, py + hh * 0.33);
-            ctx.lineTo(px - hw * 0.33, py + hh * 0.33 - dh);
-            ctx.moveTo(px - hw * 0.67, py + hh * 0.67);
-            ctx.lineTo(px - hw * 0.67, py + hh * 0.67 - dh);
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
-            ctx.lineWidth = 1 * z;
+            ctx.moveTo(pLF.sx, pLF.sy); ctx.lineTo(rLF.sx, rLF.sy);
+            ctx.moveTo(pRF.sx, pRF.sy); ctx.lineTo(rRF.sx, rRF.sy);
+            ctx.moveTo((pLF.sx + pRF.sx) / 2, (pLF.sy + pRF.sy) / 2);
+            ctx.lineTo((rLF.sx + rRF.sx) / 2, (rLF.sy + rRF.sy) / 2);
             ctx.stroke();
 
-            // --- DRAW ROOF / AWNING ---
-            ctx.fillStyle = '#222';
+            // --- MARQUEE (Top Slab) ---
+            ctx.fillStyle = '#352555';
             ctx.beginPath();
-            ctx.moveTo(top_p1.x, top_p1.y);
-            ctx.lineTo(top_p2.x, top_p2.y);
-            ctx.lineTo(top_p3.x, top_p3.y);
-            ctx.lineTo(top_p4.x, top_p4.y);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.strokeStyle = '#444';
-            ctx.lineWidth = 1 * z;
+            ctx.moveTo(rLF.sx, rLF.sy); ctx.lineTo(rRF.sx, rRF.sy);
+            ctx.lineTo(rRB.sx, rRB.sy); ctx.lineTo(rLB.sx, rLB.sy);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#4a3a6a';
             ctx.stroke();
 
-            // --- DECORATIVE MARQUEE ON AWNING'S LEFT EDGE ---
+            // Sign Board / Top Detail (No text as requested)
             ctx.fillStyle = '#111';
             ctx.beginPath();
-            ctx.moveTo(top_p1.x, top_p1.y);
-            ctx.lineTo(top_p2.x, top_p2.y);
-            ctx.lineTo(top_p2.x, top_p2.y + 4 * z);
-            ctx.lineTo(top_p1.x, top_p1.y + 4 * z);
-            ctx.closePath();
+            ctx.moveTo(rLF.sx, rLF.sy); ctx.lineTo(rRF.sx, rRF.sy);
+            ctx.lineTo(rRF.sx, rRF.sy - 4 * z);
+            ctx.lineTo(rLF.sx, rLF.sy - 4 * z);
+            ctx.closePath(); ctx.fill();
+            
+            // Floor shine
+            ctx.fillStyle = 'rgba(255, 249, 239, 0.2)';
+            ctx.beginPath();
+            ctx.ellipse((pLF.sx + pRF.sx) / 2, (pLF.sy + pRF.sy) / 2, 20 * z, 8 * z, 0, 0, Math.PI * 2);
             ctx.fill();
-
-            // Twinkling lights on Marquee
-            const time = Date.now();
-            for (let i = 0; i < 5; i++) {
-                const frac = (i + 0.5) / 5;
-                const lx = top_p1.x + (top_p2.x - top_p1.x) * frac;
-                const ly = top_p1.y + (top_p2.y - top_p1.y) * frac + 2 * z;
-
-                const flicker = Math.sin(time / 150 + i * 0.8) > -0.2;
-                if (flicker) {
-                    ctx.fillStyle = i % 2 === 0 ? '#fff' : '#0ff';
-                    ctx.shadowBlur = 4 * z;
-                    ctx.shadowColor = ctx.fillStyle;
-                    ctx.fillRect(lx - 0.5 * z, ly - 0.5 * z, 1.5 * z, 1.5 * z);
-                    ctx.shadowBlur = 0;
-                }
-            }
         } else {
             // Estação Santa Cruz - Compact Modern Station Entrance
             const scale = 2.5; // Reduced from 5 to 2.5
@@ -1862,42 +1953,95 @@ export class TileRenderer {
     private drawFence(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
-        ctx.strokeStyle = '#6a6a5a';
-        ctx.lineWidth = 1;
-        for (let i = -1; i <= 1; i++) {
-            const px = sx + i * 4 * z;
+        const time = Date.now();
+
+        const isNoble = tileX < 150; // Near shopping
+
+        if (isNoble) {
+            // Luxury Neon Bollard (Fine and striking)
+            const h = 10 * z;
+            const w = 1.5 * z;
+            
+            // Pillar
+            ctx.fillStyle = '#111';
+            ctx.fillRect(sx - w/2, sy - h, w, h);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(sx - w/2, sy - h, w, h);
+            
+            // Glowing Light Head
+            const pulse = Math.sin(time / 400 + tileX) * 0.2 + 0.8;
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowBlur = 8 * z * pulse;
+            ctx.shadowColor = '#00ffff';
+            ctx.fillRect(sx - w, sy - h - 1.5 * z, w * 2, 2 * z);
+            ctx.shadowBlur = 0;
+            
+            // Ground Light
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.15)';
             ctx.beginPath();
-            ctx.moveTo(px, sy);
-            ctx.lineTo(px, sy - 8 * z);
+            ctx.arc(sx, sy, 4 * z, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Standard Wooden Fence
+            ctx.strokeStyle = '#6a6a5a';
+            ctx.lineWidth = 1;
+            for (let i = -1; i <= 1; i++) {
+                const px = sx + i * 4 * z;
+                ctx.beginPath();
+                ctx.moveTo(px, sy);
+                ctx.lineTo(px, sy - 8 * z);
+                ctx.stroke();
+            }
+            ctx.strokeStyle = '#7a7a6a';
+            ctx.beginPath();
+            ctx.moveTo(sx - 5 * z, sy - 5 * z);
+            ctx.lineTo(sx + 5 * z, sy - 5 * z);
+            ctx.moveTo(sx - 5 * z, sy - 3 * z);
+            ctx.lineTo(sx + 5 * z, sy - 3 * z);
             ctx.stroke();
         }
-        ctx.strokeStyle = '#7a7a6a';
-        ctx.beginPath();
-        ctx.moveTo(sx - 5 * z, sy - 5 * z);
-        ctx.lineTo(sx + 5 * z, sy - 5 * z);
-        ctx.moveTo(sx - 5 * z, sy - 3 * z);
-        ctx.lineTo(sx + 5 * z, sy - 3 * z);
-        ctx.stroke();
     }
 
     /** Draw a pixel art tree */
-    private drawTree(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, seed: number) {
+    private drawTree(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, seed: number, isPlaza: boolean = false) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
         const size = (6 + seed * 4) * z;
 
-        ctx.fillStyle = '#5a3a1a';
-        ctx.fillRect(sx - 1.5 * z, sy - size * 0.4, 3 * z, size * 0.4);
+        if (isPlaza) {
+            // Stone Planter Box
+            ctx.fillStyle = '#888';
+            ctx.beginPath();
+            ctx.moveTo(sx - 6 * z, sy);
+            ctx.lineTo(sx + 6 * z, sy);
+            ctx.lineTo(sx + 6 * z, sy - 4 * z);
+            ctx.lineTo(sx - 6 * z, sy - 4 * z);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#666';
+            ctx.stroke();
+            
+            // Dirt inside planter
+            ctx.fillStyle = '#3a2a1a';
+            ctx.fillRect(sx - 5 * z, sy - 4.5 * z, 10 * z, 1 * z);
+        }
 
+        const baseOffset = isPlaza ? 4 * z : 0;
+
+        // Trunk
+        ctx.fillStyle = '#5a3a1a';
+        ctx.fillRect(sx - 1.5 * z, sy - size * 0.4 - baseOffset, 3 * z, size * 0.4);
+
+        // Canopy
         const greenShade = seed > 0.5 ? '#2a6a22' : '#1a5a18';
         ctx.fillStyle = greenShade;
         ctx.beginPath();
-        ctx.arc(sx, sy - size * 0.7, size * 0.5, 0, Math.PI * 2);
+        ctx.arc(sx, sy - size * 0.7 - baseOffset, size * 0.5, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = seed > 0.5 ? '#3a8a32' : '#2a7a28';
         ctx.beginPath();
-        ctx.arc(sx - size * 0.15, sy - size * 0.8, size * 0.25, 0, Math.PI * 2);
+        ctx.arc(sx - size * 0.15, sy - size * 0.8 - baseOffset, size * 0.25, 0, Math.PI * 2);
         ctx.fill();
     }
 
