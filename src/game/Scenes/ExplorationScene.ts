@@ -201,15 +201,15 @@ export class ExplorationScene implements Scene {
         this.dogRacingGame = new DogRacingGame();
         this.videoBingoGame = new VideoBingoGame();
 
-        // Zoom inicial — mobile usa zoom levemente maior para legibilidade
+        // Zoom inicial — maior por padrão para melhor experiência e legibilidade
         if (isMobile()) {
             this.camera.zoom = 2.5;
             this.camera.targetZoom = 2.5;
             this.zoomStageIndex = 4; // aponta para zoomStages[4] = 2.5
         } else {
-            this.camera.zoom = 2.0;
-            this.camera.targetZoom = 2.0;
-            this.zoomStageIndex = 3; // aponta para zoomStages[3] = 2.0
+            this.camera.zoom = 2.5; // Aumentado de 2.0 para 2.5 conforme solicitação
+            this.camera.targetZoom = 2.5;
+            this.zoomStageIndex = 4; // aponta para zoomStages[4] = 2.5
         }
 
         // Snap camera to player initially to avoid "running camera" effect

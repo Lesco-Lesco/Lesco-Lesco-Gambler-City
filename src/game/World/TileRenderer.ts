@@ -553,28 +553,39 @@ export class TileRenderer {
                                     ctx.fillStyle = darkRight;
                                     ctx.fill();
                                     
-                                    // ARCHITECTURAL LIGHTS (3 points around the visible base)
-                                    const distToEntrance = Math.sqrt(Math.pow(tileX - 130, 2) + Math.pow(tileY - 135, 2));
-                                    const lightDensity = Math.max(0.05, 0.4 - (distToEntrance * 0.06));
-                                    
-                                    ctx.save();
-                                    for (let i = 0; i < 3; i++) {
-                                        if (seededRandom(tileX * 13 + i, tileY * 17) < lightDensity) {
-                                            const flicker = Math.floor(time / 4000 + i * 800) % 2 === 0;
-                                            const lightColor = flicker ? '#fff9ef' : '#e5c100';
+                                            // ARCHITECTURAL LIGHTS (2 Large + 1 Small for variety) - Optimized
+                                            const distToEntrance = Math.sqrt(Math.pow(tileX - 130, 2) + Math.pow(tileY - 135, 2));
+                                            const lightDensity = Math.max(0.1, 0.45 - (distToEntrance * 0.05));
                                             
-                                            ctx.fillStyle = lightColor;
-                                            ctx.shadowBlur = 10 * z;
-                                            ctx.shadowColor = lightColor;
-                                            
-                                            // Place on Right Face (visible one) at different intervals
-                                            const t = (i + 1) / 7;
-                                            const lxPos = p11.x + (p10.x - p11.x) * t;
-                                            const lyPos = p11.y + (p10.y - p11.y) * t;
-                                            ctx.fillRect(lxPos - 0.6 * z, lyPos - hFull * 0.7, 1.2 * z, hFull * 0.4);
-                                        }
-                                    }
-                                    ctx.restore();
+                                            ctx.save();
+                                            for (let i = 0; i < 3; i++) {
+                                                if (seededRandom(tileX * 13 + i, tileY * 17) < lightDensity) {
+                                                    // Slower flicker (12s cycle)
+                                                    const flicker = Math.floor(time / 12000 + i * 800) % 2 === 0;
+                                                    const lightColor = flicker ? '#fff9ef' : '#2a2a35';
+                                                    
+                                                    ctx.fillStyle = lightColor;
+                                                    
+                                                    // Place on Right Face at specific horizontal intervals
+                                                    const t = (i + 1) / 5;
+                                                    const lxPos = p11.x + (p10.x - p11.x) * (0.2 + t * 0.6);
+                                                    const lyPos = p11.y + (p10.y - p11.y) * (0.2 + t * 0.6);
+                                                    
+                                                    // 2 Larger (i=0,1), 1 Smaller (i=2)
+                                                    const isSmall = i === 2;
+                                                    const lWidth = isSmall ? 0.8 * z : 1.8 * z;
+                                                    const lHeight = isSmall ? hFull * 0.25 : hFull * 0.55;
+                                                    
+                                                    ctx.fillRect(lxPos - lWidth / 2, lyPos - hFull * 0.75, lWidth, lHeight);
+                                                    
+                                                    // Simple non-expensive "glow" (just a larger rect for big lights)
+                                                    if (flicker && !isSmall) {
+                                                        ctx.fillStyle = 'rgba(255, 249, 239, 0.15)';
+                                                        ctx.fillRect(lxPos - lWidth, lyPos - hFull * 0.8, lWidth * 2, hFull * 0.7);
+                                                    }
+                                                }
+                                            }
+                                            ctx.restore();
 
                                 } else {
                                     // TOP BLOCK: Standard style
@@ -635,10 +646,40 @@ export class TileRenderer {
                             // Base: Unified insets (0 if connected)
                             drawStackedGallery(0, h1, {minX: bMinX, maxX: bMaxX, minY: bMinY, maxY: bMaxY}, true);
                             
-                            // Top: Clustered (Always small footprint)
-                            drawStackedGallery(h1, h2, {minX: 0.25, maxX: 0.75, minY: 0.25, maxY: 0.75}, false);
+                            // --- NEW TIER 2 LOGIC (Clustered & Coherent) ---
+                            const cellX = Math.floor(tileX / 2);
+                            const cellY = Math.floor(tileY / 2);
+                            const gridSeed = seededRandom(cellX, cellY);
 
-                            this.drawWindows(renderer, camera, tileX, tileY, h2, rand, TILE_TYPES.SHOPPING, h1, 0.5);
+                            // 1. Determine cell layout (30% Balcony, 70% Architectural Unit)
+                            if (gridSeed < 0.3) {
+                                // Balcony cell: consistent across the 2x2 area
+                                this.drawShoppingRailing(ctx, camera, tileX, tileY, h1);
+                            } else {
+                                // 2. Architectural Unit: Shared size and height for tiles in this 2x2 cell
+                                // Decisions based on gridSeed to keep the cell consistent
+                                let unitInset = 0.22; // Default
+                                let unitHeight = h2;
+                                
+                                if (gridSeed > 0.85) {
+                                    unitInset = 0.1;   // "Mega" Unit
+                                    unitHeight = h2 * 1.25;
+                                } else if (gridSeed < 0.5) {
+                                    unitInset = 0.32;  // "Slim" Unit
+                                    unitHeight = h2 * 0.8;
+                                }
+
+                                const blockScale = (1 - 2 * unitInset);
+                                const t2Insets = {
+                                    minX: unitInset, 
+                                    maxX: 1 - unitInset, 
+                                    minY: unitInset, 
+                                    maxY: 1 - unitInset
+                                };
+
+                                drawStackedGallery(h1, unitHeight, t2Insets, false);
+                                this.drawWindows(renderer, camera, tileX, tileY, unitHeight, rand, TILE_TYPES.SHOPPING, h1, blockScale);
+                            }
                         },
                     });
                 } else if (tile === TILE_TYPES.DECORATIVE_ENTRANCE) {
@@ -871,8 +912,8 @@ export class TileRenderer {
         if (seed > tankThreshold) {
             // Caixa d'água (Muted Blue Tank)
             this.drawWaterTank(ctx, sx + 2 * z, topY, z);
-        } else if (seed > 0.3) {
-            // TV Antenna
+        } else if (seed > 0.8) { // Increased threshold from 0.3 to 0.8 to reduce repetition
+            // TV Antenna (Only on ~20% of buildings now)
             ctx.strokeStyle = '#444';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -1477,6 +1518,62 @@ export class TileRenderer {
         const hw = (TILE_WIDTH / 2) * z * scale;
         const hh = (TILE_HEIGHT / 2) * z * scale;
 
+        if (isShopping) {
+            // Pattern: 2 Larger, 1 Smaller (as requested)
+            const drawShoppingPattern = (faceIndex: number) => {
+                for (let i = 0; i < 3; i++) {
+                    const unique = tileX * 100 + tileY * 10 + i + faceIndex + elevation;
+                    if (seededRandom(unique, 555) > 0.6) continue; // 40% chance to have this light group off
+
+                    const isSmall = i === 2;
+                    const wScale = isSmall ? 0.5 : 1.25;
+                    const hScale = isSmall ? 0.6 : 1.35;
+                    const curWinH = winH * hScale;
+                    const curWinW_iso = winW_iso * wScale;
+
+                    // Spacing across the face
+                    const t = (i + 1) / 4; 
+                    const hOffsetDist = 0.5 + (t - 0.5) * 0.7; 
+
+                    let px, py;
+                    const marginV = 8 * z * scale;
+                    
+                    if (faceIndex === 0) { // Left Face
+                        px = sx - hw + (hw * hOffsetDist);
+                        py = sy - h + marginV + (hh * hOffsetDist);
+                    } else { // Right Face
+                        px = sx + hw - (hw * hOffsetDist);
+                        py = sy - h + marginV + (hh * hOffsetDist);
+                    }
+
+                    const vx = faceIndex === 0 ? curWinW_iso : -curWinW_iso;
+                    const vy = (curWinW_iso * (TILE_HEIGHT / TILE_WIDTH));
+
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px + vx, py + vy);
+                    ctx.lineTo(px + vx, py + vy + curWinH);
+                    ctx.lineTo(px, py + curWinH);
+                    ctx.closePath();
+
+                    // Slower flicker logic (15s base cycle, very calm)
+                    const flicker = Math.sin((time / 15000) * 7.0 + unique * 13.0) > 0.4;
+                    ctx.fillStyle = flicker ? '#fff9ef' : '#1a1a25';
+                    ctx.fill();
+
+                    // NO shadowBlur (expensive). Use a simple bright stroke if ON for "sharp" glow
+                    if (flicker) {
+                        ctx.strokeStyle = 'rgba(255, 249, 239, 0.3)';
+                        ctx.lineWidth = 0.5 * z;
+                        ctx.stroke();
+                    }
+                }
+            };
+            drawShoppingPattern(0);
+            drawShoppingPattern(1);
+            return;
+        }
+
         const rows = Math.floor((h - winH) * 0.8 / (winH + gap));
 
         const drawIsoWindow = (faceIndex: number, row: number) => {
@@ -1556,6 +1653,72 @@ export class TileRenderer {
         ctx.fillRect(sx - 2 * z, sy - h, 4 * z, h);
         ctx.fillStyle = '#aa8844';
         ctx.fillRect(sx + 0.5 * z, sy - h * 0.5, 1 * z, 1 * z);
+    }
+
+    /** Draw modern railing for shopping balconies */
+    private drawShoppingRailing(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, elevation: number) {
+        const { sx, sy: baseSy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const sy = baseSy - elevation * z;
+        const h = 4 * z; // Railing height
+
+        const hw = (TILE_WIDTH / 2) * z;
+        const hh = (TILE_HEIGHT / 2) * z;
+
+        // Inset slightly from tile edges
+        const inset = 0.15;
+        const iW = hw * (1 - inset);
+        const iH = hh * (1 - inset);
+
+        // Railing style: Semi-transparent glass look with metal top
+        ctx.save();
+        
+        // --- 1. Glass Panels (using simple stroke/fill) ---
+        ctx.beginPath();
+        // Left rail panel path
+        ctx.moveTo(sx - iW, sy);
+        ctx.lineTo(sx, sy + iH);
+        ctx.lineTo(sx, sy + iH - h);
+        ctx.lineTo(sx - iW, sy - h);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(150, 220, 255, 0.4)'; // Light Blue Glass
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(200, 240, 255, 0.6)';
+        ctx.lineWidth = 0.5 * z;
+        ctx.stroke();
+
+        // Right rail panel path
+        ctx.beginPath();
+        ctx.moveTo(sx + iW, sy);
+        ctx.lineTo(sx, sy + iH);
+        ctx.lineTo(sx, sy + iH - h);
+        ctx.lineTo(sx + iW, sy - h);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(120, 190, 240, 0.4)'; // Slightly darker glass
+        ctx.fill();
+        ctx.stroke();
+
+        // --- 2. Metal Handrail ---
+        ctx.beginPath();
+        ctx.moveTo(sx - iW, sy - h);
+        ctx.lineTo(sx, sy + iH - h);
+        ctx.lineTo(sx + iW, sy - h);
+        ctx.strokeStyle = '#e0e0f0'; // Chrome/Silver
+        ctx.lineWidth = 1.2 * z;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // --- 3. Balcony Floor Detail ---
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - iH);
+        ctx.lineTo(sx + iW, sy);
+        ctx.lineTo(sx, sy + iH);
+        ctx.lineTo(sx - iW, sy);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
     }
 
     /** Draw stairs pattern */
