@@ -3,7 +3,7 @@
  * Contexts allow mini-games to capture input without affecting exploration.
  */
 
-export type InputContext = 'exploration' | 'minigame' | 'dialogue' | 'menu' | 'casino' | 'bankruptcy';
+export type InputContext = 'exploration' | 'minigame' | 'dialogue' | 'menu' | 'casino' | 'bankruptcy' | 'ranking';
 
 export class InputManager {
     private static instance: InputManager;

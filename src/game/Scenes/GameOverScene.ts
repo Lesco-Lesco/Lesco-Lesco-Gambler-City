@@ -22,7 +22,7 @@ export class GameOverScene implements Scene {
     ];
 
     private currentPhrase: string = "";
-    public onRestart?: () => void;
+    public onContinue?: () => void;
 
     constructor() {
         this.input = InputManager.getInstance();
@@ -45,7 +45,7 @@ export class GameOverScene implements Scene {
         this.time += dt;
         if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
             SoundManager.getInstance().play('game_start');
-            if (this.onRestart) this.onRestart();
+            if (this.onContinue) this.onContinue();
         }
     }
 

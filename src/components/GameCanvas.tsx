@@ -5,6 +5,10 @@ import type { ExplorationScene } from '../game/Scenes/ExplorationScene';
 import type { CasinoScene } from '../game/Scenes/CasinoScene';
 import type { ChurchScene } from '../game/Scenes/ChurchScene';
 import type { GameOverScene } from '../game/Scenes/GameOverScene';
+import type { ScoreBreakdownScene } from '../game/Scenes/ScoreBreakdownScene';
+import type { InitialsInputScene } from '../game/Scenes/InitialsInputScene';
+import type { RankingScene } from '../game/Scenes/RankingScene';
+import { RankingAPI } from '../game/Services/RankingAPI';
 import { EconomyManager } from '../game/Core/EconomyManager';
 import { AchievementManager } from '../game/Core/AchievementManager';
 import { AchievementUI } from '../game/UI/AchievementUI';
@@ -27,6 +31,9 @@ const GameCanvas = () => {
         casinoScene: CasinoScene;
         churchScene: ChurchScene;
         gameOverScene: GameOverScene;
+        scoreBreakdown: ScoreBreakdownScene;
+        initialsInput: InitialsInputScene;
+        rankingScene: RankingScene;
     } | null>(null);
 
     useEffect(() => {
@@ -65,18 +72,27 @@ const GameCanvas = () => {
                 let casinoShopping: CasinoScene;
                 let casinoStation: CasinoScene;
                 let churchScene: ChurchScene;
+                let scoreBreakdown: import('../game/Scenes/ScoreBreakdownScene').ScoreBreakdownScene;
+                let initialsInput: import('../game/Scenes/InitialsInputScene').InitialsInputScene;
+                let rankingScene: import('../game/Scenes/RankingScene').RankingScene;
 
                 try {
                     const { ExplorationScene } = await import('../game/Scenes/ExplorationScene');
                     const { CasinoScene } = await import('../game/Scenes/CasinoScene');
                     const { ChurchScene } = await import('../game/Scenes/ChurchScene');
                     const { GameOverScene } = await import('../game/Scenes/GameOverScene');
+                    const { ScoreBreakdownScene } = await import('../game/Scenes/ScoreBreakdownScene');
+                    const { InitialsInputScene } = await import('../game/Scenes/InitialsInputScene');
+                    const { RankingScene } = await import('../game/Scenes/RankingScene');
 
                     scene = new ExplorationScene(renderer, w, h);
                     casinoShopping = new CasinoScene(w, h, 'shopping');
                     casinoStation = new CasinoScene(w, h, 'station');
                     churchScene = new ChurchScene(w, h);
                     gameOverScene = new GameOverScene();
+                    scoreBreakdown = new ScoreBreakdownScene();
+                    initialsInput = new InitialsInputScene();
+                    rankingScene = new RankingScene();
 
                     // Link Scenes
                     scene.onEnterCasino = (type: 'shopping' | 'station' = 'shopping') => {
@@ -97,7 +113,36 @@ const GameCanvas = () => {
                     casinoShopping.onGameOver = handleGameOver;
                     casinoStation.onGameOver = handleGameOver;
 
-                    gameOverScene.onRestart = () => {
+                    // END GAME → Score Breakdown
+                    gameOverScene.onContinue = () => {
+                        loop.setScene('score_breakdown');
+                    };
+
+                    // Score Breakdown → Initials Input OR Ranking
+                    scoreBreakdown.onContinue = (enteredRanking: boolean) => {
+                        if (enteredRanking) {
+                            const pos = scoreBreakdown.getRankingPosition()!;
+                            const bd  = scoreBreakdown.getBreakdown()!;
+                            initialsInput.setData(pos, bd);
+                            loop.setScene('initials_input');
+                        } else {
+                            // Skip initials, go straight to ranking
+                            RankingAPI.getInstance().getRanking().then(r => {
+                                rankingScene.setData(r, null);
+                            }).catch(() => rankingScene.setData([], null));
+                            loop.setScene('ranking');
+                        }
+                    };
+
+                    // Initials confirmed → submit score → Ranking
+                    initialsInput.onConfirm = async (initials, breakdown) => {
+                        const result = await RankingAPI.getInstance().submitScore(initials, breakdown);
+                        rankingScene.setData(result.ranking, result.position);
+                        loop.setScene('ranking');
+                    };
+
+                    // Ranking → Restart game
+                    rankingScene.onRestart = () => {
                         EconomyManager.getInstance().reset();
                         AchievementManager.getInstance().reset();
                         AchievementUI.getInstance().reset();
@@ -122,13 +167,16 @@ const GameCanvas = () => {
                     loop.addScene(churchScene);
 
                     loop.addScene(gameOverScene);
+                    loop.addScene(scoreBreakdown);
+                    loop.addScene(initialsInput);
+                    loop.addScene(rankingScene);
                     loop.setScene('exploration');
 
                     // Start loop
                     await document.fonts.ready; // Ensure custom fonts are loaded
                     loop.start();
                     triggerSplash(); // Show splash on first start
-                    engineRef.current = { loop, renderer, scene, casinoScene: casinoShopping, churchScene, gameOverScene };
+                    engineRef.current = { loop, renderer, scene, casinoScene: casinoShopping, churchScene, gameOverScene, scoreBreakdown, initialsInput, rankingScene };
 
                     console.log("Scenes initialized successfully");
 
@@ -172,6 +220,9 @@ const GameCanvas = () => {
                     if (casinoStation) casinoStation.resize(rw, rh);
                     if (churchScene) churchScene.resize(rw, rh);
                     if (gameOverScene) gameOverScene.resize(rw, rh);
+                    if (scoreBreakdown) scoreBreakdown.resize(rw, rh);
+                    if (initialsInput) initialsInput.resize(rw, rh);
+                    if (rankingScene) rankingScene.resize(rw, rh);
                 };
 
                 // Initial size
