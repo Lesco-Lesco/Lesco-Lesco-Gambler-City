@@ -539,10 +539,10 @@ export class Minimap {
 
     private drawNpcBlip(ctx: CanvasRenderingContext2D, x: number, y: number, gameType: string, size: number) {
         switch (gameType) {
-            case 'dice': ctx.fillStyle = '#3333ff'; break;
+            case 'dados': ctx.fillStyle = '#3333ff'; break;
             case 'ronda': ctx.fillStyle = '#33ff33'; break;
             case 'purrinha': ctx.fillStyle = '#ffff33'; break;
-            case 'heads_tails': ctx.fillStyle = '#ff9933'; break;
+            case 'cara_coroa': ctx.fillStyle = '#ff9933'; break;
             case 'palitinho': ctx.fillStyle = '#ff66cc'; break;
             case 'fan_tan': ctx.fillStyle = '#dc143c'; break;
             case 'jokenpo': ctx.fillStyle = '#00ffff'; break;
@@ -565,18 +565,27 @@ export class Minimap {
             { name: 'Jo Ken Po', color: '#00ffff' }
         ];
 
-        const itemW = width / games.length;
-        ctx.save(); // Prevent state leakage
+        ctx.save();
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.font = `${r(11)}px monospace`;
 
+        // Split into two rows for better spacing with fixed alignment
+        const itemsPerRow = 4;
+        const colWidth = width / itemsPerRow;
+        const rowHeight = s(16);
+
         games.forEach((g, i) => {
-            const gx = x + i * itemW;
+            const row = Math.floor(i / itemsPerRow);
+            const col = i % itemsPerRow;
+            
+            const gx = x + col * colWidth;
+            const gy = y + row * rowHeight;
+
             ctx.fillStyle = g.color;
-            ctx.fillRect(gx, y, s(8), s(8));
+            ctx.fillRect(gx, gy, s(8), s(8));
             ctx.fillStyle = '#e4dcc4';
-            ctx.fillText(g.name, gx + s(12), y + s(4));
+            ctx.fillText(g.name, gx + s(12), gy + s(4));
         });
         ctx.restore();
     }

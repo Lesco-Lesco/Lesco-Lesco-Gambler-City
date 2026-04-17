@@ -238,5 +238,6 @@ export class PokerGame implements IMinigame {
         this.communityCards = [];
         this.pot = 0;
         this.updateLimits();
+        this.betAmount = this.minBet;
     }
 }

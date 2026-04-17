@@ -29,8 +29,14 @@ export class VideoBingoUI implements IMinigameUI {
 
         if (this.game.phase === 'betting') {
             const { step, max } = EconomyManager.getInstance().getBetLimits();
-            if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) this.game.betAmount = Math.max(10, this.game.betAmount - step);
-            if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) this.game.betAmount = Math.min(max, this.game.betAmount + step);
+            if (input.wasPressedOrHeld('ArrowDown', _dt) || input.wasPressedOrHeld('KeyS', _dt)) {
+                this.game.betAmount = Math.max(10, this.game.betAmount - step);
+                SoundManager.getInstance().play('menu_select');
+            }
+            if (input.wasPressedOrHeld('ArrowUp', _dt) || input.wasPressedOrHeld('KeyW', _dt)) {
+                this.game.betAmount = Math.min(max, this.game.betAmount + step);
+                SoundManager.getInstance().play('menu_select');
+            }
 
             if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 const bmanager = BichoManager.getInstance();

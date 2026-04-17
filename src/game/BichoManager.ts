@@ -77,7 +77,7 @@ export class BichoManager {
         });
 
         // Track for achievements
-        AchievementManager.getInstance().recordBichoBet();
+        AchievementManager.getInstance().recordBichoBet(economy.balance);
     }
 
     public update(dt: number) {

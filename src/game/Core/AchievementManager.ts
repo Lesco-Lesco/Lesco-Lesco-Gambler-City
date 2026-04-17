@@ -56,6 +56,7 @@ export interface PlayerStats {
 
     // New: Phoenix recoveries (All-In wins)
     phoenixWins: number;
+    playedUnder20: boolean;
 }
 
 /** Achievement definition */
@@ -137,10 +138,15 @@ export class AchievementManager {
     }
 
     /** Record a minigame being played */
-    public recordMinigamePlay(type: string): void {
+    public recordMinigamePlay(type: string, currentMoney: number): void {
         this.stats.minigamesPlayedByType[type] = (this.stats.minigamesPlayedByType[type] || 0) + 1;
         this.stats.totalMinigamesPlayed++;
         this.stats.uniqueMinigamesPlayed.add(type);
+
+        if (currentMoney < 20) {
+            this.stats.playedUnder20 = true;
+        }
+
         this.checkAchievements();
     }
 
@@ -197,8 +203,13 @@ export class AchievementManager {
     }
 
     /** Record a Jogo do Bicho bet */
-    public recordBichoBet(): void {
+    public recordBichoBet(currentMoney: number): void {
         this.stats.bichoBetsPlaced++;
+        
+        if (currentMoney < 20) {
+            this.stats.playedUnder20 = true;
+        }
+
         this.checkAchievements();
     }
 
@@ -404,6 +415,7 @@ export class AchievementManager {
             uniqueMinigamesPlayed: new Set(),
             uniqueArcadesPlayed: new Set(),
             phoenixWins: 0,
+            playedUnder20: false,
         };
     }
 
@@ -446,7 +458,7 @@ export class AchievementManager {
             
             // 🚬 Malandragem
             { id: 'papo_bar', name: 'Papo de Bar', description: 'Tu fala mais que o homem da cobra.', reward: 10, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.uniqueMinigamesPlayed.size >= 8 },
-            { id: 'aposta_risco', name: 'Aposta de Risco', description: 'Jogou com menos de R$20 no bolso.', reward: 10, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.maxMoneyReached >= 20 && s.totalMinigamesPlayed >= 5 }, // Close enough
+            { id: 'aposta_risco', name: 'Aposta de Risco', description: 'Jogou com menos de R$20 no bolso.', reward: 10, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.playedUnder20 && s.totalMinigamesPlayed >= 1 },
             { id: 'inimigo_estado', name: 'Inimigo do Estado', description: 'Sobreviveu a 5 batidas.', reward: 30, tier: 2, unlocked: false, category: 'malandragem', condition: (s) => s.raidsSurvived >= 5 },
             { id: 'sabonete', name: 'Sabonete', description: 'Escorregadio demais pros PMs.', reward: 20, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.raidsSurvived >= 1 },
             { id: 'amigo_caneco', name: 'Amigo do Caneco', description: 'Pagou o café da firma.', reward: 0, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.bribesPaid >= 1 },
@@ -466,7 +478,7 @@ export class AchievementManager {
             { id: 'fenix_3', name: 'Fênix', description: '3 vitórias All-In seguidas (mítico)', reward: 70, tier: 3, unlocked: false, category: 'resiliencia', condition: (s) => s.phoenixWins >= 3 },
             
             // Outros Progressão (Tree sync)
-            { id: 'desbloqueio_porta', name: 'Porta Aberta', description: 'Mostrou que não é amador', reward: 10, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesPlayedByType['dice'] || 0) >= 15 },
+            { id: 'desbloqueio_porta', name: 'Porta Aberta', description: 'Mostrou que não é amador', reward: 10, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesPlayedByType['dados'] || 0) >= 15 },
             { id: 'desbloqueio_bar', name: 'Chave do Bar', description: 'O Zeca liberou a mesa de fundos.', reward: 20, tier: 2, unlocked: false, category: 'exploracao', condition: (s) => (s.minigamesPlayedByType['ronda'] || 0) >= 10 },
             { id: 'desbloqueio_fliper', name: 'Chave do Fliper', description: 'Molecada chora quando tu chega', reward: 30, tier: 2, unlocked: false, category: 'exploracao', condition: (s) => (s.arcadePlayedByType['arcade_pong'] || 0) >= 1 }
         ];

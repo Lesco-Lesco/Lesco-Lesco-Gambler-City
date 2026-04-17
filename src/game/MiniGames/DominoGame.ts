@@ -51,6 +51,7 @@ export class DominoGame implements IMinigame {
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
+        this.betAmount = this.minBet;
     }
 
     private initializePlayers() {

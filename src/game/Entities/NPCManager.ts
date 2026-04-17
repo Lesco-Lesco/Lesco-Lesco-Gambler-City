@@ -36,8 +36,8 @@ export class NPCManager {
                     'domino',
                     true // isStationary
                 ));
-            } else if (poi.type === 'dice') {
-                this.npcs.push(new NPC(poi.x, poi.y, 'gambler', `Dados ${poi.name}`, 'dice', 'dice'));
+            } else if (poi.type === 'dados') {
+                this.npcs.push(new NPC(poi.x, poi.y, 'gambler', `Dados ${poi.name}`, 'dados', 'dados'));
             } else if (poi.type === 'ronda') {
                 this.npcs.push(new NPC(poi.x, poi.y, 'gambler', `Ronda ${poi.name}`, 'ronda', 'ronda'));
             } else if (poi.type === 'jokenpo') {
@@ -90,21 +90,28 @@ export class NPCManager {
             if (!isPeriphery && Math.random() < 0.15) continue; // 15% de viés extra para periferia
 
             const distToShop = Math.sqrt((x - SHOPPING_X) ** 2 + (y - SHOPPING_Y) ** 2);
+            const inSpecialLoc = this.isInSpecialLocation(x, y);
+
+            // 1. Redução de 50% em áreas sensíveis (Praças, Estação, Shopping Front, Igreja Front)
+            if (inSpecialLoc && Math.random() < 0.5) continue;
 
             let type: NPCType = 'gambler';
             let minigame: any = null;
 
             // --- SECTORIZATION LOGIC ---
-            if (distToShop < SAFE_RADIUS) {
-                // Main Commercial/Shopping Area: mostly citizens, but some gamblers now
-                if (Math.random() < 0.70) type = 'citizen';
+            if (inSpecialLoc) {
+                // Áreas especiais: Proibido jogadores genéricos, apenas cidadãos (que agora têm diálogos locais)
+                type = 'citizen';
+            } else if (distToShop < SAFE_RADIUS) {
+                // Main Commercial/Shopping Area: mostly citizens
+                if (Math.random() < 0.85) type = 'citizen';
                 else type = 'gambler';
             } else if (isAlley) {
-                // Alleys/Residential: almost exclusively gamblers, higher density handled by loop
+                // Alleys/Residential: almost exclusively gamblers
                 if (Math.random() < 0.95) type = 'gambler';
                 else type = 'citizen';
             } else {
-                // Generic streets: heavy on gamblers (the "Lesco Lesco" spirit)
+                // Generic streets: heavy on gamblers
                 if (Math.random() < 0.25) type = 'citizen';
                 else type = 'gambler';
             }
@@ -114,7 +121,6 @@ export class NPCManager {
             }
 
             // --- POLICE SPAWN CHANCE ---
-            // If not a specialist (gambler/promoter), check if it should be police
             const pmanager = PoliceManager.getInstance();
             let finalType: NPCType = type;
             if (type === 'citizen') {
@@ -123,7 +129,7 @@ export class NPCManager {
                     finalType = 'station_hints' as any;
                 } else {
                     const isPeriphery = pmanager.isPeriphery(x, y);
-                    const policeChance = isPeriphery ? 0.25 : 0.05; // 25% in periphery, 5% in city
+                    const policeChance = isPeriphery ? 0.25 : 0.05;
                     if (Math.random() < policeChance) {
                         finalType = 'police';
                     }
@@ -137,11 +143,26 @@ export class NPCManager {
         console.log(`Spawned ${spawned} generic NPCs with sectorized games.`);
     }
 
+    private isInSpecialLocation(x: number, y: number): boolean {
+        // Shopping Plaza
+        if (x >= 108 && x <= 142 && y >= 115 && y <= 142) return true;
+        // Church Front
+        if (x >= 125 && x <= 135 && y >= 81 && y <= 85) return true;
+        // Station Front
+        if (x >= 235 && x <= 260 && y >= 149 && y <= 165) return true;
+        // Square: Marques de Herval
+        if (x >= 148 && x <= 168 && y >= 160 && y <= 190) return true;
+        // Square: Marco Imperial
+        if (x >= 225 && x <= 245 && y >= 130 && y <= 149) return true;
+
+        return false;
+    }
+
     private spawnPromoters() {
         // Promoters at game hubs
         const hubs = [
             { type: 'purrinha', x: 130, y: 80, name: 'Promotor da Purrinha' },   // North (Igreja)
-            { type: 'dice', x: 60, y: 240, name: 'Promotor dos Dados' },        // West (Matadouro)
+            { type: 'dados', x: 60, y: 240, name: 'Promotor dos Dados' },        // West (Matadouro)
             { type: 'ronda', x: 232, y: 148, name: 'Promotor da Ronda' },       // East (Station)
         ];
 
@@ -162,15 +183,15 @@ export class NPCManager {
         // Hubs for sectorization
         const hubs = [
             { type: 'purrinha', x: 130, y: 80, weight: 1.0 },   // North (Igreja)
-            { type: 'dice', x: 60, y: 240, weight: 1.0 },      // West/South-West (Matadouro)
+            { type: 'dados', x: 60, y: 240, weight: 1.0 },      // West/South-West (Matadouro)
             { type: 'ronda', x: 230, y: 150, weight: 1.0 },     // East (Station/Marco)
             { type: 'fan_tan', x: 130, y: 130, weight: 1.5 },   // Shopping/Central (Chinatown approach)
             { type: 'palitinho', x: 40, y: 40, weight: 1.0 },    // North-West Alleys
-            { type: 'heads_tails', x: 250, y: 250, weight: 1.0 }, // South-East
+            { type: 'cara_coroa', x: 250, y: 250, weight: 1.0 }, // South-East
             { type: 'jokenpo', x: 130, y: 190, weight: 1.2 }    // Marques de Herval area
         ];
 
-        let weights = { purrinha: 0.1, dice: 0.1, ronda: 0.1, fan_tan: 0.1, palitinho: 0.1, heads_tails: 0.1, jokenpo: 0.1 };
+        let weights = { purrinha: 0.1, dados: 0.1, ronda: 0.1, fan_tan: 0.1, palitinho: 0.1, cara_coroa: 0.1, jokenpo: 0.1 };
 
         for (const hub of hubs) {
             const dist = Math.sqrt((x - hub.x) ** 2 + (y - hub.y) ** 2);
@@ -179,15 +200,15 @@ export class NPCManager {
             (weights as any)[hub.type] += influence * 2.0;
         }
 
-        const totalWeight = weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho + (weights as any).heads_tails + (weights as any).jokenpo;
+        const totalWeight = weights.purrinha + weights.dados + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho + (weights as any).cara_coroa + (weights as any).jokenpo;
         let r = Math.random() * totalWeight;
 
         if (r < weights.purrinha) return 'purrinha';
-        if (r < weights.purrinha + weights.dice) return 'dice';
-        if (r < weights.purrinha + weights.dice + weights.ronda) return 'ronda';
-        if (r < weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan) return 'fan_tan';
-        if (r < weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho) return 'palitinho';
-        if (r < weights.purrinha + weights.dice + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho + (weights as any).heads_tails) return 'heads_tails';
+        if (r < weights.purrinha + weights.dados) return 'dados';
+        if (r < weights.purrinha + weights.dados + weights.ronda) return 'ronda';
+        if (r < weights.purrinha + weights.dados + weights.ronda + (weights as any).fan_tan) return 'fan_tan';
+        if (r < weights.purrinha + weights.dados + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho) return 'palitinho';
+        if (r < weights.purrinha + weights.dados + weights.ronda + (weights as any).fan_tan + (weights as any).palitinho + (weights as any).cara_coroa) return 'cara_coroa';
         return 'jokenpo';
     }
 

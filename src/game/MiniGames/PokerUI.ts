@@ -70,14 +70,16 @@ export class PokerUI implements IMinigameUI {
             // Mid-game phases
             if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
                 const { step } = EconomyManager.getInstance().getBetLimits();
-                const up = this.input.wasPressed('ArrowUp') || (mobile && this.input.wasPressed('KeyW'));
-                const down = this.input.wasPressed('ArrowDown') || (mobile && this.input.wasPressed('KeyS'));
+                const up = this.input.wasPressedOrHeld('ArrowUp', _dt) || (mobile && this.input.wasPressedOrHeld('KeyW', _dt));
+                const down = this.input.wasPressedOrHeld('ArrowDown', _dt) || (mobile && this.input.wasPressedOrHeld('KeyS', _dt));
 
                 if (up) {
                     this.pendingRaise = Math.min(this.pendingRaise + step, bmanager.playerMoney);
+                    SoundManager.getInstance().play('menu_select');
                 }
                 if (down) {
                     this.pendingRaise = Math.max(0, this.pendingRaise - step);
+                    SoundManager.getInstance().play('menu_select');
                 }
 
                 if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {

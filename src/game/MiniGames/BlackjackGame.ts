@@ -160,5 +160,6 @@ export class BlackjackGame implements IMinigame {
         this.winner = null;
         this.resultMessage = '';
         this.updateLimits();
+        this.betAmount = this.minBet;
     }
 }

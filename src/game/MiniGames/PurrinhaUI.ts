@@ -32,11 +32,13 @@ export class PurrinhaUI implements IMinigameUI {
 
         if (phase === 'betting') {
             const { step } = EconomyManager.getInstance().getBetLimits();
-            if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
+            if (this.input.wasPressedOrHeld('ArrowUp', dt) || this.input.wasPressedOrHeld('KeyW', dt)) {
                 this.game.selectedBet = Math.min(this.game.maxBet, this.game.selectedBet + step);
+                SoundManager.getInstance().play('menu_select');
             }
-            if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
+            if (this.input.wasPressedOrHeld('ArrowDown', dt) || this.input.wasPressedOrHeld('KeyS', dt)) {
                 this.game.selectedBet = Math.max(this.game.minBet, this.game.selectedBet - step);
+                SoundManager.getInstance().play('menu_select');
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.confirmBet(this.game.selectedBet);
@@ -55,11 +57,13 @@ export class PurrinhaUI implements IMinigameUI {
                 SoundManager.getInstance().playArpeggio('purrinha');
             }
         } else if (phase === 'guessing') {
-            if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
+            if (this.input.wasPressedOrHeld('ArrowUp', dt) || this.input.wasPressedOrHeld('KeyW', dt)) {
                 this.game.selectedGuess = Math.min(this.game.maxPossibleTotal, this.game.selectedGuess + 1);
+                SoundManager.getInstance().play('menu_select');
             }
-            if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
+            if (this.input.wasPressedOrHeld('ArrowDown', dt) || this.input.wasPressedOrHeld('KeyS', dt)) {
                 this.game.selectedGuess = Math.max(0, this.game.selectedGuess - 1);
+                SoundManager.getInstance().play('menu_select');
             }
             if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this.input.wasPressed('KeyE')) {
                 this.game.makeGuess(this.game.selectedGuess);
@@ -81,6 +85,7 @@ export class PurrinhaUI implements IMinigameUI {
                     SoundManager.getInstance().play(moneyChange > 0 ? 'win_small' : 'lose');
                     SoundManager.getInstance().playFanfare('purrinha', moneyChange > 0 ? 'win' : 'lose');
                     this.onPlayAgain(moneyChange);
+                    this.game.selectedBet = this.game.minBet;
                 }
             }
         }

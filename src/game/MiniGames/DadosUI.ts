@@ -1,9 +1,8 @@
 /**
- * DiceUI - Visual Interface for the Dice Game
- * Layout 100% proporcional — sem coordenadas hardcoded.
+ * DadosUI - Visual Interface for the Dados Game
  */
 
-import { DiceGame } from './DiceGame';
+import { DadosGame } from './DadosGame';
 import { BichoManager } from '../BichoManager';
 import { InputManager } from '../Core/InputManager';
 import { EconomyManager } from '../Core/EconomyManager';
@@ -14,15 +13,15 @@ import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '.
 import type { IMinigameUI } from './BaseMinigame';
 import { SoundManager } from '../Core/SoundManager';
 
-export class DiceUI implements IMinigameUI {
-    private game: DiceGame;
+export class DadosUI implements IMinigameUI {
+    private game: DadosGame;
     private betAmount: number = 10;
     private humanChoices: [number, number] = [1, 1];
     private activeChoice: 0 | 1 = 0;
     private onClose: (moneyChange: number) => void;
     private onPlayAgain: (moneyChange: number) => void;
 
-    constructor(game: DiceGame, onClose: (moneyChange: number) => void, onPlayAgain: (moneyChange: number) => void) {
+    constructor(game: DadosGame, onClose: (moneyChange: number) => void, onPlayAgain: (moneyChange: number) => void) {
         this.game = game;
         this.onClose = onClose;
         this.onPlayAgain = onPlayAgain;
@@ -316,4 +315,3 @@ export class DiceUI implements IMinigameUI {
         }
     }
 }
-

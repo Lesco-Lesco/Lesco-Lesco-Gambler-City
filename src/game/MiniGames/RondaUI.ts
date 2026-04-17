@@ -235,11 +235,13 @@ export class RondaUI implements IMinigameUI {
             this.hasSettled = false;
             const { step } = EconomyManager.getInstance().getBetLimits();
 
-            if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) {
+            if (input.wasPressedOrHeld('ArrowUp', _dt) || input.wasPressedOrHeld('KeyW', _dt)) {
                 this.game.betAmount = Math.min(this.game.maxBet, this.game.betAmount + step);
+                SoundManager.getInstance().play('menu_select');
             }
-            if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) {
+            if (input.wasPressedOrHeld('ArrowDown', _dt) || input.wasPressedOrHeld('KeyS', _dt)) {
                 this.game.betAmount = Math.max(this.game.minBet, this.game.betAmount - step);
+                SoundManager.getInstance().play('menu_select');
             }
             if (input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) {
                 if (bmanager.playerMoney >= this.game.betAmount) {

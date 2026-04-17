@@ -28,11 +28,11 @@ export class HorseRacingGame {
     public readonly RACE_DISTANCE = 1000;
 
     // Fixed prize table (relative to betAmount, resolved at payout time)
-    // 1st: 6× bet received  → profit +5× bet
-    // 2nd: 2× bet received  → profit +1× bet
-    // 3rd: 1× bet received  → break even
-    // 4th+: 0              → lost
-    private static readonly PRIZE_MULT: Record<number, number> = { 1: 6, 2: 2, 3: 1 };
+    // 1st: 5× bet received (50 if bet 10)
+    // 2nd: 3× bet received (30 if bet 10)
+    // 3rd: 2× bet received (20 if bet 10)
+    // 4th: 1× bet received (10 if bet 10 - consolation)
+    private static readonly PRIZE_MULT: Record<number, number> = { 1: 5, 2: 3, 3: 2, 4: 1 };
 
     constructor(isPeriphery: boolean = false) {
         this.isPeriphery = isPeriphery;

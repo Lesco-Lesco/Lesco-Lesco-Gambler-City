@@ -293,7 +293,7 @@ export class CasinoScene implements Scene {
         } else if (this.state === 'slot') {
             this.updateSlot(dt);
         } else if (this.state === 'bicho') {
-            this.updateBicho();
+            this.updateBicho(dt);
         } else if (this.state === 'blackjack' && this.blackjack) {
             this.blackjack.ui.update(dt);
         } else if (this.state === 'poker' && this.poker) {
@@ -420,6 +420,7 @@ export class CasinoScene implements Scene {
             if (m.type === 'bicho') {
                 this.state = 'bicho';
                 this.bichoMessage = '';
+                this.bichoBet = bmanager.getBetLimits().min;
             } else if (m.type === 'blackjack') {
                 this.state = 'blackjack';
             } else if (m.type === 'poker') {
@@ -428,6 +429,7 @@ export class CasinoScene implements Scene {
                 this.state = 'slot';
                 this.slotResult = null;
                 this.slotSpinning = false;
+                this.slotBet = bmanager.getBetLimits().min;
             }
         }
     }
@@ -469,11 +471,13 @@ export class CasinoScene implements Scene {
             const { step } = EconomyManager.getInstance().getBetLimits();
             const isBroke = bmanager.playerMoney < limits.min;
 
-            if (this.input.wasPressed('ArrowUp')) {
+            if (this.input.wasPressedOrHeld('ArrowUp', dt)) {
                 this.slotBet = Math.min(this.slotBet + step, bmanager.playerMoney, limits.max);
+                SoundManager.getInstance().play('menu_select');
             }
-            if (this.input.wasPressed('ArrowDown')) {
+            if (this.input.wasPressedOrHeld('ArrowDown', dt)) {
                 this.slotBet = Math.max(this.slotBet - step, limits.min);
+                SoundManager.getInstance().play('menu_select');
             }
             const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
             if (okPressed && bmanager.playerMoney >= this.slotBet && !isBroke) {
@@ -482,7 +486,7 @@ export class CasinoScene implements Scene {
                 this.slotSpinTimer = 1.5;
                 this.slotResult = null;
                 SoundManager.getInstance().play('slot_spin');
-                AchievementManager.getInstance().recordMinigamePlay('slots');
+                AchievementManager.getInstance().recordMinigamePlay('slots', bmanager.playerMoney);
             } else if (okPressed && isBroke) {
                 SoundManager.getInstance().play('lose');
                 bmanager.addNotification("Você está sem grana para jogar!", 3);
@@ -491,7 +495,7 @@ export class CasinoScene implements Scene {
 
     }
 
-    private updateBicho() {
+    private updateBicho(dt: number) {
         if (this.input.wasPressed('ArrowRight')) this.bichoSelectedAnimal = Math.min(this.bichoSelectedAnimal + 1, 24);
         if (this.input.wasPressed('ArrowLeft')) this.bichoSelectedAnimal = Math.max(this.bichoSelectedAnimal - 1, 0);
         if (this.input.wasPressed('ArrowDown')) this.bichoSelectedAnimal = Math.min(this.bichoSelectedAnimal + 5, 24);
@@ -503,8 +507,8 @@ export class CasinoScene implements Scene {
         const isBroke = bmanager.playerMoney < limits.min;
 
         const isShift = this.input.isDown('ShiftLeft') || this.input.isDown('ShiftRight');
-        const adjustUp = this.input.wasPressed('Equal') || this.input.wasPressed('NumpadAdd') || (isShift && this.input.wasPressed('ArrowUp'));
-        const adjustDown = this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract') || (isShift && this.input.wasPressed('ArrowDown'));
+        const adjustUp = this.input.wasPressedOrHeld('Equal', dt) || this.input.wasPressedOrHeld('NumpadAdd', dt) || (isShift && this.input.wasPressedOrHeld('ArrowUp', dt));
+        const adjustDown = this.input.wasPressedOrHeld('Minus', dt) || this.input.wasPressedOrHeld('NumpadSubtract', dt) || (isShift && this.input.wasPressedOrHeld('ArrowDown', dt));
 
         if (adjustUp) {
              this.bichoBet = Math.min(this.bichoBet + step, bmanager.playerMoney, limits.max);

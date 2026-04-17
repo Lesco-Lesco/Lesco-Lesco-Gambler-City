@@ -51,7 +51,7 @@ export class PalitinhoGame implements IMinigame {
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = Math.min(limits.max, 500); // Caps for street game
-        this.selectedBet = Math.max(this.minBet, Math.min(this.selectedBet, this.maxBet));
+        this.selectedBet = this.minBet;
     }
 
     public confirmBet(amount: number) {

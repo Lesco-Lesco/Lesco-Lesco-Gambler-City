@@ -11,6 +11,8 @@ export class InputManager {
     private keys: Map<string, boolean> = new Map();
     private justPressed: Map<string, boolean> = new Map();
     private justReleased: Map<string, boolean> = new Map();
+    private holdTimers: Map<string, number> = new Map();
+    private repeatIntervals: Map<string, number> = new Map();
     private mouseX: number = 0;
     private mouseY: number = 0;
     private mouseDown: boolean = false;
@@ -168,6 +170,40 @@ export class InputManager {
         for (const alias of this.getAliases(code)) {
             if (this.justPressed.get(alias)) return true;
         }
+        return false;
+    }
+
+    /** Returns true if key was just pressed, OR if held long enough to trigger auto-repeat */
+    public wasPressedOrHeld(code: string, dt: number): boolean {
+        if (!this.isDown(code)) {
+            this.holdTimers.delete(code);
+            this.repeatIntervals.delete(code);
+            return false;
+        }
+
+        if (this.wasPressed(code)) {
+            this.holdTimers.set(code, 0);
+            this.repeatIntervals.set(code, 0);
+            return true;
+        }
+
+        let time = (this.holdTimers.get(code) || 0) + dt;
+        this.holdTimers.set(code, time);
+
+        const startTime = 0.45; // Start repeating after 450ms
+        if (time < startTime) return false;
+
+        // Accelerate repeat rate based on hold time
+        let interval = 0.15;
+        if (time > 2.5) interval = 0.03;
+        else if (time > 1.2) interval = 0.07;
+
+        let lastRepeat = this.repeatIntervals.get(code) || 0;
+        if (time - lastRepeat >= interval) {
+            this.repeatIntervals.set(code, time);
+            return true;
+        }
+
         return false;
     }
 

@@ -52,7 +52,7 @@ export const AREA_LABELS: { x: number; y: number; name: string; type: 'neighborh
 export interface POI {
     x: number;
     y: number;
-    type: 'purrinha' | 'ronda' | 'dice' | 'domino' | 'npc_homeless' | 'npc_info' | 'npc_casino_promoter' | 'bingo' | 'pedinte' | 'domino_table' | 'jokenpo';
+    type: 'purrinha' | 'ronda' | 'dados' | 'domino' | 'npc_homeless' | 'npc_info' | 'npc_casino_promoter' | 'bingo' | 'pedinte' | 'domino_table' | 'jokenpo' | 'cara_coroa';
     name: string;
 }
 
@@ -944,9 +944,9 @@ export const POINTS_OF_INTEREST: POI[] = [
     { x: 130, y: 80, type: 'preacher' as any, name: 'Pastor Ezequiel' },
 
     // West Hub: Dice (Deep Alleys / Beco do Matadouro)
-    { x: 60, y: 235, type: 'dice', name: 'do Beco' },
-    { x: 62, y: 245, type: 'dice', name: 'da Sorte' },
-    { x: 55, y: 240, type: 'dice', name: 'Viciado' },
+    { x: 60, y: 235, type: 'dados', name: 'do Beco' },
+    { x: 62, y: 245, type: 'dados', name: 'da Sorte' },
+    { x: 55, y: 240, type: 'dados', name: 'Viciado' },
 
     // East Hub: Ronda (Near Station / Marco Imperial)
     { x: 235, y: 160, type: 'ronda', name: 'da Estação' },

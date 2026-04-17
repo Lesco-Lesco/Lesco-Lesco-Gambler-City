@@ -424,9 +424,6 @@ export class TileRenderer {
                                 this.drawWindows(renderer, camera, tileX, tileY, h, rand, tile);
                                 if (tile === TILE_TYPES.BUILDING_LOW) {
                                     this.drawRoofDetail(ctx, camera, tileX, tileY, h, rand);
-                                    if (seededRandom(tileX * 11, tileY * 13) > 0.7 && !s) {
-                                        this.drawDoor(ctx, camera, tileX, tileY);
-                                    }
                                 } else if (tile === (TILE_TYPES.BAR as number)) {
                                     this.drawBarStripes(ctx, camera, tileX, tileY, h, rand);
                                     if (!s) this.drawBarEntrance(ctx, camera, tileX, tileY, rand);
@@ -1644,16 +1641,6 @@ export class TileRenderer {
         }
     }
 
-    /** Draw door */
-    private drawDoor(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, height: number = 1, color: string = '#3a2a1a') {
-        const { sx, sy } = camera.worldToScreen(tileX, tileY);
-        const z = camera.zoom;
-        const h = 6 * height * z;
-        ctx.fillStyle = color;
-        ctx.fillRect(sx - 2 * z, sy - h, 4 * z, h);
-        ctx.fillStyle = '#aa8844';
-        ctx.fillRect(sx + 0.5 * z, sy - h * 0.5, 1 * z, 1 * z);
-    }
 
     /** Draw modern railing for shopping balconies */
     private drawShoppingRailing(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number, elevation: number) {

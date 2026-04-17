@@ -1,4 +1,4 @@
-import { HeadsTailsGame } from './HeadsTailsGame';
+import { CaraCoroaGame } from './CaraCoroaGame';
 import { InputManager } from '../Core/InputManager';
 import { EconomyManager } from '../Core/EconomyManager';
 import { isMobile } from '../Core/MobileDetect';
@@ -10,13 +10,13 @@ import { SoundManager } from '../Core/SoundManager';
 import { BichoManager } from '../BichoManager';
 
 
-export class HeadsTailsUI implements IMinigameUI {
-    private game: HeadsTailsGame;
+export class CaraCoroaUI implements IMinigameUI {
+    private game: CaraCoroaGame;
     private input: InputManager;
     private onClose: (moneyChange: number) => void;
     private onPlayAgain: (moneyChange: number) => void;
 
-    constructor(game: HeadsTailsGame, onClose: (moneyChange: number) => void, onPlayAgain: (moneyChange: number) => void) {
+    constructor(game: CaraCoroaGame, onClose: (moneyChange: number) => void, onPlayAgain: (moneyChange: number) => void) {
         this.game = game;
         this.input = InputManager.getInstance();
         this.onClose = onClose;
@@ -69,6 +69,7 @@ export class HeadsTailsUI implements IMinigameUI {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
                     SoundManager.getInstance().playFanfare('headstails', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
+                    this.game.selectedBet = this.game.minBet;
                 }
             }
         }

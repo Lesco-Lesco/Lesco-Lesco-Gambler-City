@@ -15,7 +15,7 @@ import { ProgressionManager } from '../Core/ProgressionManager';
 
 
 export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police' | 'casino_promoter' | 'preacher';
-export type MinigameType = 'purrinha' | 'dice' | 'ronda' | 'domino' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | null;
+export type MinigameType = 'purrinha' | 'dados' | 'ronda' | 'domino' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | null;
 
 interface NPCAppearance extends CharacterAppearance {
     // NPC-specific appearance can be extended here if needed
@@ -99,7 +99,7 @@ const DIALOGUES = {
         ["Lê minha mente ou lê minha mão?", "Só não vale chorar depois."],
         ["O segredo tá no dedinho...", "Apanha 10 e vê se ganha."],
     ],
-    dice: [
+    dados: [
         ["Os dados não mentem jamais.", "Sorte no jogo, azar nos amores."],
         ["Cada número conta sua história.", "Beco do Matadouro nunca falha."],
         ["Quer ver o 6-6 brilhar?", "A carapaça tá quente hoje."],
@@ -120,7 +120,7 @@ const DIALOGUES = {
         ["Ei! Quer aprender a arte da Purrinha?", "A tradição aqui na Igreja é forte!", "Vem ver quem tem a mão mais rápida."],
         ["Opa, o jogo de purrinha vai começar!", "Aqui não é sorte, é leitura de mente!", "Chega mais, aposta mínima de 10."],
     ],
-    propaganda_dice: [
+    propaganda_dados: [
         ["Os dados estão rolando no Matadouro!", "Cuidado pra não perder as calças!", "Sorte pura, sem enganação."],
         ["Quer testar sua sorte nos ossos?", "O Beco do Matadouro é onde a mágica acontece!", "Vem dobrar seus trocados aqui."],
     ],
@@ -134,7 +134,7 @@ const DIALOGUES = {
         ["Um jogo clássico pros clássicos.", "Aposta 10 e vê se dá sorte."],
         ["Tesoura corta papel, mas não corta minha sorte.", "Vem pro duelo de mãos!"],
     ],
-    heads_tails: [
+    cara_coroa: [
         ["Cara ou coroa? A sorte está no ar!", "Uma moeda, dois destinos."],
         ["Escolha um lado e reze.", "O metal nunca mente."],
         ["O giro da moeda decide quem manda.", "Cuidado pra não perder a cabeça... ou a cara."],
@@ -189,6 +189,32 @@ const DIALOGUES = {
         ["A porta da igreja está aberta para todos os humildes.", "Deus não olha a carteira, olha o coração."],
         ["Fuja das tentações do subsolo!", "A luz de Deus brilha mais que o neon."],
         ["Um minuto de oração vale mais que uma hora de aposta.", "Deus tem um plano para você."],
+    ],
+    // --- LOCATION SPECIFIC DIALOGUES ---
+    loc_shopping: [
+        ["O shopping tá cheio hoje, hein?", "Muita gente e pouco dinheiro no bolso."],
+        ["Dizem que o ar-condicionado lá dentro é um paraíso.", "Pena que tudo é tão caro."],
+        ["Cuidado com quem te aborda no estacionamento.", "Tem muito malandro de olho em quem ganha no jogo."],
+        ["Esperando minha patroa sair das compras...", "O cartão de crédito já tá chorando."],
+        ["Viu aquele movimento ali no fundo do shopping?", "Tem um segredo que pouca gente conhece."],
+    ],
+    loc_church: [
+        ["Que a paz do Senhor esteja com você, irmão.", "Belo dia para agradecer."],
+        ["O padre hoje estava inspirado na homilia.", "Falou muito sobre o pecado da ganância."],
+        ["Venho aqui pra pedir proteção, o mundo tá brabo.", "Um pouco de fé não faz mal a ninguém."],
+        ["Sempre rezo antes de fazer minha fezinha.", "Deus escreve certo por linhas tortas."],
+    ],
+    loc_station: [
+        ["O ramal de Santa Cruz tá um caos hoje.", "O trem das oito ainda não passou."],
+        ["Muita gente chegando do centro.", "A estação nunca dorme, né?"],
+        ["Cuidado com o celular aqui na plataforma.", "O gatuno não perdoa nem quem tá com pressa."],
+        ["Tá sabendo de algum jogo bom aqui por perto?", "Dizem que o subsolo da estação esconde tesouros."],
+    ],
+    loc_square: [
+        ["Nada como o frescor dessa árvore pra pensar na vida.", "O tempo passa devagar aqui na praça."],
+        ["O papo aqui é sempre bom, mas a sorte é arisca.", "Viu quem ganhou o bicho hoje?"],
+        ["Só falta um café pra esse dia ficar perfeito.", "A vida é um jogo de dominó: tem que saber bater."],
+        ["Essa fonte traz uma paz, não traz?", "Melhor lugar pra ver o movimento."],
     ]
 };
 
@@ -248,9 +274,9 @@ export class NPC {
         if (this.type === 'gambler' && !this.minigameType) {
             const r = Math.random();
             if (r < 0.14) this.minigameType = 'purrinha';
-            else if (r < 0.28) this.minigameType = 'dice';
+            else if (r < 0.28) this.minigameType = 'dados';
             else if (r < 0.42) this.minigameType = 'ronda';
-            else if (r < 0.56) this.minigameType = 'heads_tails';
+            else if (r < 0.56) this.minigameType = 'cara_coroa';
             else if (r < 0.7) this.minigameType = 'palitinho';
             else if (r < 0.84) this.minigameType = 'fan_tan';
             else this.minigameType = 'jokenpo';
@@ -328,8 +354,21 @@ export class NPC {
             const set = (DIALOGUES as any).preacher;
             return set[Math.floor(seededRandom(seed) * set.length)];
         } else {
-            // Citizen/Info
-            if (seededRandom(seed) > 0.7) {
+            // Citizen/Info - Check for location-specific dialogues
+            const sx = this.originX, sy = this.originY;
+            if (sx >= 108 && sx <= 142 && sy >= 115 && sy <= 142) {
+                const set = DIALOGUES.loc_shopping;
+                lines = [...set[Math.floor(seededRandom(seed) * set.length)]];
+            } else if (sx >= 125 && sx <= 135 && sy >= 81 && sy <= 85) {
+                const set = DIALOGUES.loc_church;
+                lines = [...set[Math.floor(seededRandom(seed) * set.length)]];
+            } else if (sx >= 235 && sx <= 260 && sy >= 149 && sy <= 165) {
+                const set = DIALOGUES.loc_station;
+                lines = [...set[Math.floor(seededRandom(seed) * set.length)]];
+            } else if ((sx >= 148 && sx <= 168 && sy >= 160 && sy <= 190) || (sx >= 225 && sx <= 245 && sy >= 130 && sy <= 149)) {
+                const set = DIALOGUES.loc_square;
+                lines = [...set[Math.floor(seededRandom(seed) * set.length)]];
+            } else if (seededRandom(seed) > 0.7) {
                 // 30% Chance of Sarcasm
                 const set = DIALOGUES.sarcastic;
                 lines = [...set[Math.floor(seededRandom(seed) * set.length)]];

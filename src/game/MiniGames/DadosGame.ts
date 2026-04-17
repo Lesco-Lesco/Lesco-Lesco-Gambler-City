@@ -2,7 +2,7 @@ import { EconomyManager } from '../Core/EconomyManager';
 import { BuffManager } from '../Core/BuffManager';
 import type { IMinigame } from './BaseMinigame';
 /**
- * DiceGame (Dados) Logic — Overhauled to 5-player "Stones Style"
+ * DadosGame Logic — Overhauled to 5-player "Stones Style"
  * 
  * Rules:
  * 1. 5 Players (1 Human, 4 NPCs).
@@ -12,20 +12,20 @@ import type { IMinigame } from './BaseMinigame';
  *    Proximity formula: abs(D1 - P1) + abs(D2 - P2).
  */
 
-export interface DicePlayer {
+export interface DadosPlayer {
     name: string;
     choices: [number, number];
     isHuman: boolean;
     score: number;
 }
 
-export class DiceGame implements IMinigame {
-    public players: DicePlayer[] = [];
+export class DadosGame implements IMinigame {
+    public players: DadosPlayer[] = [];
     public dice1: number = 1;
     public dice2: number = 1;
     public isRolling: boolean = false;
     public phase: 'betting' | 'rolling' | 'result' = 'betting';
-    public winner: DicePlayer | null = null;
+    public winner: DadosPlayer | null = null;
     public message: string = 'Faça sua aposta!';
     public betAmount: number = 10;
     public minBet: number = 10;
@@ -79,7 +79,7 @@ export class DiceGame implements IMinigame {
 
         // Calculate scores (lower is better)
         let bestScore = 999;
-        let winners: DicePlayer[] = [];
+        let winners: DadosPlayer[] = [];
 
         for (const p of this.players) {
             // Check both combinations (D1-P1, D2-P2) and (D1-P2, D2-P1) for fairness

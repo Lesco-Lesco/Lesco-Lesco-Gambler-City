@@ -30,8 +30,14 @@ export class DogRacingUI implements IMinigameUI {
 
         if (this.game.phase === 'betting') {
             // Selection logic
-            if (input.wasPressed('ArrowUp') || input.wasPressed('KeyW')) this.game.selectedDog = (this.game.selectedDog - 1 + 8) % 8;
-            if (input.wasPressed('ArrowDown') || input.wasPressed('KeyS')) this.game.selectedDog = (this.game.selectedDog + 1) % 8;
+            if (input.wasPressedOrHeld('ArrowUp', dt) || input.wasPressedOrHeld('KeyW', dt)) {
+                this.game.selectedDog = (this.game.selectedDog - 1 + 8) % 8;
+                SoundManager.getInstance().play('menu_select');
+            }
+            if (input.wasPressedOrHeld('ArrowDown', dt) || input.wasPressedOrHeld('KeyS', dt)) {
+                this.game.selectedDog = (this.game.selectedDog + 1) % 8;
+                SoundManager.getInstance().play('menu_select');
+            }
 
             if (input.wasPressed('Space') || input.wasPressed('Enter') || input.wasPressed('KeyE')) {
                 if (bmanager && bmanager.playerMoney >= this.game.betAmount) {
@@ -57,6 +63,7 @@ export class DogRacingUI implements IMinigameUI {
                     SoundManager.getInstance().play(payout > 0 ? 'win_small' : 'lose');
                     SoundManager.getInstance().playFanfare('dog', payout > 0 ? 'win' : 'lose');
                     this.onPlayAgain(payout);
+                    this.game.reset(); // Reset includes bet refresh
                 }
             }
         }
@@ -277,12 +284,13 @@ export class DogRacingUI implements IMinigameUI {
 
         const placement = this.game.getPlacement();
         const payout = this.game.getPayout();
-        const isWin = placement <= 3;
+        const isWin = placement <= 4;
         const ordinals = ['', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º'];
         const prizeLabels: Record<number, string> = {
-            1: `+ R$ ${payout - this.game.betAmount}  (🥇 PRIMEIRO!)`,
-            2: `+ R$ ${payout - this.game.betAmount}  (🥈 SEGUNDO)`,
-            3: `0  (🥉 TERCEIRO — aposta devolvida)`,
+            1: `RECUPEROU R$ ${payout}  (🥇 PRIMEIRO!)`,
+            2: `RECUPEROU R$ ${payout}  (🥈 SEGUNDO)`,
+            3: `RECUPEROU R$ ${payout}  (🥉 TERCEIRO)`,
+            4: `RECUPEROU R$ ${payout}  (🏅 QUARTO - Consolação)`,
         };
 
         // Title
@@ -313,14 +321,14 @@ export class DogRacingUI implements IMinigameUI {
             ctx.fillText(`VOCÊ PERDEU — R$ ${this.game.betAmount}`, cx, cy - s(20));
         }
 
-        // Top-3 podium list
-        const podiumLabels = ['🥇', '🥈', '🥉'];
+        // Top-4 podium list
+        const podiumLabels = ['🥇', '🥈', '🥉', '🏅'];
         const podiumY = cy + s(25);
         const podiumStep = s(mobile ? 28 : 32);
         ctx.font = `bold ${r(mobile ? 13 : 15)}px ${theme.bodyFont}`;
-
-        const top3 = this.game.winners.slice(0, 3);
-        top3.forEach((d, idx) => {
+ 
+        const top4 = this.game.winners.slice(0, 4);
+        top4.forEach((d, idx) => {
             const isChosen = d.id === this.game.selectedDog;
             ctx.fillStyle = isChosen ? '#fde047' : (idx === 0 ? '#fff' : theme.textMuted);
             ctx.textAlign = 'center';

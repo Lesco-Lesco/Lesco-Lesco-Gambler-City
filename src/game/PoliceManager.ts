@@ -1,5 +1,5 @@
 import { SoundManager } from './Core/SoundManager';
-export type PoliceRaidPhase = 'none' | 'interruption' | 'bribed_interruption' | 'gamble_check' | 'double_or_nothing' | 'dice_battle' | 'dice_battle_result' | 'consequence';
+export type PoliceRaidPhase = 'none' | 'interruption' | 'bribed_interruption' | 'gamble_check' | 'double_or_nothing' | 'batalha_dados' | 'batalha_dados_resultado' | 'consequence';
 
 export class PoliceManager {
     private static instance: PoliceManager;

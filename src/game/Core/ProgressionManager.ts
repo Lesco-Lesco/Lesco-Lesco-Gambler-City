@@ -33,8 +33,8 @@ import { SoundManager } from './SoundManager';
 
 /** All game identifiers that can be gated */
 export type GateableGame =
-    | 'dice' | 'ronda' | 'domino'
-    | 'heads_tails' | 'jokenpo' | 'purrinha' | 'palitinho' | 'fan_tan'
+    | 'dados' | 'ronda' | 'domino'
+    | 'cara_coroa' | 'jokenpo' | 'purrinha' | 'palitinho' | 'fan_tan'
     | 'slots' | 'bicho'
     | 'casino_station' | 'blackjack' | 'poker'
     | 'video_bingo' | 'horse_racing' | 'dog_racing'
@@ -68,10 +68,10 @@ export interface PhaseUnlockInfo {
 
 const UNLOCK_TREE: Partial<Record<string, UnlockCondition>> = {
     // ── RUA ──
-    dice:       {},   // always available
-    heads_tails:{},   // always available
-    ronda:      { requiresPlays: { game: 'dice',       count: 15 } },
-    jokenpo:    { requiresPlays: { game: 'heads_tails', count: 15 } },
+    dados:       {},   // always available
+    cara_coroa:{},   // always available
+    ronda:      { requiresPlays: { game: 'dados',       count: 15 } },
+    jokenpo:    { requiresPlays: { game: 'cara_coroa', count: 15 } },
     domino:     { requiresPlays: { game: 'ronda',      count: 10 } },
     purrinha:   { requiresPlays: { game: 'jokenpo',    count: 10 } },
     palitinho:  { requiresPlays: { game: 'purrinha',   count: 6  } }, // Purrinha is med duration
@@ -345,8 +345,8 @@ export class ProgressionManager {
 
     private getGameDisplayName(type: string): string {
         const names: Record<string, string> = {
-            dice: 'Dados', ronda: 'Ronda', domino: 'Dominó',
-            heads_tails: 'Cara ou Coroa', jokenpo: 'Jokenpô',
+            dados: 'Dados', ronda: 'Ronda', domino: 'Dominó',
+            cara_coroa: 'Cara ou Coroa', jokenpo: 'Jokenpô',
             purrinha: 'Purrinha', palitinho: 'Palitinho', fan_tan: 'Fan Tan',
             slots: 'Caça-Níquel', bicho: 'Jogo do Bicho',
             blackjack: 'Blackjack', poker: 'Poker',

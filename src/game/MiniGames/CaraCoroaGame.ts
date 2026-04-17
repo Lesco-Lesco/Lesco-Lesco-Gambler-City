@@ -2,14 +2,13 @@ import { EconomyManager } from '../Core/EconomyManager';
 import type { IMinigame } from './BaseMinigame';
 
 /**
- * Cara ou Coroa (Heads or Tails)
- * Simple street gambling game.
+ * CaraCoroaGame Logic
  */
 
-export type HeadsTailsPhase = 'betting' | 'choosing' | 'flipping' | 'result';
+export type CaraCoroaPhase = 'betting' | 'choosing' | 'flipping' | 'result';
 
-export class HeadsTailsGame implements IMinigame {
-    public phase: HeadsTailsPhase = 'betting';
+export class CaraCoroaGame implements IMinigame {
+    public phase: CaraCoroaPhase = 'betting';
     public betAmount: number = 10;
     public minBet: number = 10;
     public maxBet: number = 100;

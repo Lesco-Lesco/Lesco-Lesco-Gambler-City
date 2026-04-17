@@ -26,11 +26,13 @@ export class BlackjackUI implements IMinigameUI {
 
         if (this.game.phase === 'betting') {
             const { step } = EconomyManager.getInstance().getBetLimits();
-            if (this.input.wasPressed('ArrowUp')) {
+            if (this.input.wasPressedOrHeld('ArrowUp', _dt)) {
                 this.game.betAmount = Math.min(this.game.betAmount + step, bmanager.playerMoney, this.game.maxBet);
+                SoundManager.getInstance().play('menu_select');
             }
-            if (this.input.wasPressed('ArrowDown')) {
+            if (this.input.wasPressedOrHeld('ArrowDown', _dt)) {
                 this.game.betAmount = Math.max(this.game.betAmount - step, this.game.minBet);
+                SoundManager.getInstance().play('menu_select');
             }
             const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
             if (okPressed) {

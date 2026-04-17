@@ -26,14 +26,14 @@ import { HUD } from '../UI/HUD';
 import { NewspaperUI } from '../UI/NewspaperUI';
 import { PurrinhaGame } from '../MiniGames/PurrinhaGame';
 import { PurrinhaUI } from '../MiniGames/PurrinhaUI';
-import { DiceGame } from '../MiniGames/DiceGame';
-import { DiceUI } from '../MiniGames/DiceUI';
+import { DadosGame } from '../MiniGames/DadosGame';
+import { DadosUI } from '../MiniGames/DadosUI';
 import { RondaGame } from '../MiniGames/RondaGame';
 import { RondaUI } from '../MiniGames/RondaUI';
 import { DominoGame } from '../MiniGames/DominoGame';
 import { DominoUI } from '../MiniGames/DominoUI';
-import { HeadsTailsGame } from '../MiniGames/HeadsTailsGame';
-import { HeadsTailsUI } from '../MiniGames/HeadsTailsUI';
+import { CaraCoroaGame } from '../MiniGames/CaraCoroaGame';
+import { CaraCoroaUI } from '../MiniGames/CaraCoroaUI';
 import { PalitinhoGame } from '../MiniGames/PalitinhoGame';
 import { PalitinhoUI } from '../MiniGames/PalitinhoUI';
 import { FanTanGame } from '../MiniGames/FanTanGame';
@@ -86,13 +86,13 @@ export class ExplorationScene implements Scene {
 
     // Minigames
     private purrinhaUI: PurrinhaUI | null = null;
-    private diceGame: DiceGame;
-    private diceUI: DiceUI | null = null;
+    private dadosGame: DadosGame;
+    private dadosUI: DadosUI | null = null;
     private rondaGame: RondaGame;
     private rondaUI: RondaUI | null = null;
     private dominoGame: DominoGame;
     private dominoUI: DominoUI | null = null;
-    private headsTailsUI: HeadsTailsUI | null = null;
+    private caraCoroaUI: CaraCoroaUI | null = null;
     private palitinhoUI: PalitinhoUI | null = null;
     private fanTanUI: FanTanUI | null = null;
     private horseRacingGame: HorseRacingGame;
@@ -103,7 +103,7 @@ export class ExplorationScene implements Scene {
     private videoBingoUI: VideoBingoUI | null = null;
     private jokenpoUI: JokenpoUI | null = null;
 
-    private activeMinigame: 'none' | 'purrinha' | 'dice' | 'ronda' | 'domino' | 'generic' | 'heads_tails' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' = 'none';
+    private activeMinigame: 'none' | 'purrinha' | 'dados' | 'ronda' | 'domino' | 'generic' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' = 'none';
     private selectedBarMenuIndex: number = 0;
     private currentBar: any | null = null;
 
@@ -144,7 +144,7 @@ export class ExplorationScene implements Scene {
 
     // Zoom Stages (6 stages: 0.5x to 3.0x)
     private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
-    private zoomStageIndex: number = 1; // Default 1.0x
+    private zoomStageIndex: number = 3; // Default 2.0x (reverted from 2.5x)
     // Player light source (Softened for natural look)
     private playerLight = {
         worldX: 0,
@@ -194,7 +194,7 @@ export class ExplorationScene implements Scene {
         this.achievementUI = AchievementUI.getInstance();
 
         // Minigames
-        this.diceGame = new DiceGame();
+        this.dadosGame = new DadosGame();
         this.rondaGame = new RondaGame();
         this.dominoGame = new DominoGame();
         this.horseRacingGame = new HorseRacingGame();
@@ -203,13 +203,13 @@ export class ExplorationScene implements Scene {
 
         // Zoom inicial — maior por padrão para melhor experiência e legibilidade
         if (isMobile()) {
-            this.camera.zoom = 2.5;
-            this.camera.targetZoom = 2.5;
-            this.zoomStageIndex = 4; // aponta para zoomStages[4] = 2.5
+            this.camera.zoom = 2.0;
+            this.camera.targetZoom = 2.0;
+            this.zoomStageIndex = 3; // aponta para zoomStages[3] = 2.0
         } else {
-            this.camera.zoom = 2.5; // Aumentado de 2.0 para 2.5 conforme solicitação
-            this.camera.targetZoom = 2.5;
-            this.zoomStageIndex = 4; // aponta para zoomStages[4] = 2.5
+            this.camera.zoom = 2.0; // Revertido de 2.5 para 2.0 conforme solicitação
+            this.camera.targetZoom = 2.0;
+            this.zoomStageIndex = 3; // aponta para zoomStages[3] = 2.0
         }
 
         // Snap camera to player initially to avoid "running camera" effect
@@ -257,7 +257,7 @@ export class ExplorationScene implements Scene {
         ProgressionManager.getInstance().updateCooldowns(dt);
         const bmanager = BichoManager.getInstance();
         const pm = PoliceManager.getInstance();
-        const streetGames = ['purrinha', 'dice', 'ronda', 'domino', 'heads_tails', 'palitinho', 'fan_tan', 'jokenpo'];
+        const streetGames = ['purrinha', 'dados', 'ronda', 'domino', 'cara_coroa', 'palitinho', 'fan_tan', 'jokenpo'];
         const isIllegal = streetGames.includes(this.activeMinigame as string);
 
         // 0. Newspaper Blocking
@@ -360,8 +360,8 @@ export class ExplorationScene implements Scene {
             }
             return; // Block other world updates while overlay is shown
         }
-        if (this.activeMinigame === 'dice' && this.diceUI) {
-            this.diceUI.update(dt);
+        if (this.activeMinigame === 'dados' && this.dadosUI) {
+            this.dadosUI.update(dt);
             return;
         }
         if (this.activeMinigame === 'ronda' && this.rondaUI) {
@@ -382,10 +382,10 @@ export class ExplorationScene implements Scene {
             return;
         }
 
-        if (this.activeMinigame === 'generic' || this.activeMinigame === 'heads_tails' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
+        if (this.activeMinigame === 'generic' || this.activeMinigame === 'cara_coroa' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
             const pm = PoliceManager.getInstance();
             if (pm.phase === 'none') {
-                if (this.headsTailsUI) this.headsTailsUI.update(dt);
+                if (this.caraCoroaUI) this.caraCoroaUI.update(dt);
                 if (this.palitinhoUI) this.palitinhoUI.update(dt);
                 if (this.fanTanUI) this.fanTanUI.update(dt);
                 if (this.jokenpoUI) this.jokenpoUI.update(dt);
@@ -616,8 +616,8 @@ export class ExplorationScene implements Scene {
             this.lastPlayerTileX = tx;
             this.lastPlayerTileY = ty;
 
-            // Trigger music after ~125-210 tiles of walking (clinical feel, 15% more frequent)
-            if (this.musicCooldown <= 0 && this.distanceSinceLastMusic > 125 + Math.random() * 85) {
+            // Trigger music after ~80-140 tiles of walking (more frequent as requested)
+            if (this.musicCooldown <= 0 && this.distanceSinceLastMusic > 50 + Math.random() * 40) {
                 this.playRandomMusicMotif();
             }
         }
@@ -636,8 +636,8 @@ export class ExplorationScene implements Scene {
         console.log(`🎵 Playing clinical music motif: ${trackName} (Volume: ${volume})`);
         SoundManager.getInstance().play(trackName, { volume });
 
-        // Cooldown: 2.5 to 5 minutes of silence (classic Sim City feel)
-        this.musicCooldown = 153 + Math.random() * 153;
+        // Cooldown: 1.5 to 3 minutes of silence (more frequent as requested)
+        this.musicCooldown = 60 + Math.random() * 60;
         this.distanceSinceLastMusic = 0;
     }
 
@@ -667,7 +667,7 @@ export class ExplorationScene implements Scene {
             if (acceptBank) { // Aceitar jogar como banca (150)
                 if (bmanager.playerMoney >= 150) {
                     bmanager.playerMoney -= 150;
-                    pm.phase = 'dice_battle';
+                    pm.phase = 'batalha_dados';
                     this.policeBattleTimer = 2.0; // 2 seconds of "rolling"
                     SoundManager.getInstance().play('dice_roll');
                     this.policeBattleRolls = {
@@ -691,24 +691,23 @@ export class ExplorationScene implements Scene {
                     pm.phase = 'interruption';
                 }
             }
-        } else if (pm.phase === 'dice_battle') {
+        } else if (pm.phase === 'batalha_dados') {
             this.policeBattleTimer -= dt;
             if (this.policeBattleTimer <= 0) {
-                pm.phase = 'dice_battle_result';
+                pm.phase = 'batalha_dados_resultado';
 
                 const win = this.policeBattleRolls!.player > this.policeBattleRolls!.police;
                 if (win) {
                     bmanager.playerMoney += 300; // 150 bet + 150 reward
                     pm.currentJoke = "Sorte de principiante... Pega esse dinheiro e some da minha frente!";
                     SoundManager.getInstance().play('win_small');
-                    AchievementManager.getInstance().recordRaidSurvived();
                 } else {
                     pm.currentJoke = "Eu avisei que a banca do Estado nunca perde. Agora tchau!";
                     SoundManager.getInstance().play('lose');
-                    AchievementManager.getInstance().recordRaidSurvived();
                 }
+                AchievementManager.getInstance().recordRaidSurvived();
             }
-        } else if (pm.phase === 'dice_battle_result') {
+        } else if (pm.phase === 'batalha_dados_resultado') {
             if (this.input.wasPressed('Space') || this.input.wasPressed('KeyE') || this.input.wasPressed('Enter')) {
                 pm.phase = 'none';
                 this.exitMinigame();
@@ -728,7 +727,7 @@ export class ExplorationScene implements Scene {
 
         // Track minigame play for achievements
         if (this.activeMinigame !== 'none' && this.activeMinigame !== 'bar_menu' && this.activeMinigame !== 'arcade_menu') {
-            achManager.recordMinigamePlay(this.activeMinigame);
+            achManager.recordMinigamePlay(this.activeMinigame, bmanager.playerMoney);
         }
 
         if (game) {
@@ -736,8 +735,8 @@ export class ExplorationScene implements Scene {
 
             if (inProgress) {
                 const needsDeduction = [
-                    'purrinha', 'heads_tails', 'palitinho', 'fan_tan', 'jokenpo',
-                    'dice', 'ronda'
+                    'purrinha', 'cara_coroa', 'palitinho', 'fan_tan', 'jokenpo',
+                    'dados', 'ronda'
                 ].includes(this.activeMinigame as string);
 
                 if (needsDeduction && game && game.betAmount) {
@@ -799,10 +798,10 @@ export class ExplorationScene implements Scene {
     private exitMinigame() {
         this.activeMinigame = 'none';
         this.purrinhaUI = null;
-        this.diceUI = null;
+        this.dadosUI = null;
         this.rondaUI = null;
         this.dominoUI = null;
-        this.headsTailsUI = null;
+        this.caraCoroaUI = null;
         this.palitinhoUI = null;
         this.fanTanUI = null;
         this.jokenpoUI = null;
@@ -811,7 +810,7 @@ export class ExplorationScene implements Scene {
         this.videoBingoUI = null;
 
         // Force reset on all persistent game objects to ensure return starts from zero
-        this.diceGame.reset();
+        this.dadosGame.reset();
         this.rondaGame.reset();
         this.dominoGame.reset();
         this.horseRacingGame.reset();
@@ -824,10 +823,10 @@ export class ExplorationScene implements Scene {
 
     private getCurrentMinigameObject(): any {
         if (this.activeMinigame === 'purrinha') return (this.purrinhaUI as any)?.game;
-        if (this.activeMinigame === 'dice') return this.diceGame;
+        if (this.activeMinigame === 'dados') return this.dadosGame;
         if (this.activeMinigame === 'ronda') return this.rondaGame;
         if (this.activeMinigame === 'domino') return this.dominoGame;
-        if (this.activeMinigame === 'heads_tails') return (this.headsTailsUI as any)?.game;
+        if (this.activeMinigame === 'cara_coroa') return (this.caraCoroaUI as any)?.game;
         if (this.activeMinigame === 'palitinho') return (this.palitinhoUI as any)?.game;
         if (this.activeMinigame === 'fan_tan') return (this.fanTanUI as any)?.game;
         if (this.activeMinigame === 'jokenpo') return (this.jokenpoUI as any)?.game;
@@ -1002,10 +1001,10 @@ export class ExplorationScene implements Scene {
                     this.currentInteractionType = 'street_npc';
                     SoundManager.getInstance().play('menu_confirm');
                     if (type === 'purrinha') this.startPurrinha(isPeriphery);
-                    else if (type === 'dice') this.startDice(isPeriphery);
+                    else if (type === 'dados') this.startDados(isPeriphery);
                     else if (type === 'ronda') this.startRonda(isPeriphery);
                     else if (type === 'domino') this.startDomino(isPeriphery);
-                    else if (type === 'heads_tails') this.startHeadsTails(isPeriphery);
+                    else if (type === 'cara_coroa') this.startCaraCoroa(isPeriphery);
                     else if (type === 'palitinho') this.startPalitinho(isPeriphery);
                     else if (type === 'fan_tan') this.startFanTan(isPeriphery);
                     else if (type === 'jokenpo') this.startJokenpo(isPeriphery);
@@ -1034,26 +1033,27 @@ export class ExplorationScene implements Scene {
             bmanager.playerMoney += moneyChange;
             if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('purrinha');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('purrinha', bmanager.playerMoney);
             if (bmanager.playerMoney < 0) bmanager.playerMoney = 0;
             game.reset(bmanager.playerMoney);
             bmanager.addNotification(`Saldo atualizado: R$${bmanager.playerMoney}`, 2);
         });
     }
 
-    private startHeadsTails(isPeriphery: boolean = false) {
+    private startCaraCoroa(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
-        const game = new HeadsTailsGame(bmanager.playerMoney);
+        const game = new CaraCoroaGame(bmanager.playerMoney);
         if (isPeriphery) game.updateLimits(true);
-        this.activeMinigame = 'heads_tails';
+        this.activeMinigame = 'cara_coroa';
         this.input.pushContext('minigame');
 
-        this.headsTailsUI = new HeadsTailsUI(game, (payout: number) => {
+        this.caraCoroaUI = new CaraCoroaUI(game, (payout: number) => {
             this.handleMinigameExit(game, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
-            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('heads_tails');
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('cara_coroa');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
-            AchievementManager.getInstance().recordMinigamePlay('heads_tails');
+            AchievementManager.getInstance().recordMinigamePlay('cara_coroa', bmanager.playerMoney);
             game.reset(bmanager.playerMoney);
         });
     }
@@ -1071,7 +1071,7 @@ export class ExplorationScene implements Scene {
             bmanager.playerMoney += moneyChange;
             if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('palitinho');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
-            AchievementManager.getInstance().recordMinigamePlay('palitinho');
+            AchievementManager.getInstance().recordMinigamePlay('palitinho', bmanager.playerMoney);
             game.reset();
         });
     }
@@ -1089,7 +1089,7 @@ export class ExplorationScene implements Scene {
             bmanager.playerMoney += moneyChange;
             if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('fan_tan');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
-            AchievementManager.getInstance().recordMinigamePlay('fan_tan');
+            AchievementManager.getInstance().recordMinigamePlay('fan_tan', bmanager.playerMoney);
             game.reset();
         });
     }
@@ -1107,26 +1107,26 @@ export class ExplorationScene implements Scene {
             bmanager.playerMoney += moneyChange;
             if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('jokenpo');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
-            AchievementManager.getInstance().recordMinigamePlay('jokenpo');
+            AchievementManager.getInstance().recordMinigamePlay('jokenpo', bmanager.playerMoney);
             game.reset(bmanager.playerMoney);
         });
     }
 
-    private startDice(isPeriphery: boolean = false) {
+    private startDados(isPeriphery: boolean = false) {
         const bmanager = BichoManager.getInstance();
-        this.activeMinigame = 'dice';
+        this.activeMinigame = 'dados';
         this.input.pushContext('minigame');
-        this.diceGame.reset();
-        if (isPeriphery) this.diceGame.updateLimits(true);
+        this.dadosGame.reset();
+        if (isPeriphery) this.dadosGame.updateLimits(true);
 
-        this.diceUI = new DiceUI(this.diceGame, (payout: number) => {
-            this.handleMinigameExit(this.diceGame, payout);
+        this.dadosUI = new DadosUI(this.dadosGame, (payout: number) => {
+            this.handleMinigameExit(this.dadosGame, payout);
         }, (moneyChange: number) => {
             bmanager.playerMoney += moneyChange;
-            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('dice');
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('dados');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
-            AchievementManager.getInstance().recordMinigamePlay('dice');
-            this.diceGame.reset();
+            AchievementManager.getInstance().recordMinigamePlay('dados', bmanager.playerMoney);
+            this.dadosGame.reset();
         });
     }
 
@@ -1143,7 +1143,7 @@ export class ExplorationScene implements Scene {
             bmanager.playerMoney += moneyChange;
             if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('ronda');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
-            AchievementManager.getInstance().recordMinigamePlay('ronda');
+            AchievementManager.getInstance().recordMinigamePlay('ronda', bmanager.playerMoney);
             this.rondaGame.reset();
         });
     }
@@ -1161,7 +1161,7 @@ export class ExplorationScene implements Scene {
             bmanager.playerMoney += moneyChange;
             if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('domino');
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
-            AchievementManager.getInstance().recordMinigamePlay('domino');
+            AchievementManager.getInstance().recordMinigamePlay('domino', bmanager.playerMoney);
             this.dominoGame.reset();
         });
     }
@@ -1323,7 +1323,7 @@ export class ExplorationScene implements Scene {
             this.activeMinigame = 'none';
             this.arcadeCredits = 0;
             this.input.popContext();
-            if (this.musicCooldown <= 0 && Math.random() < 0.3) {
+            if (this.musicCooldown <= 0 && Math.random() < 0.45) {
                 this.playRandomMusicMotif();
             }
         }
@@ -1350,7 +1350,7 @@ export class ExplorationScene implements Scene {
                 } else {
                     AchievementManager.getInstance().recordMinigameLoss();
                 }
-                AchievementManager.getInstance().recordMinigamePlay('horse_racing');
+                AchievementManager.getInstance().recordMinigamePlay('horse_racing', bmanager.playerMoney);
                 this.horseRacingGame.reset();
             }
         );
@@ -1377,7 +1377,7 @@ export class ExplorationScene implements Scene {
                 } else {
                     AchievementManager.getInstance().recordMinigameLoss();
                 }
-                AchievementManager.getInstance().recordMinigamePlay('dog_racing');
+                AchievementManager.getInstance().recordMinigamePlay('dog_racing', bmanager.playerMoney);
                 this.dogRacingGame.reset();
             }
         );
@@ -1404,7 +1404,7 @@ export class ExplorationScene implements Scene {
                 } else {
                     AchievementManager.getInstance().recordMinigameLoss();
                 }
-                AchievementManager.getInstance().recordMinigamePlay('video_bingo');
+                AchievementManager.getInstance().recordMinigamePlay('video_bingo', bmanager.playerMoney);
                 this.videoBingoGame.reset();
             }
         );
@@ -1754,14 +1754,14 @@ export class ExplorationScene implements Scene {
         // 5. Minigames
         if (this.activeMinigame === 'purrinha' && this.purrinhaUI) {
             this.purrinhaUI.render(ctx, this.screenW, this.screenH);
-        } else if (this.activeMinigame === 'dice' && this.diceUI) {
-            this.diceUI.render(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'dados' && this.dadosUI) {
+            this.dadosUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'ronda' && this.rondaUI) {
             this.rondaUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'domino' && this.dominoUI) {
             this.dominoUI.render(ctx, this.screenW, this.screenH);
-        } else if (this.activeMinigame === 'generic' || this.activeMinigame === 'heads_tails' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
-            if (this.headsTailsUI) this.headsTailsUI.render(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'generic' || this.activeMinigame === 'cara_coroa' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
+            if (this.caraCoroaUI) this.caraCoroaUI.render(ctx, this.screenW, this.screenH);
             if (this.palitinhoUI) this.palitinhoUI.render(ctx, this.screenW, this.screenH);
             if (this.fanTanUI) this.fanTanUI.render(ctx, this.screenW, this.screenH);
             if (this.jokenpoUI) this.jokenpoUI.render(ctx, this.screenW, this.screenH);
@@ -1924,8 +1924,8 @@ export class ExplorationScene implements Scene {
                 const hint = mobile ? "[D-Pad ↓] PAGAR CONTRIBUIÇÃO (10)" : "[N] PAGAR CONTRIBUIÇÃO (10)";
                 ctx.fillText(hint, cx, cy + s(120));
             }
-        } else if (pm.phase === 'dice_battle' || pm.phase === 'dice_battle_result') {
-            const isRolling = pm.phase === 'dice_battle';
+        } else if (pm.phase === 'batalha_dados' || pm.phase === 'batalha_dados_resultado') {
+            const isRolling = pm.phase === 'batalha_dados';
 
             ctx.font = `bold ${UIScale.r(36)}px "Segoe UI"`;
             ctx.fillStyle = '#ffff00';

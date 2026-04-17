@@ -85,8 +85,8 @@ export class PurrinhaGame implements IMinigame {
         // Ensure current bet is within valid range? 
         // Actually, better to reset bet to min when limits update
         if (this.phase === 'betting') {
-            this.betAmount = Math.max(this.minBet, Math.min(this.betAmount, this.maxBet));
-            this.selectedBet = this.betAmount;
+            this.betAmount = this.minBet;
+            this.selectedBet = this.minBet;
         }
     }
 
