@@ -98,17 +98,19 @@ export class RankingAPI {
             }
         }
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
         try {
             const res = await fetch(`${this.baseUrl}/api/ranking`, {
-                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+                signal: controller.signal,
             });
+            clearTimeout(timeoutId);
             
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             
             const data = await res.json();
             
-            // Validate that we actually got an array. 
-            // If the server returns { error: '...' }, data.slice will fail.
             if (!Array.isArray(data)) {
                 console.warn('[RankingAPI] API returned non-array:', data);
                 throw new Error('API returned invalid format');
@@ -119,8 +121,8 @@ export class RankingAPI {
             this.saveStore(store);
             return data;
         } catch (err) {
+            clearTimeout(timeoutId);
             console.error('[RankingAPI] getRanking failed:', err);
-            // Return stale cache or empty
             return store.cachedRanking;
         }
     }
@@ -130,17 +132,21 @@ export class RankingAPI {
      * Returns null if score wouldn't make top 100.
      */
     async checkPosition(score: number): Promise<number | null> {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
         try {
             const res = await fetch(
                 `${this.baseUrl}/api/ranking?check=${score}`,
-                { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }
+                { signal: controller.signal }
             );
+            clearTimeout(timeoutId);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             return (typeof data.position === 'number') ? data.position : null;
         } catch (err) {
+            clearTimeout(timeoutId);
             console.warn('[RankingAPI] checkPosition failed:', err);
-            // Estimate from local cache
             const store = this.loadStore();
             return this.estimatePositionFromCache(score, store.cachedRanking);
         }
@@ -193,24 +199,26 @@ export class RankingAPI {
         this.saveStore(store);
 
         // ── STEP 2: Try to POST online ────────────────────────────────────────
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
         try {
             const res = await fetch(`${this.baseUrl}/api/ranking-submit`, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({ initials: session.initials, breakdown }),
-                signal:  AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+                signal:  controller.signal,
             });
+            clearTimeout(timeoutId);
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
             const result = await res.json();
             
-            // Validate result structure
             if (!result || !Array.isArray(result.ranking)) {
                 throw new Error('API returned invalid result structure');
             }
 
-            // Sync success — update local records
             session.synced   = true;
             session.position = result.position;
 
@@ -228,6 +236,7 @@ export class RankingAPI {
             return result;
 
         } catch (err) {
+            clearTimeout(timeoutId);
             console.error('[RankingAPI] submitScore failed:', err);
             // ── STEP 3: Offline — queue for later, build local ranking ────────
             console.warn('[RankingAPI] Offline — score saved locally, sync pending.');

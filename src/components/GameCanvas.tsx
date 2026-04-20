@@ -136,9 +136,16 @@ const GameCanvas = () => {
 
                     // Initials confirmed → submit score → Ranking
                     initialsInput.onConfirm = async (initials, breakdown) => {
-                        const result = await RankingAPI.getInstance().submitScore(initials, breakdown);
-                        rankingScene.setData(result.ranking, result.position);
-                        loop.setScene('ranking');
+                        try {
+                            const result = await RankingAPI.getInstance().submitScore(initials, breakdown);
+                            rankingScene.setData(result.ranking, result.position);
+                        } catch (err) {
+                            console.error("Critical error during score submission:", err);
+                            // Fallback to local data to not get stuck
+                            rankingScene.setData([], null);
+                        } finally {
+                            loop.setScene('ranking');
+                        }
                     };
 
                     // Ranking → Restart game
