@@ -25,6 +25,15 @@ const POLICE_PHRASES = [
     "A viatura está sem combustível... se é que você me entende.",
     "Mantenha a discrição e a gente mantém a amizade.",
     "O Shopping é bonito por fora, né? Pena que o subsolo é tão 'gelado'.",
+    "Estou de olho nessa sua cara de quem vai aprontar.",
+    "Um bom cidadão sempre colabora com as forças da lei. E a colaboração é em espécie.",
+    "Os becos são escuros, mas a nossa lanterna ilumina quem tem contribuição.",
+    "Eu podia te parar agora mesmo, mas minha mão tá no bolso esperando o clima esfriar.",
+    "Já viu como as algemas apertam no frio? Melhor evitar o desconforto, amigão.",
+    "Tem gente que joga e tem gente que paga pra jogar. Nós somos a mensalidade.",
+    "Evite correr na praça. Dá impressão de que você deve algo. E se deve, paga pra nós.",
+    "Cuidado com os malandros do shopping. O único pedágio oficial aqui somos nós.",
+    "Seja esperto. Fale baixo, ande devagar e sempre traga um extra na carteira."
 ];
 
 const GAME_INFO = [
@@ -39,6 +48,15 @@ const GAME_INFO = [
     "O cassino underground tem um leão na porta. Não esqueça do carinho dele.",
     "A Purrinha ali perto da Igreja é jogo de gente grande.",
     "Quer ganhar rápido? Cuidado pra não perder mais rápido ainda.",
+    "O dominó da praça não é para amadores. As velhas raposas têm memória de elefante.",
+    "Dizem que a roleta do shopping foi calibrada na Europa. Ou pelo menos é o que o gerente fala.",
+    "Tem um cara que lê a mente na purrinha. Ou ele lê a mente, ou ele tem carta na manga.",
+    "Se você for pro lado da favela, esconde o relógio. Mas leva dinheiro vivo pro jogo.",
+    "Cara ou coroa no beco não tem gravidade, tem magnetismo. Fica esperto com as moedas pesadas.",
+    "O jokenpo perto da estação? As crianças de lá apostam o lanche inteiro. São duras na queda.",
+    "Se a polícia chegar no meio da ronda, joga o baralho no bueiro e finge que tá esperando o trem.",
+    "O Fan-Tan é lento, mas a grana sobe rápido se você souber contar os grãos.",
+    "Quem aposta tudo na primeira rodada é turista. Malandro de verdade sente o clima antes."
 ];
 
 export class BoothDialogueManager {

@@ -421,7 +421,7 @@ export class TileRenderer {
                             const depth = (maxY - minY);
 
                             if (width > 0.3 && depth > 0.3) {
-                                this.drawWindows(renderer, camera, tileX, tileY, h, rand, tile);
+                                this.drawWindows(renderer, camera, tileX, tileY, h, rand, tile, 0, minX, maxX, minY, maxY);
                                 if (tile === TILE_TYPES.BUILDING_LOW) {
                                     this.drawRoofDetail(ctx, camera, tileX, tileY, h, rand);
                                 } else if (tile === (TILE_TYPES.BAR as number)) {
@@ -666,7 +666,7 @@ export class TileRenderer {
                                     unitHeight = h2 * 0.8;
                                 }
 
-                                const blockScale = (1 - 2 * unitInset);
+
                                 const t2Insets = {
                                     minX: unitInset, 
                                     maxX: 1 - unitInset, 
@@ -675,7 +675,7 @@ export class TileRenderer {
                                 };
 
                                 drawStackedGallery(h1, unitHeight, t2Insets, false);
-                                this.drawWindows(renderer, camera, tileX, tileY, unitHeight, rand, TILE_TYPES.SHOPPING, h1, blockScale);
+                                this.drawWindows(renderer, camera, tileX, tileY, unitHeight, rand, TILE_TYPES.SHOPPING, h1, unitInset, 1 - unitInset, unitInset, 1 - unitInset);
                             }
                         },
                     });
@@ -1486,7 +1486,6 @@ export class TileRenderer {
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = 'rgba(20, 20, 60, 0.3)'; // Deep Blue tint
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
         // 2. Additive Lights (Street Lamps & Windows)
         ctx.globalCompositeOperation = 'lighter';
 
@@ -1495,9 +1494,8 @@ export class TileRenderer {
         ctx.restore();
     }
 
-    /** Draw windows */
-    /** Draw windows with isometric perspective */
-    private drawWindows(renderer: Renderer, camera: Camera, tileX: number, tileY: number, blockHeight: number, seed: number, tileType: number, elevation: number = 0, scale: number = 1) {
+    /** Draw windows with isometric perspective, clamped accurately to the wall face */
+    private drawWindows(renderer: Renderer, camera: Camera, tileX: number, tileY: number, blockHeight: number, seed: number, tileType: number, elevation: number = 0, minX: number = 0, maxX: number = 1, minY: number = 0, maxY: number = 1) {
         const ctx = renderer.getContext();
         const { sx, sy: baseSy } = camera.worldToScreen(tileX, tileY);
         const z = camera.zoom;
@@ -1505,22 +1503,54 @@ export class TileRenderer {
         const h = blockHeight * z;
         const time = Date.now();
 
+        // Calculate face geometry precisely
+        const localToScreen = (lx: number, ly: number) => {
+            const dx = lx - 0.5;
+            const dy = ly - 0.5;
+            const screenX = (dx - dy) * (TILE_WIDTH * z) / 2;
+            const screenY = (dx + dy) * (TILE_HEIGHT * z) / 2;
+            return { x: sx + screenX, y: sy + screenY };
+        };
+
+        const p01 = localToScreen(minX, maxY); // Left point of base
+        const p11 = localToScreen(maxX, maxY); // Bottom point of base
+        const p10 = localToScreen(maxX, minY); // Right point of base
+
+        // Use maxX - minX as the visual scale for the windows
+        const scale = maxX - minX;
+
+        // Bail out early if building is too short to show any window
+        const minWinH = 5 * z * scale;
+        if (h < minWinH * 2) return;
+
         const hasFlowerPot = seed > 0.7;
-        const winH = 5 * z * scale;
+        const winH = minWinH;
         const winW_iso = 3 * z * scale;
         const gap = 2 * z * scale;
         const isShopping = tileType === TILE_TYPES.SHOPPING;
 
-        // Isometric wall vectors
-        const hw = (TILE_WIDTH / 2) * z * scale;
-        const hh = (TILE_HEIGHT / 2) * z * scale;
+        // Clip exactly to the two visible faces
+        ctx.save();
+        ctx.beginPath();
+        // Left face
+        ctx.moveTo(p01.x, p01.y);
+        ctx.lineTo(p11.x, p11.y);
+        ctx.lineTo(p11.x, p11.y - h);
+        ctx.lineTo(p01.x, p01.y - h);
+        ctx.closePath();
+        // Right face
+        ctx.moveTo(p11.x, p11.y);
+        ctx.lineTo(p10.x, p10.y);
+        ctx.lineTo(p10.x, p10.y - h);
+        ctx.lineTo(p11.x, p11.y - h);
+        ctx.closePath();
+        ctx.clip();
 
         if (isShopping) {
-            // Pattern: 2 Larger, 1 Smaller (as requested)
             const drawShoppingPattern = (faceIndex: number) => {
                 for (let i = 0; i < 3; i++) {
                     const unique = tileX * 100 + tileY * 10 + i + faceIndex + elevation;
-                    if (seededRandom(unique, 555) > 0.6) continue; // 40% chance to have this light group off
+                    if (seededRandom(unique, 555) > 0.6) continue;
 
                     const isSmall = i === 2;
                     const wScale = isSmall ? 0.5 : 1.25;
@@ -1528,23 +1558,26 @@ export class TileRenderer {
                     const curWinH = winH * hScale;
                     const curWinW_iso = winW_iso * wScale;
 
-                    // Spacing across the face
-                    const t = (i + 1) / 4; 
-                    const hOffsetDist = 0.5 + (t - 0.5) * 0.7; 
-
-                    let px, py;
+                    const t = (i + 1) / 4;
+                    const hOffsetDist = 0.5 + (t - 0.5) * 0.7; // 0=left, 1=right along the face
                     const marginV = 8 * z * scale;
-                    
-                    if (faceIndex === 0) { // Left Face
-                        px = sx - hw + (hw * hOffsetDist);
-                        py = sy - h + marginV + (hh * hOffsetDist);
-                    } else { // Right Face
-                        px = sx + hw - (hw * hOffsetDist);
-                        py = sy - h + marginV + (hh * hOffsetDist);
+
+                    let px: number, faceBaseY: number;
+                    if (faceIndex === 0) {
+                        px = p01.x + (p11.x - p01.x) * hOffsetDist;
+                        faceBaseY = p01.y + (p11.y - p01.y) * hOffsetDist;
+                    } else {
+                        px = p11.x + (p10.x - p11.x) * hOffsetDist;
+                        faceBaseY = p11.y + (p10.y - p11.y) * hOffsetDist;
                     }
 
+                    const faceTopY = faceBaseY - h;
+                    const py = faceTopY + marginV;
+
+                    if (py + curWinH > faceBaseY || py < faceTopY) continue;
+
                     const vx = faceIndex === 0 ? curWinW_iso : -curWinW_iso;
-                    const vy = (curWinW_iso * (TILE_HEIGHT / TILE_WIDTH));
+                    const vy = curWinW_iso * (TILE_HEIGHT / TILE_WIDTH);
 
                     ctx.beginPath();
                     ctx.moveTo(px, py);
@@ -1553,12 +1586,9 @@ export class TileRenderer {
                     ctx.lineTo(px, py + curWinH);
                     ctx.closePath();
 
-                    // Slower flicker logic (15s base cycle, very calm)
                     const flicker = Math.sin((time / 15000) * 7.0 + unique * 13.0) > 0.4;
                     ctx.fillStyle = flicker ? '#fff9ef' : '#1a1a25';
                     ctx.fill();
-
-                    // NO shadowBlur (expensive). Use a simple bright stroke if ON for "sharp" glow
                     if (flicker) {
                         ctx.strokeStyle = 'rgba(255, 249, 239, 0.3)';
                         ctx.lineWidth = 0.5 * z;
@@ -1568,28 +1598,38 @@ export class TileRenderer {
             };
             drawShoppingPattern(0);
             drawShoppingPattern(1);
+            ctx.restore();
             return;
         }
 
-        const rows = Math.floor((h - winH) * 0.8 / (winH + gap));
+        const offsetFactor = 0.5; // Single column of windows centered
+        const marginV = 6 * z * scale;
+
+        let px0: number, faceBaseY0: number;
+        px0 = p01.x + (p11.x - p01.x) * offsetFactor;
+        faceBaseY0 = p01.y + (p11.y - p01.y) * offsetFactor;
+        
+        let px1: number, faceBaseY1: number;
+        px1 = p11.x + (p10.x - p11.x) * offsetFactor;
+        faceBaseY1 = p11.y + (p10.y - p11.y) * offsetFactor;
+
+        // Take the min usable height between the two faces (usually symmetric)
+        const usableH0 = faceBaseY0 - (faceBaseY0 - h) - marginV;
+        const rows = Math.max(0, Math.floor((usableH0 - winH) / (winH + gap)));
 
         const drawIsoWindow = (faceIndex: number, row: number) => {
             const unique = tileX * 100 + tileY * 10 + row + faceIndex + elevation;
             
-            let px, py;
-            const marginV = 6 * z * scale;
-            const offsetFactor = 0.5; // Single column of windows centered
-            
-            if (faceIndex === 0) { // Left Face
-                px = sx - hw + (hw * offsetFactor);
-                py = sy - h + marginV + row * (winH + gap) + (hh * offsetFactor);
-            } else { // Right Face
-                px = sx + hw - (hw * offsetFactor);
-                py = sy - h + marginV + row * (winH + gap) + (hh * offsetFactor);
-            }
+            const px = faceIndex === 0 ? px0 : px1;
+            const faceBaseY = faceIndex === 0 ? faceBaseY0 : faceBaseY1;
+            const faceTopY = faceBaseY - h;
+
+            const py = faceTopY + marginV + row * (winH + gap);
+
+            if (py + winH > faceBaseY || py < faceTopY) return;
 
             const vx = faceIndex === 0 ? winW_iso : -winW_iso;
-            const vy = (winW_iso * (TILE_HEIGHT / TILE_WIDTH));
+            const vy = winW_iso * (TILE_HEIGHT / TILE_WIDTH);
 
             ctx.beginPath();
             ctx.moveTo(px, py);
@@ -1598,32 +1638,20 @@ export class TileRenderer {
             ctx.lineTo(px, py + winH);
             ctx.closePath();
 
+            const val = Math.sin(time / 4000 + unique);
+            const alpha = (val + 1) / 2;
             let windowColor = '#1a1a25';
-            if (isShopping) {
-                // Permanently "broken" or off windows (60% chance to be off)
-                const isBroken = seededRandom(unique, 999) > 0.4;
-                if (isBroken) {
-                    windowColor = '#1a1a25'; // Very dark
-                } else {
-                    const noise = Math.sin((time / 6000) * 11.0 + unique * 37.0);
-                    // Pulsing effect but mostly off
-                    windowColor = noise > 0.7 ? '#fff9ef' : '#2a2a35';
-                }
-            } else {
-                const val = Math.sin(time / 4000 + unique);
-                const alpha = (val + 1) / 2;
-                if (alpha > 0.2) {
-                    const isCool = seededRandom(tileX * 7, tileY * 11 + unique) > 0.8;
-                    const baseRGB = isCool ? '230, 240, 255' : '255, 230, 150';
-                    const flickerAlpha = alpha * (0.8 + Math.sin(time / 800 + unique) * 0.1);
-                    windowColor = `rgba(${baseRGB}, ${flickerAlpha * 0.95})`;
-                }
+            if (alpha > 0.2) {
+                const isCool = seededRandom(tileX * 7, tileY * 11 + unique) > 0.8;
+                const baseRGB = isCool ? '230, 240, 255' : '255, 230, 150';
+                const flickerAlpha = alpha * (0.8 + Math.sin(time / 800 + unique) * 0.1);
+                windowColor = `rgba(${baseRGB}, ${flickerAlpha * 0.95})`;
             }
 
             ctx.fillStyle = windowColor;
             ctx.fill();
 
-            if (!isShopping && hasFlowerPot && row === 0 && faceIndex === 0) {
+            if (hasFlowerPot && row === 0 && faceIndex === 0) {
                 ctx.fillStyle = '#d66';
                 ctx.beginPath();
                 ctx.moveTo(px, py + winH);
@@ -1639,6 +1667,7 @@ export class TileRenderer {
             drawIsoWindow(0, r);
             drawIsoWindow(1, r);
         }
+        ctx.restore(); // End wall clip
     }
 
 

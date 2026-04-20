@@ -26,12 +26,18 @@ const ARGUMENTS_PERIPHERAL = [
     ["CADÊ MEU DINHEIRO?!", "Gastei no bicho, calma!", "CALMA?! VOU TE MATAR!", "SOCORRO!"],
     ["SAI DAÍ MOLEQUE!", "Tô só olhando, tia!", "VAI PRA CASA AGORA!", "Que saco..."],
     ["Quem é essa aí no zap?", "É minha prima, doida.", "Prima de quem?!", "Da sua mãe!"],
-    ["Abaixa esse som!", "Tô curtindo, pô!", "TÁ TREMENDO A JANELA!", "Foda-se!"],
+    ["Abaixa esse som!", "Tô curtindo, pô!", "TÁ TREMENDO A JANELA!", "Você é muito chata!"],
     ["Você bebeu de novo?", "Só uma latinha...", "TÁ CHEIRANDO A CACHAÇA!", "Me deixa em paz."],
     ["Onde você tava até agora?!", "No Bar do Luiz, ué.", "COM QUE DINHEIRO?!", "Ganhei na Ronda... ou quase isso."],
     ["Cala a boca e come!", "Essa comida tá sem sal.", "ENTÃO COZINHA VOCÊ!", "Grossa..."],
     ["A vizinha disse que te viu com outra.", "Vizinha fofoqueira, você acredita?", "ELA TIROU FOTO!", "Apaga isso agora!"],
     ["Mãe, cadê meu tênis?", "Onde você deixou, ué.", "TÔ ATRASADO!", "Problema seu, não sou sua empregada!"],
+    ["Tira o pé do sofá!", "Tô descansando, pô.", "VAI DESCANSAR LÁ FORA!", "Casa é minha também."],
+    ["Quem quebrou o copo de requeijão?!", "Foi o gato!", "A GENTE NÃO TEM GATO!", "Foi o vento..."],
+    ["Desliga esse videogame!", "Só mais essa fase, mãe!", "JÁ MANDEI DESLIGAR!", "Ah, perdi minha vida!"],
+    ["Tu pegou minha camisa de time?", "Tava limpa, peguei emprestada.", "TÁ TODA SUJA DE KETCHUP!", "Foi mal, comi um dogão."],
+    ["Vai arrumar um emprego, preguiçoso!", "Tô esperando chamarem da firma.", "TÁ ESPERANDO DEITADO?!", "Amanhã eu vou lá."],
+    ["Cadê o troco do pão?", "Comprei figurinha pro álbum.", "EU NÃO ACREDITO NISSO!", "Tirei a brilhante do Ronaldo!"]
 ];
 
 const GOSSIP_PERIPHERAL = [
@@ -40,30 +46,49 @@ const GOSSIP_PERIPHERAL = [
     ["Vai ter churrasco hoje?", "Só se você pagar.", "Tô liso, irmão.", "Então fica com fome."],
     ["Viu a briga na esquina hoje?", "Foi por causa de jogo?", "Sempre é por causa de jogo.", "Povo não aprende."],
     ["Dizem que o Shopping vai fechar.", "Mentira, acabou de abrir!", "Ouvi falar que deu rolo com os fiscais.", "Santa Cruz não é pra amadores."],
+    ["O carteiro não passa mais lá na rua de cima.", "Assaltaram ele?", "Pior, o cachorro do Seu Zé não deixa.", "Aquele vira-lata é brabo."],
+    ["Menina, cê não sabe...", "O que foi agora?", "A filha da Neide fugiu com o palhaço do circo.", "Gente do céu!"],
+    ["A luz cortou de novo na vila.", "Gato mal feito dá nisso.", "E a carne no freezer?", "Já era, vai ter que assar hoje."],
+    ["Dizem que tem assombração na estação.", "Eu que não passo lá de madrugada.", "O trem fantasma da meia-noite.", "Vira essa boca pra lá."],
+    ["O dono da padaria comprou carro zero.", "Vendendo pão dormido?", "Deve tá na purrinha todo dia.", "Dinheiro atrai dinheiro."]
 ];
 
 const ONELINERS_PERIPHERAL = [
     ["Olha a boca, rapá!"],
     ["Se a polícia bater, ninguém viu nada."],
     ["Traz a cerveja, caramba!"],
-    ["Vai dar merda isso aí..."],
+    ["Vai dar ruim isso aí..."],
     ["Desce daí agora, seu sem vergonha!"],
-    ["Sai daí, vagabundo!"],
+    ["Sai daí, folgado!"],
     ["Desce daí, pilantra!"],
     ["Cadê o dinheiro do aluguel?"],
-    ["Vizinho fofoqueiro é foda."],
+    ["Vizinho fofoqueiro é fogo."],
     ["Para de gritar, tem gente dormindo!"],
     ["O bicho deu zebra hoje, hein?"],
     ["Quem não deve, não teme... mas eu temo."],
     ["Bota fé que amanhã a sorte vira."],
     ["Não encosta no meu carro!"],
     ["Hoje é dia de maldade no fliperama."],
+    ["Bota o lixo pra fora!"],
+    ["Cuidado com a linha com cerol!"],
+    ["Ô de casa! Tem alguém aí?"],
+    ["Onde que eu deixei a chave do portão..."],
+    ["Menino, vem almoçar!"],
+    ["Desliga a mangueira, tá gastando água!"],
+    ["Vou mandar benzer essa casa."],
+    ["Só me falta essa agora."],
+    ["Deus me livre e guarde."]
 ];
 
 const TV_RADIO = [
     ["GOOOOOL FLAMENGOOO!", "Aumenta aí!", "Chupa vascaíno!"],
-    ["Interrompemos a programação...", "Ih, morreu alguém.", "Aumenta pra eu ouvir."],
+    ["Interrompemos a programação...", "Ih, deu ruim pra alguém.", "Aumenta pra eu ouvir."],
     ["...a previsão do tempo...", "Vai chover amanhã?", "Diz que sim.", "Vou tirar a roupa do varal."],
+    ["...e o dólar fechou em alta...", "E eu com isso? Ganho em real.", "Tudo vai ficar mais caro.", "Isso que é vida."],
+    ["Ligue djá! O seu futuro nas cartas...", "Gente enganando gente.", "Vai que é verdade?", "Boboca."],
+    ["...no capítulo de hoje da novela...", "Não me conta! Quero assistir.", "A mocinha vai descobrir tudo.", "Ah, você estragou!"],
+    ["Compre o carro zero com parcelas que cabem no seu bolso!", "Cabe no bolso do dono do banco, né?", "Aumenta o volume que eu quero ouvir os gols."],
+    ["...sorteio da telesena é neste domingo...", "Você comprou a sua?", "Todo mês eu compro, uma hora sai.", "Esperança é a última que morre."]
 ];
 
 const ARGUMENTS_CENTRAL = [
@@ -72,6 +97,11 @@ const ARGUMENTS_CENTRAL = [
     ["O cachorro fugiu de novo!", "Deixou o portão aberto?", "Foi você!", "Eu não!"],
     ["Cadê a chave do carro?", "Não sei, você que usou por último.", "MENTIRA!", "Procura no sofá..."],
     ["Você esqueceu nosso aniversário!", "Não esqueci, o presente tá chegando.", "TÁ CHEGANDO DESDE O ANO PASSADO!", "Calma, amor..."],
+    ["Você estourou o limite do cartão?!", "Eram parcelas sem juros!", "COMO VAMOS PAGAR?", "Mês que vem a gente vê."],
+    ["Abaixa a tampa do vaso!", "Esqueci, desculpa.", "TODO DIA É ISSO!", "Tá bom, tá bom."],
+    ["Quem mexeu no termostato da geladeira?", "A cerveja não tava gelando.", "As verduras congelaram tudo!", "Pelo menos a breja tá trincando."],
+    ["Já disse pra não pisar no tapete de sapato!", "Tô com pressa!", "LIMPEI HOJE DE MANHÃ!", "Na volta eu passo o pano, juro."],
+    ["Você vai sair com essa roupa?", "Qual o problema?", "Parece um maloqueiro.", "A moda agora é essa, mãe."]
 ];
 
 const CASUAL_CENTRAL = [
@@ -79,6 +109,12 @@ const CASUAL_CENTRAL = [
     ["O preço da carne subiu.", "De novo?", "Tá impossível viver.", "Vou virar vegetariano."],
     ["Vai pedir pizza hoje?", "Se você pagar a taxa de entrega.", "Tô sem troco.", "Então vamos de miojo."],
     ["Viu o jornal hoje?", "Só tragédia.", "Santa Cruz tá mudando muito.", "Pra pior ou pra melhor?"],
+    ["Amanhã tem feriado.", "Vou dormir até o meio dia.", "Não vai lavar o carro?", "Deixa sujo mesmo."],
+    ["A rua tá um barulho hoje.", "É dia de feira na praça.", "Vou lá comer um pastel.", "Traz um de queijo pra mim."],
+    ["Preciso de uma TV nova.", "Pra ver jogo do campeonato?", "Não, a novela tá numa imagem péssima.", "Gasta dinheiro com bobagem."],
+    ["Ouviu falar do novo restaurante?", "Aquele perto da igreja?", "É, disseram que a fila é enorme.", "Prefiro a comida daqui de casa."],
+    ["As crianças tão crescendo rápido.", "Já tão pedindo mesada.", "Vão ter que arrumar bico no shopping.", "Deus me livre, lá é perigoso."],
+    ["O vizinho comprou um cachorro.", "Tomara que não lata a noite toda.", "Ele tem cara de bonzinho.", "Cachorro e dono, a gente nunca sabe."]
 ];
 
 const ONELINERS_CENTRAL = [
@@ -90,6 +126,16 @@ const ONELINERS_CENTRAL = [
     ["Fecha a janela, vai chover."],
     ["Onde tá o controle?"],
     ["Que cheiro de queimado é esse?"],
+    ["Não tem um doce nessa casa."],
+    ["Quem deixou a porta da geladeira aberta?"],
+    ["Tô precisando de férias."],
+    ["O telefone não para de tocar."],
+    ["Menino, sai da frente da TV!"],
+    ["Esqueci de pagar o condomínio."],
+    ["Domingo sem macarronada não é domingo."],
+    ["Deixa as visitas chegarem pra ver a bagunça."],
+    ["Vou dar uma deitada, não me acorde."],
+    ["Esse bairro já foi mais tranquilo."]
 ];
 
 

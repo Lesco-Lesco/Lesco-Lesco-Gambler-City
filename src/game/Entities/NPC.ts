@@ -49,6 +49,18 @@ const DIALOGUES = {
         ["Viu o preço da carne?", "Vou virar vegetariano na marra."],
         ["Esse sol de Santa Cruz não é de Deus.", "Tô derretendo no asfalto."],
         ["Amanhã tem feira, né?", "Vou ver se compro umas frutas baratas."],
+        ["Fui no orelhão e engoliu minha ficha.", "Sacanagem isso daí."],
+        ["Tu viu a nova fita do fliperama?", "O moleque da rua de baixo zerou com uma ficha só."],
+        ["Minha mãe mandou comprar pão, mas parei pra ver o movimento.", "Se ela descobre, eu apanho."],
+        ["Tô indo na locadora alugar um jogo pro fim de semana.", "Espero que não tenham levado o de futebol."],
+        ["Comprei um rádio de pilha novo.", "Agora escuto o jogo do Mengão onde eu for."],
+        ["Você acredita em assombração?", "Eu juro que vi um negócio esquisito no cemitério ontem."],
+        ["Menino, vai pra casa que tua mãe tá te chamando!", "Ah, sempre sobra pra mim..."],
+        ["Esse tênis tá de rosca, cara.", "Pisei numa poça ali atrás, mó cheiro ruim."],
+        ["Alguém me pediu informação agora pouco.", "Mandei ir pro lado errado sem querer. Deus perdoe."],
+        ["O padeiro disse que amanhã não tem pão francês.", "O forno quebrou de novo, vê se pode."],
+        ["Fui tentar a sorte hoje cedo e perdi vintão.", "Minha mulher vai me matar se descobrir."],
+        ["Você viu que abriram uma lan house perto do colégio?", "A meninada não quer mais saber de jogar bola na rua."]
     ],
     station_hints: [
         ["Ouviu esse barulho de fichas? Não é o trem não...", "Tem gente ganhando o dia lá no subsolo."],
@@ -60,12 +72,22 @@ const DIALOGUES = {
         ["O trem tá atrasado, mas a roleta tá a mil.", "Quem desce na plataforma 3 sabe do que eu tô falando."],
         ["O fiscal finge que não vê, e a gente finge que não aposta.", "A lei do silêncio vale mais que o bilhete."],
         ["Já viu o homem do terno cinza?", "Ele é quem manda no baralho por aqui."],
+        ["Se ouvir um apito diferente, esconde o dinheiro.", "A ronda deles não é pra ver passagem, é pra limpar os bolsos."],
+        ["A estação guarda segredos que nem o maquinista sabe.", "O maquinista não, mas o pipoqueiro da esquina sabe de tudo."],
+        ["Não compra passagem falsa ali no beco.", "A catraca apita e os guardas não têm paciência com espertinho."],
+        ["Dizem que o primeiro trem do dia traz os maiores vencedores.", "Mas o último trem da noite leva os mais desesperados."]
     ],
     sarcastic: [
         ["Olha a roupa desse playboy...", "Achou que aqui era a Zona Sul?"],
         ["Tá perdido, doutor?", "O GPS não funciona na favela não."],
         ["Dinheiro não nasce em árvore, sabia?", "Me arruma 50 conto que eu te ensino a viver."],
         ["Vai ficar olhando ou vai passar o pix?", "Tô cobrando aluguel visual."],
+        ["Gostou do que viu?", "Tira foto que dura mais, amigão."],
+        ["Tá olhando pro lado errado, turista.", "Aqui a vida real acontece no chão sujo, não na vitrine."],
+        ["Se você tá procurando o Cristo Redentor, pegou o ônibus errado.", "Aqui só tem santo de barro e cruz de madeira."],
+        ["O patrão resolveu passear no asfalto quente?", "Cuidado pra não derreter esse sapato caro."],
+        ["Essa cara de bobo você treinou ou é natural?", "Se quiser eu te ensino a andar igual malandro."],
+        ["Veio cobrar o aluguel?", "Avisa o senhorio que o cachorro comeu o carnê desse mês."]
     ],
     homeless: [
         ["Tem um trocado pro café?", "Deus te abençoe..."],
@@ -79,6 +101,11 @@ const DIALOGUES = {
         ["Vi você olhando pro cassino.", "O brilho nos olhos de quem vai perder tudo é inconfundível."],
         ["Ontem ganharam um prêmio grande lá dentro.", "O cara pagou um jantar pra todo mundo da rua."],
         ["Não dorme no ponto, a polícia tá vindo.", "Eles não gostam de quem tem menos que eles."],
+        ["Eu já fui rei dessa cidade, sabia?", "As cartas me deram tudo, e as roletas me tomaram de volta."],
+        ["Moeda de dez centavos já paga o pão de ontem.", "Não me negue a esmola, que amanhã pode ser você aqui."],
+        ["Dorme com um olho aberto se for pro beco do matadouro.", "Lá eles tiram sua alma e vendem no mercado negro da sorte."],
+        ["Os ratos daqui têm mais dinheiro que eu.", "Eles comem os restos de lagosta que o pessoal do cassino joga fora."],
+        ["Deus tá vendo o que a gente passa.", "E o Diabo tá rindo de camarote no subsolo da estação."]
     ],
     pedinte_aggressive: [
         ["Ei doutor! Preciso comer!", "Não vai negar um prato de comida?", "Tô vendo essa carteira cheia aí!"],
@@ -87,72 +114,122 @@ const DIALOGUES = {
         ["Vi você olhando pro 'Leão'.", "Aquele ali é o porteiro do inferno... ou do céu."],
         ["Sumiram com o meu parceiro ali no fundo.", "Ganhou muito e não deixaram ele sair com o prêmio."],
         ["A sorte tá no ar, doutor! Sinto cheiro de jackpot.", "Me ajuda agora que eu te abençoo a banca!"],
+        ["Não vira a cara não, playboy!", "A fome não escolhe hora nem lugar, libera a nota!"],
+        ["Tô de olho em você ganhando nessas mesas.", "Reparte com os cria pra sorte não sumir!"],
+        ["Se você não me der um trocado eu vou azarar o seu jogo!", "Olho gordo de pobre é brabo, eu tô te avisando!"],
+        ["Abre a mão, parceiro!", "Aqui é Santa Cruz, quem não divide, não multiplica!"]
     ],
     gambler: [
         ["Hoje eu quebro a banca!", "Sente o cheiro da vitória."],
         ["O bicho tá viciado ali na esquina.", "Se der zebra eu tô ferrado."],
         ["Quer jogar? Aposta mínima de 10.", "Vem perder dinheiro comigo."],
+        ["Tô sentindo que meu dia chegou.", "A sorte grande tá me esperando na próxima esquina."],
+        ["Se eu ganhar hoje, compro uma brasília amarela.", "Se eu perder, vou voltar a pé pro bairro."],
+        ["Apostei o dinheiro do leite das crianças.", "A patroa não pode saber, hoje eu tenho que dobrar o valor."],
+        ["Tem dias que a gente só perde, impressionante.", "Mas a esperança é o que faz a gente continuar girando a roleta."],
+        ["Eu sou o terror das casas de aposta.", "Eles tremem quando me veem chegar com a capivara na cabeça."],
+        ["Você conhece a técnica da mão dupla?", "Você joga com uma mão e esconde o choro com a outra."],
+        ["Me deseje sorte, forasteiro.", "Hoje o Lesco Lesco vai me pagar tudo que me deve."]
     ],
     purrinha: [
         ["Quantas pedras você acha que eu tenho?", "Essa mão aqui vale ouro."],
         ["Purrinha é arte, o resto é sorte.", "Cuidado com o meu palpite!"],
         ["Lê minha mente ou lê minha mão?", "Só não vale chorar depois."],
         ["O segredo tá no dedinho...", "Apanha 10 e vê se ganha."],
+        ["Eu treinei a vida toda pra jogar isso aqui.", "Minha mão fechada é um cofre sem segredo."],
+        ["Pensa bem antes de gritar o número.", "Aqui a gente pega mentiroso no ato."],
+        ["O suor na tua testa diz que você tem três na mão.", "Ou será que você tá blefando pra mim?"],
+        ["Purrinha não é jogo de criança.", "Criança chora, adulto paga a aposta em dinheiro vivo."]
     ],
     dados: [
         ["Os dados não mentem jamais.", "Sorte no jogo, azar nos amores."],
         ["Cada número conta sua história.", "Beco do Matadouro nunca falha."],
         ["Quer ver o 6-6 brilhar?", "A carapaça tá quente hoje."],
         ["Joga os ossos e reza!", "Mão gelada não ganha aposta."],
+        ["Cuidado com os cantos da parede.", "O dado que quica estranho, tira dinheiro de quem é tonto."],
+        ["Quem soprar o dado antes de jogar, perde a vez.", "Aqui a gente confia na gravidade e no pulso firme."],
+        ["Se cair fora da roda, a casa leva a aposta.", "Fica o aviso, não tem choro nem vela."],
+        ["Os ossos antigos falam verdades duras.", "Prepare o bolso que a maré tá secando."]
     ],
     ronda: [
         ["A banca sempre ganha? Hoje não.", "Escolha sua carta com sabedoria."],
         ["Ronda de elite é aqui, parceiro.", "O baralho tá pegando fogo!"],
         ["Corta o deck ou corta o papo.", "Essa dama aqui é traiçoeira."],
         ["Olho no descarte, malandro...", "A sorte é um bicho brabo."],
+        ["A matemática da Ronda exige mente fria.", "E você tá suando que nem porco no rolete."],
+        ["Aquele ali no canto tá contando carta.", "Deixa ele achar que a gente não sabe."],
+        ["O Coringa sorri pra todo mundo, mas só beija um.", "Vem beijar a sorte, vem."],
+        ["Se a carta voar com o vento, o jogo é anulado.", "Segura firme que aqui bate rajada forte da estação."]
     ],
     domino: [
         ["Quer ver o 'carro-chefe' passar?", "Aqui o jogo é de mestre."],
         ["Lê a mesa ou dorme no cesto.", "Dominó na praça é tradição, playboy."],
         ["Quem não tem peça, comprou a briga.", "Bate com a 'bucha' pra ver se dói."],
+        ["Passou a vez? Já era, a fila anda.", "Aqui ninguém alivia pra retardatário."],
+        ["A peça de branco-branco não serve pra nada.", "Mas às vezes ela salva a vida da gente no final."],
+        ["Não bate na mesa com força não, jovem.", "Respeita os mais velhos que aqui tem história."],
+        ["Você tá escondendo pedra na manga, é?", "Tô de olho nessa mãozinha de seda aí."],
+        ["Vou trancar a mesa agora mesmo.", "Pode preparar as notas pra pagar o prejuízo."]
     ],
     propaganda_purrinha: [
         ["Ei! Quer aprender a arte da Purrinha?", "A tradição aqui na Igreja é forte!", "Vem ver quem tem a mão mais rápida."],
         ["Opa, o jogo de purrinha vai começar!", "Aqui não é sorte, é leitura de mente!", "Chega mais, aposta mínima de 10."],
+        ["Mão fechada, aposta aberta!", "Traga seu dinheiro e deixe sua hesitação em casa!", "Só os corajosos jogam purrinha no adro da igreja!"],
+        ["Venham, venham ver o mestre das pedras!", "Quem acertar o número leva o triplo!", "Sinta a emoção do palpite perfeito."]
     ],
     propaganda_dados: [
         ["Os dados estão rolando no Matadouro!", "Cuidado pra não perder as calças!", "Sorte pura, sem enganação."],
         ["Quer testar sua sorte nos ossos?", "O Beco do Matadouro é onde a mágica acontece!", "Vem dobrar seus trocados aqui."],
+        ["O som dos ossos batendo na parede é o canto da sereia!", "Ouça o chamado, aposte alto e ganhe mais alto ainda!", "A roda de dados mais honesta da zona oeste!"],
+        ["Não tenha medo de jogar os dados, o pior que pode acontecer é você ir pra casa a pé!", "Aposte com força, ganhe com glória!"]
     ],
     propaganda_ronda: [
         ["A Ronda na Estação não para!", "Baralho novo, sorte nova!", "Ganhei do trem, vou ganhar de você."],
         ["Quer uma partida rápida de Ronda?", "Aqui é o jogo dos espertos!", "Vem pra banca, o jogo tá quente."],
+        ["Cartas na mesa, dinheiro no bolso!", "O trem apita lá em cima, mas o lucro canta aqui embaixo!", "Venha fazer parte da roda da fortuna!"],
+        ["O baralho não mente pra quem sabe ler o destino!", "Ronda de alta tensão para jogadores de alta pressão!", "Chega mais!"]
     ],
     jokenpo: [
         ["Pedra, papel ou tesoura?", "Duvido que você ganhe de mim."],
         ["Jo ken po! Escolha rápido.", "Minha mão é mais rápida que seu olho."],
         ["Um jogo clássico pros clássicos.", "Aposta 10 e vê se dá sorte."],
         ["Tesoura corta papel, mas não corta minha sorte.", "Vem pro duelo de mãos!"],
+        ["Eu nunca escolho pedra, confia em mim.", "A verdade é que eu sempre escolho pedra na primeira rodada."],
+        ["Você não tem agilidade mental pra esse jogo milenar.", "Papel embrulha a pedra e embrulha o seu choro."],
+        ["Adivinha o que eu vou colocar?", "Isso mesmo, é exatamente o que vai te vencer."],
+        ["O pulso firme dita a vitória.", "Quem treme na hora de mostrar o dedo, já perdeu."]
     ],
     cara_coroa: [
         ["Cara ou coroa? A sorte está no ar!", "Uma moeda, dois destinos."],
         ["Escolha um lado e reze.", "O metal nunca mente."],
         ["O giro da moeda decide quem manda.", "Cuidado pra não perder a cabeça... ou a cara."],
         ["A gravidade é o único juiz aqui.", "Sinta o peso do metal antes do tombo."],
+        ["Tem moeda viciada por aí, mas a nossa é abençoada pelo padre.", "Acredita na força do destino."],
+        ["Coroa é rei, Cara é súdito.", "Qual dos dois você quer ser no final da noite?"],
+        ["O tilintar do cobre no asfalto é a trilha sonora da alegria.", "Deixa rolar, deixa girar."],
+        ["Quem apostou cara chora, quem apostou coroa comemora.", "É a lei da selva de pedra."]
     ],
     palitinho: [
         ["Quem tirar o palito curto paga o pato.", "Sorte no palitinho, azar no amor."],
         ["Mãos escondidas, segredos revelados.", "Não quebre o palito!"],
         ["A ordem dos dados é a ordem do destino.", "Três palitos, uma decepção... pra alguém."],
         ["Sinta a madeira, escolha com a alma.", "Quem rola o dado mais alto, escolhe o destino mais cedo."],
+        ["Os palitos não diferenciam o rico do pobre.", "Aqui todo mundo sua frio antes de abrir a mão."],
+        ["Dizem que o palito comprido atrai inveja.", "O palito curto atrai a dívida."],
+        ["Fica de olho na mão do padeiro.", "Ele tem os dedos grossos e sempre tenta dar o migué."],
+        ["A brincadeira é de criança, mas a grana apostada é de adulto responsável."]
     ],
     fan_tan: [
         ["O mistério do arroz...", "Conte os grãos e vença a banca."],
         ["A sabedoria milenar do Fan-Tan.", "O dragão guia a sua sorte."],
-        ["Quatro em quanto, o resto é o que importa.", "O cesto esconde o que o seu olho não viu."],
+        ["Quatro em quatro, o resto é o que importa.", "O cesto esconde o que o seu olho não viu."],
         ["O dragão de ouro protege quem sabe contar.", "Deixe o arroz fluir, e a sorte virá."],
         ["Lembra: o quatro é o zero na contagem da vida.", "Sinta a seda vermelha e faça sua aposta."],
-        ["Quem precisa de sorte quando se tem paciência?", "O Fan-Tan é o jogo da paz... e do lucro."]
+        ["Quem precisa de sorte quando se tem paciência?", "O Fan-Tan é o jogo da paz... e do lucro."],
+        ["A paciência oriental em contraste com a pressa carioca.", "Aqui a gente medita enquanto perde o dinheiro."],
+        ["Não empurre a vareta, deixe ela deslizar.", "A pressa é a inimiga do grão."],
+        ["Você viu quatro, mas na verdade sobraram três.", "O olho do dragão é implacável na contagem."],
+        ["A serenidade antes do resultado é o verdadeiro prêmio.", "O dinheiro é só um bônus terreno."]
     ],
     police: [
         ["O jogo de azar é o caminho mais rápido para a cadeia... ou pra ficar liso.", "Vi muita gente boa perdendo o rumo nesses becos."],
@@ -164,6 +241,10 @@ const DIALOGUES = {
         ["Estou de olho naquele bicheiro ali..", "Um dia a casa cai, e cai pesada."],
         ["Já pagou o café da guarnição hoje?", "Ou prefere explicar o que tem nessa carteira lá na delegacia?"],
         ["O bicho só corre se a gente deixar.", "E ultimamente a gente tem andado bem devagar."],
+        ["A calçada não é lugar pra ficar moscando.", "A não ser que esteja esperando um milagre... ou a viatura."],
+        ["Se eu escutar gritaria de aposta, eu desço o cassetete na mesa.", "E depois recolho o dinheiro como prova do crime, claro."],
+        ["Mantenha as mãos onde eu possa ver.", "E se tiver nota de cinquenta aí, pode mostrar também."],
+        ["Estamos garantindo a segurança de Santa Cruz.", "Segurança de quem pode pagar por ela, obviamente."]
     ],
     casino_promoter: [
         ["O shopping é para gastar seu suor, o porão é para colher os frutos.", "Já sentiu que hoje é o seu dia de virar o jogo?"],
@@ -178,7 +259,11 @@ const DIALOGUES = {
         ["Não é jogo, é investimento emocional... com retorno imediato em papel moeda.", "Vem fugir desse sol e ver como a sorte se refresca no subsolo."],
         ["O patrão mandou dizer que a mesa está posta. O banquete é de fichas.", "Viu aquele sorriso de quem saiu por ali agora? Pode ser o seu."],
         ["As máquinas estão inquietas hoje, parece que o jackpot está para explodir.", "Sabe a diferença entre um comprador e um vencedor? A direção que eles tomam."],
-        ["O destino sussurrou seu nome lá embaixo. Eu só estou aqui para repetir.", "A oportunidade não bate na porta, ela fica esperando você descer a escada."]
+        ["O destino sussurrou seu nome lá embaixo. Eu só estou aqui para repetir.", "A oportunidade não bate na porta, ela fica esperando você descer a escada."],
+        ["Tapete vermelho na entrada, luz neon e ficha caindo.", "O paraíso existe e fica debaixo dos nossos pés."],
+        ["Quem tem medo de arriscar, passa a vida contando moeda.", "Venha contar notas de cem na nossa sala VIP."],
+        ["A entrada é discreta, mas a saída pode ser triunfal.", "Venha fazer história no subterrâneo das riquezas."],
+        ["Sente esse aroma? É cheiro de riqueza recém-impressa.", "Temos roleta, cartas e a maior hospitalidade da zona oeste."]
     ],
     preacher: [
         ["A salvação não custa nada, mas vale tudo!", "Arrependam-se, o fim está próximo!"],
@@ -189,6 +274,11 @@ const DIALOGUES = {
         ["A porta da igreja está aberta para todos os humildes.", "Deus não olha a carteira, olha o coração."],
         ["Fuja das tentações do subsolo!", "A luz de Deus brilha mais que o neon."],
         ["Um minuto de oração vale mais que uma hora de aposta.", "Deus tem um plano para você."],
+        ["O diabo atua nas sombras das vielas, mas o Senhor caminha na luz da praça!", "Vem para a luz!"],
+        ["Não jogue sua alma fora apostando contra o mal!", "A banca do diabo sempre vence, só o Senhor perdoa as dívidas!"],
+        ["O vício te aprisiona, mas a verdade te libertará!", "Aleluia!"],
+        ["Esses cassinos clandestinos são portas largas para a perdição!", "Aperta o passo para a porta estreita da Igreja!"],
+        ["Deus está vendo você esconder esse dinheiro da sua família!", "Arrependa-se antes que seja tarde demais!"]
     ],
     // --- LOCATION SPECIFIC DIALOGUES ---
     loc_shopping: [
@@ -197,24 +287,39 @@ const DIALOGUES = {
         ["Cuidado com quem te aborda no estacionamento.", "Tem muito malandro de olho em quem ganha no jogo."],
         ["Esperando minha patroa sair das compras...", "O cartão de crédito já tá chorando."],
         ["Viu aquele movimento ali no fundo do shopping?", "Tem um segredo que pouca gente conhece."],
+        ["Vim só pra comer na praça de alimentação e ir embora.", "Aquele hambúrguer dali é bom demais."],
+        ["Estacionei o carro longe, espero que ninguém risque a pintura.", "Tem muito moleque de bicicleta por aí."],
+        ["As lojas tão em promoção, mas a promoção deles é tudo pela metade do dobro.", "Eu não caio nessa ladainha."]
     ],
     loc_church: [
         ["Que a paz do Senhor esteja com você, irmão.", "Belo dia para agradecer."],
         ["O padre hoje estava inspirado na homilia.", "Falou muito sobre o pecado da ganância."],
         ["Venho aqui pra pedir proteção, o mundo tá brabo.", "Um pouco de fé não faz mal a ninguém."],
         ["Sempre rezo antes de fazer minha fezinha.", "Deus escreve certo por linhas tortas."],
+        ["Domingo de manhã é sagrado, venho logo pra primeira missa.", "Depois passo na padaria e volto em paz pra casa."],
+        ["O sino tocou, é hora de parar o que tá fazendo e refletir.", "Santa Cruz precisa de mais oração e menos barulho de ficha."],
+        ["A escadaria da igreja sempre tem alguém precisando de ajuda.", "A caridade é o dever de quem tem um pouco a mais."],
+        ["Sinto uma energia boa quando chego perto dessa praça da igreja.", "Como se um manto me cobrisse."]
     ],
     loc_station: [
         ["O ramal de Santa Cruz tá um caos hoje.", "O trem das oito ainda não passou."],
         ["Muita gente chegando do centro.", "A estação nunca dorme, né?"],
         ["Cuidado com o celular aqui na plataforma.", "O gatuno não perdoa nem quem tá com pressa."],
         ["Tá sabendo de algum jogo bom aqui por perto?", "Dizem que o subsolo da estação esconde tesouros."],
+        ["Essas escadas são perigosas quando chove.", "Quase escorreguei e fui parar lá nos trilhos semana passada."],
+        ["Ouvi o guarda apitar, achei que ia perder o trem.", "Corri tanto que quase deixei o chinelo pra trás."],
+        ["O pastel da estação é gorduroso, mas salva a vida do trabalhador.", "Sempre pego um de carne com caldo de cana."],
+        ["O vai e vem aqui é frenético. Cada um com sua cruz e seu destino.", "Eu tô só de passagem."]
     ],
     loc_square: [
         ["Nada como o frescor dessa árvore pra pensar na vida.", "O tempo passa devagar aqui na praça."],
         ["O papo aqui é sempre bom, mas a sorte é arisca.", "Viu quem ganhou o bicho hoje?"],
         ["Só falta um café pra esse dia ficar perfeito.", "A vida é um jogo de dominó: tem que saber bater."],
         ["Essa fonte traz uma paz, não traz?", "Melhor lugar pra ver o movimento."],
+        ["Tem uns pombos folgados aqui, quase comeram meu biscoito.", "Eles sabem que a gente tem pena de enxotar."],
+        ["Vou sentar aqui nesse banco e não sair mais hoje.", "Minhas costas não aguentam mais o asfalto."],
+        ["Os velhinhos do dominó ali tão brigando de novo.", "Parece que a bucha de sena deu problema."],
+        ["Sempre tem um ventinho bom que passa pela estátua.", "É o frescor que salva do calorão do meio dia."]
     ]
 };
 
