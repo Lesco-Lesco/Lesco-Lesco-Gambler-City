@@ -30,7 +30,7 @@ export class GameLoop {
     // Scene transition fade overlay
     // Starts at 1 (opaque black) on each scene switch and decays to 0 (transparent).
     private fadeAlpha: number = 0;
-    private readonly FADE_DURATION = 0.35; // seconds
+    private readonly FADE_DURATION = 0.08; // seconds — just enough to hide 1-2 ghost frames (~33ms)
 
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
