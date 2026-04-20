@@ -17,6 +17,7 @@ import { BuffManager } from '../game/Core/BuffManager';
 import { ProgressionManager } from '../game/Core/ProgressionManager';
 import { UIScale } from '../game/Core/UIScale';
 import { SoundManager } from '../game/Core/SoundManager';
+import { InputManager } from '../game/Core/InputManager';
 import MobileControls from './MobileControls';
 import { useState } from 'react';
 
@@ -24,6 +25,11 @@ const GameCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [showSplash, setShowSplash] = useState(false);
     const [splashFade, setSplashFade] = useState(true); // Start as visible
+    const [isPaused, setIsPaused] = useState(false);
+    const [pauseSelectedIndex, setPauseSelectedIndex] = useState(0);
+    const vazarOptions = ["Picar a Mula", "Meter o Pé", "Sair Fora", "Vazar", "Dar no Pé", "Cair Fora", "Ralar Peito", "Zarpar"];
+    const [vazarText, setVazarText] = useState("Vazar");
+    
     const engineRef = useRef<{
         loop: GameLoop;
         renderer: Renderer;
@@ -35,6 +41,60 @@ const GameCanvas = () => {
         initialsInput: InitialsInputScene;
         rankingScene: RankingScene;
     } | null>(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === 'Escape') {
+                const loop = engineRef.current?.loop;
+                if (!loop) return;
+                
+                // Only allow pausing in the main exploration scene and without any sub-contexts (dialogues, etc) active
+                if (loop.getActiveScene()?.name === 'exploration' && InputManager.getInstance().getContext() === 'exploration') {
+                    setIsPaused(prev => {
+                        const next = !prev;
+                        loop.setPaused(next);
+                        if (next) {
+                            setVazarText(vazarOptions[Math.floor(Math.random() * vazarOptions.length)]);
+                            setPauseSelectedIndex(0);
+                        }
+                        return next;
+                    });
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    useEffect(() => {
+        if (!isPaused) return;
+        
+        const handlePauseNav = (e: KeyboardEvent) => {
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+                e.preventDefault();
+                setPauseSelectedIndex(prev => (prev === 0 ? 1 : 0));
+            } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                e.preventDefault();
+                setPauseSelectedIndex(prev => (prev === 1 ? 0 : 1));
+            } else if (e.code === 'Enter' || e.code === 'Space') {
+                e.preventDefault();
+                const loop = engineRef.current?.loop;
+                if (!loop) return;
+
+                if (pauseSelectedIndex === 0) {
+                    setIsPaused(false);
+                    loop.setPaused(false);
+                } else if (pauseSelectedIndex === 1) {
+                    setIsPaused(false);
+                    loop.setPaused(false);
+                    loop.setScene('score_breakdown');
+                }
+            }
+        };
+        
+        window.addEventListener('keydown', handlePauseNav, { passive: false });
+        return () => window.removeEventListener('keydown', handlePauseNav);
+    }, [isPaused, pauseSelectedIndex]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -298,6 +358,68 @@ const GameCanvas = () => {
                         className="splash-image"
                         onError={(e) => (e.currentTarget.style.display = 'none')}
                     />
+                </div>
+            )}
+
+            {isPaused && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, width: '100vw', height: '100vh',
+                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    zIndex: 9999,
+                    fontFamily: '"Press Start 2P", monospace',
+                    color: 'white'
+                }}>
+                    <h1 style={{ color: '#00ddff', textShadow: '0 0 10px #00ddff', marginBottom: '40px' }}>PAUSADO</h1>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                        <div 
+                            onClick={() => {
+                                setIsPaused(false);
+                                engineRef.current?.loop.setPaused(false);
+                            }}
+                            onMouseEnter={() => setPauseSelectedIndex(0)}
+                            style={{
+                                padding: '15px 30px', minWidth: '250px', textAlign: 'center',
+                                backgroundColor: pauseSelectedIndex === 0 ? '#222' : '#111', 
+                                color: pauseSelectedIndex === 0 ? '#ffffff' : '#00ddff',
+                                border: `2px solid ${pauseSelectedIndex === 0 ? '#ffffff' : '#00ddff'}`,
+                                fontFamily: 'inherit', fontSize: '14px',
+                                cursor: 'pointer',
+                                textTransform: 'uppercase',
+                                transform: pauseSelectedIndex === 0 ? 'scale(1.1)' : 'scale(1.0)',
+                                transition: 'all 0.1s ease-in-out',
+                                boxShadow: pauseSelectedIndex === 0 ? '0 0 15px rgba(255, 255, 255, 0.2)' : 'none'
+                            }}
+                        >
+                            {pauseSelectedIndex === 0 ? '> CONTINUAR <' : 'CONTINUAR'}
+                        </div>
+                        
+                        <div 
+                            onClick={() => {
+                                setIsPaused(false);
+                                engineRef.current?.loop.setPaused(false);
+                                engineRef.current?.loop.setScene('score_breakdown');
+                            }}
+                            onMouseEnter={() => setPauseSelectedIndex(1)}
+                            style={{
+                                padding: '15px 30px', minWidth: '250px', textAlign: 'center',
+                                backgroundColor: pauseSelectedIndex === 1 ? '#222' : '#111', 
+                                color: pauseSelectedIndex === 1 ? '#ffffff' : '#ff4422',
+                                border: `2px solid ${pauseSelectedIndex === 1 ? '#ffffff' : '#ff4422'}`,
+                                fontFamily: 'inherit', fontSize: '14px',
+                                cursor: 'pointer',
+                                textTransform: 'uppercase',
+                                transform: pauseSelectedIndex === 1 ? 'scale(1.1)' : 'scale(1.0)',
+                                transition: 'all 0.1s ease-in-out',
+                                boxShadow: pauseSelectedIndex === 1 ? '0 0 15px rgba(255, 255, 255, 0.2)' : 'none'
+                            }}
+                        >
+                            {pauseSelectedIndex === 1 ? `> ${vazarText} <` : vazarText}
+                        </div>
+                    </div>
                 </div>
             )}
 

@@ -1321,7 +1321,22 @@ export class ExplorationScene implements Scene {
         }
         if (this.input.wasPressed('Escape')) {
             this.activeMinigame = 'none';
+            
+            // Refund unused credits in pairs of 2 (R$10)
+            if (this.arcadeCredits > 0) {
+                const bmanager = BichoManager.getInstance();
+                const pairs = Math.floor(this.arcadeCredits / 2);
+                const refundAmount = pairs * 10;
+                
+                if (refundAmount > 0) {
+                    bmanager.playerMoney += refundAmount;
+                    bmanager.addNotification(`Reembolsado R$${refundAmount} por ${pairs * 2} créditos não usados.`, 3);
+                } else if (this.arcadeCredits > 0) {
+                    bmanager.addNotification(`1 crédito sobrou e foi perdido.`, 3);
+                }
+            }
             this.arcadeCredits = 0;
+            
             this.input.popContext();
             if (this.musicCooldown <= 0 && Math.random() < 0.45) {
                 this.playRandomMusicMotif();

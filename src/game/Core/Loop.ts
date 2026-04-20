@@ -21,6 +21,7 @@ export class GameLoop {
     private scenes: Map<string, Scene> = new Map();
     private activeScene: Scene | null = null;
     private input: InputManager;
+    private paused: boolean = false;
 
     // Performance
     private fps: number = 0;
@@ -60,6 +61,14 @@ export class GameLoop {
 
     public getActiveScene(): Scene | null {
         return this.activeScene;
+    }
+
+    public setPaused(p: boolean) {
+        this.paused = p;
+    }
+
+    public isPaused(): boolean {
+        return this.paused;
     }
 
     public getScene(name: string): Scene | undefined {
@@ -107,10 +116,13 @@ export class GameLoop {
         // Update + Render active scene
         try {
             if (this.activeScene) {
-                // Global Managers Update (Sem exceção)
-                BuffManager.getInstance().update(dt);
-                
-                this.activeScene.update(dt);
+                // Se não estiver pausado, roda a lógica do jogo
+                if (!this.paused) {
+                    // Global Managers Update (Sem exceção)
+                    BuffManager.getInstance().update(dt);
+                    
+                    this.activeScene.update(dt);
+                }
 
                 // Limpa o canvas e reseta estado antes de cada render
                 // Previne acúmulo de transparency/compositeOperation entre frames e cenas
