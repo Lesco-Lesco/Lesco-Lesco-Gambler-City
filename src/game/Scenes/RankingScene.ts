@@ -43,7 +43,7 @@ export class RankingScene implements Scene {
     // ─────────────────────────────────────────────────
 
     public setData(ranking: RankingEntry[], playerPosition: number | null): void {
-        this.ranking        = ranking;
+        this.ranking        = Array.isArray(ranking) ? ranking : [];
         this.playerPosition = playerPosition;
         this.loading        = false;
         this.autoScroll();
@@ -60,8 +60,8 @@ export class RankingScene implements Scene {
         if (this.loading || this.ranking.length === 0) {
             this.loading = true;
             RankingAPI.getInstance().getRanking()
-                .then(r  => { this.ranking = r; this.loading = false; this.autoScroll(); })
-                .catch(() => { this.loading = false; });
+                .then(r  => { this.ranking = Array.isArray(r) ? r : []; this.loading = false; this.autoScroll(); })
+                .catch(() => { this.ranking = []; this.loading = false; });
         }
     }
 

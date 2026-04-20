@@ -336,8 +336,13 @@ export class RankingAPI {
             const raw = localStorage.getItem(LS_KEY);
             if (!raw) return this.defaultStore();
             const parsed = JSON.parse(raw);
-            // Ensure all keys exist (handles old schema versions gracefully)
-            return { ...this.defaultStore(), ...parsed };
+            const merged = { ...this.defaultStore(), ...parsed };
+            // Sanitize: ensure array fields are actually arrays.
+            // Old bug could have stored a { error: '...' } object here.
+            if (!Array.isArray(merged.cachedRanking))   merged.cachedRanking   = [];
+            if (!Array.isArray(merged.recentSessions))  merged.recentSessions  = [];
+            if (!Array.isArray(merged.pendingSubmits))  merged.pendingSubmits  = [];
+            return merged;
         } catch {
             return this.defaultStore();
         }
