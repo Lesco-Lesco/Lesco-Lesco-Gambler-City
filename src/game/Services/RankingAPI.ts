@@ -102,12 +102,24 @@ export class RankingAPI {
             const res = await fetch(`${this.baseUrl}/api/ranking`, {
                 signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             });
-            const ranking: RankingEntry[] = await res.json();
-            store.cachedRanking   = ranking;
+            
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            
+            const data = await res.json();
+            
+            // Validate that we actually got an array. 
+            // If the server returns { error: '...' }, data.slice will fail.
+            if (!Array.isArray(data)) {
+                console.warn('[RankingAPI] API returned non-array:', data);
+                throw new Error('API returned invalid format');
+            }
+
+            store.cachedRanking   = data;
             store.cachedRankingAt = new Date().toISOString();
             this.saveStore(store);
-            return ranking;
-        } catch {
+            return data;
+        } catch (err) {
+            console.error('[RankingAPI] getRanking failed:', err);
             // Return stale cache or empty
             return store.cachedRanking;
         }
@@ -123,9 +135,11 @@ export class RankingAPI {
                 `${this.baseUrl}/api/ranking?check=${score}`,
                 { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }
             );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            return data.position ?? null;
-        } catch {
+            return (typeof data.position === 'number') ? data.position : null;
+        } catch (err) {
+            console.warn('[RankingAPI] checkPosition failed:', err);
             // Estimate from local cache
             const store = this.loadStore();
             return this.estimatePositionFromCache(score, store.cachedRanking);
@@ -187,7 +201,14 @@ export class RankingAPI {
                 signal:  AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             });
 
-            const result: SubmitResult = await res.json();
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const result = await res.json();
+            
+            // Validate result structure
+            if (!result || !Array.isArray(result.ranking)) {
+                throw new Error('API returned invalid result structure');
+            }
 
             // Sync success — update local records
             session.synced   = true;
@@ -206,7 +227,8 @@ export class RankingAPI {
 
             return result;
 
-        } catch {
+        } catch (err) {
+            console.error('[RankingAPI] submitScore failed:', err);
             // ── STEP 3: Offline — queue for later, build local ranking ────────
             console.warn('[RankingAPI] Offline — score saved locally, sync pending.');
             const freshStore = this.loadStore();
@@ -277,12 +299,17 @@ export class RankingAPI {
                     }),
                     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
                 });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                
                 const result = await res.json();
+                if (!result || !Array.isArray(result.ranking)) throw new Error('Invalid response');
+
                 session.synced   = true;
                 session.position = result.position;
                 store.cachedRanking   = result.ranking;
                 store.cachedRankingAt = new Date().toISOString();
-            } catch {
+            } catch (err) {
+                console.warn('[RankingAPI] syncPending failed for session:', session.date, err);
                 stillPending.push(session);
             }
         }
