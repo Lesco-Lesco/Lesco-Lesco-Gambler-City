@@ -27,6 +27,11 @@ export class GameLoop {
     private frameCount: number = 0;
     private fpsTimer: number = 0;
 
+    // Scene transition fade overlay
+    // Starts at 1 (opaque black) on each scene switch and decays to 0 (transparent).
+    private fadeAlpha: number = 0;
+    private readonly FADE_DURATION = 0.35; // seconds
+
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
         this.input = InputManager.getInstance();
@@ -49,6 +54,8 @@ export class GameLoop {
         if (scene.onEnter) {
             scene.onEnter();
         }
+        // Trigger the black fade-in to hide any ghost frames on transition
+        this.fadeAlpha = 1;
     }
 
     public getActiveScene(): Scene | null {
@@ -92,6 +99,11 @@ export class GameLoop {
             this.fpsTimer = 0;
         }
 
+        // Decay fade overlay
+        if (this.fadeAlpha > 0) {
+            this.fadeAlpha = Math.max(0, this.fadeAlpha - dt / this.FADE_DURATION);
+        }
+
         // Update + Render active scene
         try {
             if (this.activeScene) {
@@ -107,6 +119,15 @@ export class GameLoop {
                 this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
                 this.activeScene.render(this.ctx);
+
+                // Draw the transition overlay on top of everything
+                if (this.fadeAlpha > 0) {
+                    this.ctx.save();
+                    this.ctx.globalAlpha = this.fadeAlpha;
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+                    this.ctx.restore();
+                }
             }
         } catch (e: any) {
             console.error("Game Loop Error:", e);
