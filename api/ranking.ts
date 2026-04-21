@@ -21,10 +21,9 @@ import { Redis } from '@upstash/redis';
 const RANKING_KEY = 'gambler_city_ranking_v1';
 
 function getRedis() {
-    return new Redis({
-        url:   process.env.UPSTASH_REDIS_REST_URL  || '',
-        token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-    });
+    const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+    const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+    return new Redis({ url, token });
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
