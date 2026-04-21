@@ -56,6 +56,10 @@ const MobileControls: React.FC = () => {
     const handleTouch = (code: string, isPressed: boolean) => (e: React.TouchEvent | React.MouseEvent) => {
         e.preventDefault();
         input.setKeyState(code, isPressed);
+        
+        // Dispatch synthetic KeyboardEvent for systems listening on window (e.g. GameCanvas Pause Menu)
+        const eventType = isPressed ? 'keydown' : 'keyup';
+        window.dispatchEvent(new KeyboardEvent(eventType, { code: code, bubbles: true }));
     };
 
     // Determine glow color based on context

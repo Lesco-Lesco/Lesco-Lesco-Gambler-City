@@ -259,11 +259,29 @@ export class RankingAPI {
                 timestamp:  session.date,
             };
 
-            let localRanking = [...freshStore.cachedRanking, localEntry];
-            // Sort descending by score, tiebreak by maestria
-            localRanking.sort((a, b) =>
-                b.score !== a.score ? b.score - a.score : b.maestria - a.maestria
-            );
+            let localRanking = [...freshStore.cachedRanking];
+            let insertAt = localRanking.length;
+
+            for (let i = 0; i < localRanking.length; i++) {
+                const entry = localRanking[i];
+                if (breakdown.total > entry.score) {
+                    insertAt = i;
+                    break;
+                }
+                if (breakdown.total === entry.score) {
+                    if (breakdown.maestria > entry.maestria) {
+                        insertAt = i;
+                        break;
+                    }
+                }
+            }
+
+            if (insertAt < localRanking.length) {
+                localRanking[insertAt] = localEntry;
+            } else {
+                localRanking.push(localEntry);
+            }
+
             localRanking = localRanking
                 .slice(0, 100)
                 .map((e, i) => ({ ...e, position: i + 1 }));

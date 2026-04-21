@@ -203,9 +203,9 @@ export class ExplorationScene implements Scene {
 
         // Zoom inicial — maior por padrão para melhor experiência e legibilidade
         if (isMobile()) {
-            this.camera.zoom = 2.0;
-            this.camera.targetZoom = 2.0;
-            this.zoomStageIndex = 3; // aponta para zoomStages[3] = 2.0
+            this.camera.zoom = 2.5;
+            this.camera.targetZoom = 2.5;
+            this.zoomStageIndex = 4; // aponta para zoomStages[4] = 2.5
         } else {
             this.camera.zoom = 2.0; // Revertido de 2.5 para 2.0 conforme solicitação
             this.camera.targetZoom = 2.0;
