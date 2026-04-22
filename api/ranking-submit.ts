@@ -138,12 +138,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             timestamp:  new Date().toISOString(),
         };
 
-        // ── Insert (Mata-Mata Replacement) ────────────────────────────────────
+        // ── Insert ────────────────────────────────────────────────────────────
         if (insertAt < ranking.length) {
-            // Elimina o jogador que estava nesta posição (não cai de posição, sai do ranking)
-            ranking[insertAt] = newEntry;
+            ranking.splice(insertAt, 0, newEntry);
         } else {
-            // Ranking ainda não chegou até aqui, apenas adiciona no final
             ranking.push(newEntry);
         }
 

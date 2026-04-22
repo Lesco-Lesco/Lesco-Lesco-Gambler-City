@@ -57,7 +57,7 @@ interface LocalStore {
 }
 
 const LS_KEY             = 'gamblerCity_v1';
-const CACHE_TTL_MS       = 5 * 60 * 1000;   // 5 minutes
+const CACHE_TTL_MS       = 0;               // Always fetch fresh when online
 const REQUEST_TIMEOUT_MS = 5000;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,7 +277,7 @@ export class RankingAPI {
             }
 
             if (insertAt < localRanking.length) {
-                localRanking[insertAt] = localEntry;
+                localRanking.splice(insertAt, 0, localEntry);
             } else {
                 localRanking.push(localEntry);
             }
