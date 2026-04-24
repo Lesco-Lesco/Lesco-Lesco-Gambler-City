@@ -54,6 +54,7 @@ export class RankingScene implements Scene {
     // ─────────────────────────────────────────────────
 
     public onEnter(): void {
+        this.input.pushContext('ranking');
         this.time = 0;
 
         // If ranking wasn't pre-set, fetch from API (uses local cache if offline)
@@ -65,7 +66,9 @@ export class RankingScene implements Scene {
         }
     }
 
-    public onExit(): void {}
+    public onExit(): void {
+        this.input.popContext();
+    }
 
     public resize(w: number, h: number): void {
         this.screenW = w;

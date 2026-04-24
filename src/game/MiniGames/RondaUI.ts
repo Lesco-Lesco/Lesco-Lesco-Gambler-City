@@ -127,8 +127,8 @@ export class RondaUI implements IMinigameUI {
         let footerHint = '';
         if (this.game.phase === 'betting') {
             footerHint = mobile
-                ? 'DPAD Ajustar • TAP para Escolher • [OK] JOGAR'
-                : '↑↓ AJUSTAR APOSTA • ←→ ESCOLHER CARTA • ESPAÇO JOGAR';
+                ? '[OK] Escolher • [EXIT] Sair'
+                : '←→ ESCOLHER CARTA • ESPAÇO JOGAR';
         } else {
             footerHint = mobile
                 ? '[OK] Reiniciar • [EXIT] Sair'

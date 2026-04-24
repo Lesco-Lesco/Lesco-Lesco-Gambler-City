@@ -107,7 +107,10 @@ export class RankingAPI {
             });
             clearTimeout(timeoutId);
             
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`HTTP ${res.status}: ${text}`);
+            }
             
             const data = await res.json();
             
@@ -141,7 +144,10 @@ export class RankingAPI {
                 { signal: controller.signal }
             );
             clearTimeout(timeoutId);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`HTTP ${res.status}: ${text}`);
+            }
             const data = await res.json();
             return (typeof data.position === 'number') ? data.position : null;
         } catch (err) {
@@ -211,7 +217,10 @@ export class RankingAPI {
             });
             clearTimeout(timeoutId);
 
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`HTTP ${res.status}: ${text}`);
+            }
 
             const result = await res.json();
             
@@ -326,7 +335,10 @@ export class RankingAPI {
                     }),
                     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
                 });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${text}`);
+                }
                 
                 const result = await res.json();
                 if (!result || !Array.isArray(result.ranking)) throw new Error('Invalid response');

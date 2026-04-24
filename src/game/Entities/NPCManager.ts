@@ -82,7 +82,11 @@ export class NPCManager {
             if (!isWalkable) continue;
 
             const isAlley = tile === TILE_TYPES.ALLEY;
+            const isStreet = tile === TILE_TYPES.STREET;
             const isPeriphery = PoliceManager.getInstance().isPeriphery(x, y);
+
+            // Evitar que NPCs nasçam no meio da rua (STREET), forçando-os a nascer em calçadas ou praças
+            if (isStreet && Math.random() < 0.95) continue;
 
             // Adensamento massivo em favelas e periferia
             // Descartamos spawns no asfalto/calçada comum com frequência para favorecer becos
@@ -107,13 +111,11 @@ export class NPCManager {
                 if (Math.random() < 0.85) type = 'citizen';
                 else type = 'gambler';
             } else if (isAlley) {
-                // Alleys/Residential: almost exclusively gamblers
-                if (Math.random() < 0.95) type = 'gambler';
-                else type = 'citizen';
+                // Alleys/Residential: exclusively gamblers
+                type = 'gambler';
             } else {
-                // Generic streets: heavy on gamblers
-                if (Math.random() < 0.25) type = 'citizen';
-                else type = 'gambler';
+                // Generic streets: exclusively citizens
+                type = 'citizen';
             }
 
             if (type === 'gambler') {
@@ -134,6 +136,17 @@ export class NPCManager {
                         finalType = 'police';
                     }
                 }
+            }
+
+            // --- DENSITY REDUCTION LOGIC ---
+            // Consume the budget without spawning to reduce absolute numbers
+            if (finalType === 'gambler' && Math.random() < 0.20) {
+                spawned++;
+                continue;
+            }
+            if (finalType !== 'gambler' && Math.random() < 0.10) {
+                spawned++;
+                continue;
             }
 
             this.npcs.push(new NPC(x + 0.5, y + 0.5, finalType, '', undefined, minigame));

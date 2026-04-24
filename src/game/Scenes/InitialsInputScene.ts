@@ -52,13 +52,16 @@ export class InitialsInputScene implements Scene {
     // ─────────────────────────────────────────────────
 
     public onEnter(): void {
+        this.input.pushContext('menu');
         this.letters     = ['A', 'A', 'A'];
         this.cursorIndex = 0;
         this.confirmed   = false;
         this.time        = 0;
     }
 
-    public onExit(): void {}
+    public onExit(): void {
+        this.input.popContext();
+    }
 
     public resize(w: number, h: number): void {
         this.screenW = w;

@@ -58,8 +58,8 @@ export class EconomyManager {
         this.balance = this._balance + delta;
     }
 
-    /** Dynamic bet limits based on max wealth reached, capped by current balance */
-    public getBetLimits(): { min: number; max: number; step: number } {
+    /** Dynamic bet limits based on max wealth reached, capped by current balance (For Poker) */
+    public getPokerBetLimits(): { min: number; max: number; step: number } {
         const bonusMin = Math.floor(this._maxMoneyReached * GameConfig.BET_MIN_BONUS_RATE);
         const bonusMax = Math.floor(this._maxMoneyReached * GameConfig.BET_MAX_BONUS_RATE);
 
@@ -90,21 +90,40 @@ export class EconomyManager {
     }
 
     /** 
-     * Dynamic bet limits for Periphery NPCs (High Risk / High Reward).
-     * Limits are 2x higher than normal to encourage risk-taking.
+     * Dynamic bet limits for Periphery NPCs (High Risk / High Reward) for Poker.
      */
-    public getPeripheryBetLimits(): { min: number; max: number; step: number } {
-        const baseLimits = this.getBetLimits();
+    public getPokerPeripheryBetLimits(): { min: number; max: number; step: number } {
+        const baseLimits = this.getPokerBetLimits();
         
         let min = Math.min(this._balance, baseLimits.min * 2);
-        // Guarantee at least they can play if they have the normal minimum, 
-        // but prefer 2x minimum.
         if (min === 0 && this._balance >= baseLimits.min) min = baseLimits.min; 
         
         let max = Math.min(this._balance, baseLimits.max * 2);
         let step = baseLimits.step * 2;
 
         return { min, max, step };
+    }
+
+    /** Single bet quotes for all other minigames */
+    public getBetLimits(): { min: number; max: number; step: number } {
+        let bet = 10;
+        const currentBalance = this._balance;
+        
+        if (currentBalance >= 10000) bet = 1000;
+        else if (currentBalance >= 5000) bet = 500;
+        else if (currentBalance >= 2000) bet = 200;
+        else if (currentBalance >= 1000) bet = 100;
+        else if (currentBalance >= 500) bet = 50;
+        else if (currentBalance >= 200) bet = 20;
+
+        return { min: bet, max: bet, step: 0 };
+    }
+
+    /** Single bet quotes for Periphery NPCs (all other minigames) */
+    public getPeripheryBetLimits(): { min: number; max: number; step: number } {
+        const baseLimits = this.getBetLimits();
+        let bet = baseLimits.min * 2;
+        return { min: bet, max: bet, step: 0 };
     }
 
     /** Reset to starting state */

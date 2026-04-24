@@ -540,12 +540,21 @@ export class NPC {
 
                 // Pick new direction
                 this.wanderTimer = 4 + Math.random() * 8;
-                if (Math.random() > 0.3) {
+                const currentTile = tileMap.getTile(this.x, this.y);
+                const isOnStreet = currentTile === TILE_TYPES.STREET;
+
+                // If on street, FORCE walking (don't stop in the middle of the road)
+                if (isOnStreet || Math.random() > 0.3) {
                     this.wanderDirX = (Math.random() - 0.5) * 2;
                     this.wanderDirY = (Math.random() - 0.5) * 2;
                     const len = Math.sqrt(this.wanderDirX ** 2 + this.wanderDirY ** 2);
                     if (len > 0) { this.wanderDirX /= len; this.wanderDirY /= len; }
-                    this.wanderSpeed = 0.5 + Math.random() * 0.4;
+                    
+                    // Walk slightly faster if crossing the street
+                    this.wanderSpeed = (0.5 + Math.random() * 0.4) * (isOnStreet ? 1.5 : 1.0);
+                    
+                    // Don't wander too long if crossing, to re-evaluate quickly
+                    if (isOnStreet) this.wanderTimer = 1.0 + Math.random() * 1.5;
                 } else {
                     this.wanderDirX = 0; this.wanderDirY = 0; // Idle
                 }

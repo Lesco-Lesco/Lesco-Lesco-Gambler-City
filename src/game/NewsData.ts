@@ -15,16 +15,15 @@ export interface NewsItem {
  * - Evitar descrições longas; focar no que mudou ou em pistas rápidas.
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v3.0.0",
+    id: "v3.1.0",
     title: "SANTA CRUZ EM FOCO",
-    date: "Abril, 2026",
+    date: "Atualização Oficial",
     description: [
-        "A CIDADE NÃO DORME, SANTA CRUZ!",
-        "",
-        "• RANKING GLOBAL NO AR: Os fliperamas agora estão ligados na rede mundial! Seu nome no topo do placar de Santa Cruz pro mundo inteiro ver.",
-        "• O FUTURO É DIGITAL: Tão dizendo que quem ficar no Top 100, ou roubar o recorde de alguém, vai ganhar uma 'arte digital única' no futuro. Será?",
-        "• A CIDADE FALA: O povo tá mais fofoqueiro que nunca! Pare nas esquinas e janelas. Conversar e escutar é o ponto forte da nossa cidade.",
-        "• ÚLTIMO SUSPIRO: A vovó te salva UMA VEZ com 50 mangos. Zerou de novo? É vala! Game Over sem choro.",
+        "• RANKING GLOBAL 100%: A conexão mundial estabilizou! Cada centavo ganho, conquista e aposta na cidade agora te levam ao topo do placar geral.",
+        "• ECONOMIA FIXA: Chega de negociar. As mesas agora cobram cotas únicas de aposta baseadas no volume do seu bolso.",
+        "• TRÂNSITO LIVRE: Morador não dorme mais no asfalto! Aprenderam a atravessar a rua rapidinho para liberar a via.",
+        "• PROMOÇÃO NO FLIPERAMA: O dono enlouqueceu! As fichas estão em promoção, agora R$ 10 rendem 3 créditos.",
+        "• SINUCA AFIADA: Taco calibrado! Toque leve para mirar com precisão, ou segure para girar o taco mais rápido.",
         "",
     ]
 };

@@ -1222,7 +1222,7 @@ export class ExplorationScene implements Scene {
         };
 
         const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy'; icon: string; color: string; isLocked: boolean; hint?: string }[] = [
-            { label: 'COMPRAR CRÉDITOS', cost: '2 por R$10', gameType: 'buy', icon: '💰', color: '#ffcc00', isLocked: false }
+            { label: 'COMPRAR CRÉDITOS', cost: '3 por R$10', gameType: 'buy', icon: '💰', color: '#ffcc00', isLocked: false }
         ];
 
         const pm = ProgressionManager.getInstance();
@@ -1308,8 +1308,8 @@ export class ExplorationScene implements Scene {
                 const bmanager = BichoManager.getInstance();
                 if (bmanager.playerMoney >= 10) {
                     bmanager.playerMoney -= 10;
-                    this.arcadeCredits += 2;
-                    bmanager.addNotification('Comprou 2 créditos!', 2);
+                    this.arcadeCredits += 3;
+                    bmanager.addNotification('Comprou 3 créditos!', 2);
                 } else {
                     bmanager.addNotification('Dinheiro insuficiente!', 2);
                 }
@@ -1322,17 +1322,17 @@ export class ExplorationScene implements Scene {
         if (this.input.wasPressed('Escape')) {
             this.activeMinigame = 'none';
             
-            // Refund unused credits in pairs of 2 (R$10)
+            // Refund unused credits in groups of 3 (R$10)
             if (this.arcadeCredits > 0) {
                 const bmanager = BichoManager.getInstance();
-                const pairs = Math.floor(this.arcadeCredits / 2);
+                const pairs = Math.floor(this.arcadeCredits / 3);
                 const refundAmount = pairs * 10;
                 
                 if (refundAmount > 0) {
                     bmanager.playerMoney += refundAmount;
-                    bmanager.addNotification(`Reembolsado R$${refundAmount} por ${pairs * 2} créditos não usados.`, 3);
+                    bmanager.addNotification(`Reembolsado R$${refundAmount} por ${pairs * 3} créditos não usados.`, 3);
                 } else if (this.arcadeCredits > 0) {
-                    bmanager.addNotification(`1 crédito sobrou e foi perdido.`, 3);
+                    bmanager.addNotification(`${this.arcadeCredits} crédito(s) sobrou e foi perdido.`, 3);
                 }
             }
             this.arcadeCredits = 0;

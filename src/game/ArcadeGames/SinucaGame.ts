@@ -63,6 +63,7 @@ export class SinucaGame {
     private aimPower = 0;
     private maxPower = 450;
     private holdingShot = false;
+    private aimHoldTimer = 0;
 
     // AI
     private aiTimer = 0;
@@ -130,6 +131,7 @@ export class SinucaGame {
         this.aimAngle = this.playerTurn ? 0 : Math.PI;
         this.aimPower = 0;
         this.holdingShot = false;
+        this.aimHoldTimer = 0;
         this.score = 0;
         this.gameOverPhrase = '';
     }
@@ -149,11 +151,29 @@ export class SinucaGame {
 
         if (this.phase === 'aiming') {
             const jv = input.getJoystickVector();
-            if (jv.x !== 0) {
-                this.aimAngle += jv.x * 2.5 * dt;
+            let isAiming = false;
+            
+            if (jv.x !== 0 || input.isDown('ArrowLeft') || input.isDown('ArrowRight')) {
+                isAiming = true;
+            }
+
+            if (isAiming) {
+                this.aimHoldTimer += dt;
             } else {
-                if (input.isDown('ArrowLeft')) this.aimAngle -= 2.0 * dt;
-                if (input.isDown('ArrowRight')) this.aimAngle += 2.0 * dt;
+                this.aimHoldTimer = 0;
+            }
+
+            // Sensibilidade leve inicial (0.4) para ajuste fino, sobe até 2.5 se segurar
+            let aimSpeed = 0.4;
+            if (this.aimHoldTimer > 0.4) {
+                aimSpeed = Math.min(2.5, 0.4 + (this.aimHoldTimer - 0.4) * 4);
+            }
+
+            if (jv.x !== 0) {
+                this.aimAngle += jv.x * aimSpeed * dt;
+            } else {
+                if (input.isDown('ArrowLeft')) this.aimAngle -= aimSpeed * dt;
+                if (input.isDown('ArrowRight')) this.aimAngle += aimSpeed * dt;
             }
 
             if (input.isDown('Space')) {

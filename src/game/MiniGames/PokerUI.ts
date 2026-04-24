@@ -27,7 +27,7 @@ export class PokerUI implements IMinigameUI {
         const humanCurrentBet = () => this.game.players[0].currentBet;
 
         if (this.game.phase === 'betting') {
-            const { min } = EconomyManager.getInstance().getBetLimits();
+            const { min } = EconomyManager.getInstance().getPokerBetLimits();
             this.game.betAmount = min;
             const okPressed = this.input.wasPressed('Enter') || this.input.wasPressed('Space');
             if (okPressed || this.input.wasPressed('KeyE')) {
@@ -58,7 +58,7 @@ export class PokerUI implements IMinigameUI {
                     SoundManager.getInstance().playFanfare('poker', 'lose');
                 }
 
-                const { min } = EconomyManager.getInstance().getBetLimits();
+                const { min } = EconomyManager.getInstance().getPokerBetLimits();
                 if (totalMoney < min) { // Dynamic min bet
                     bmanager.addNotification("Você está sem grana para apostar!", 3);
                     this.onExit(payout); // Exit if broke
@@ -69,12 +69,15 @@ export class PokerUI implements IMinigameUI {
         } else {
             // Mid-game phases
             if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
-                const { step } = EconomyManager.getInstance().getBetLimits();
+                const step = 10; // Fixo de 10 em 10
+                const maxRaiseForHand = (this.game.betAmount * 3) - humanCurrentBet();
+                const maxPossibleRaise = Math.max(0, Math.min(bmanager.playerMoney, maxRaiseForHand));
+
                 const up = this.input.wasPressedOrHeld('ArrowUp', _dt) || (mobile && this.input.wasPressedOrHeld('KeyW', _dt));
                 const down = this.input.wasPressedOrHeld('ArrowDown', _dt) || (mobile && this.input.wasPressedOrHeld('KeyS', _dt));
 
                 if (up) {
-                    this.pendingRaise = Math.min(this.pendingRaise + step, bmanager.playerMoney);
+                    this.pendingRaise = Math.min(this.pendingRaise + step, maxPossibleRaise);
                     SoundManager.getInstance().play('menu_select');
                 }
                 if (down) {
@@ -191,7 +194,7 @@ export class PokerUI implements IMinigameUI {
         // ── Footer Instructions ──
         let footerHint = '';
         const bmanager = BichoManager.getInstance();
-        const { min } = EconomyManager.getInstance().getBetLimits();
+        const { min } = EconomyManager.getInstance().getPokerBetLimits();
         const isBroke = bmanager.playerMoney < min;
 
         if (this.game.phase === 'betting') {

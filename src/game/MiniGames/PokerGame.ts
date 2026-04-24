@@ -50,7 +50,7 @@ export class PokerGame implements IMinigame {
     }
 
     public updateLimits(isPeriphery: boolean = false) {
-        const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
+        const limits = isPeriphery ? EconomyManager.getInstance().getPokerPeripheryBetLimits() : EconomyManager.getInstance().getPokerBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
     }

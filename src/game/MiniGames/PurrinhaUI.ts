@@ -144,8 +144,8 @@ export class PurrinhaUI implements IMinigameUI {
 
         // Shared footer hint
         const helpHint = mobile
-            ? '[DPAD] Variar • [OK] Confirmar'
-            : '↑↓ VARIAR  •  ENTER CONFIRMAR  •  ESC SAIR';
+            ? '[OK] Confirmar'
+            : 'ENTER CONFIRMAR  •  ESC SAIR';
         drawMinigameFooter(ctx, screenW, screenH, theme, helpHint);
     }
 

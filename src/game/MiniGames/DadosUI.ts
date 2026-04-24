@@ -15,7 +15,7 @@ import { SoundManager } from '../Core/SoundManager';
 
 export class DadosUI implements IMinigameUI {
     private game: DadosGame;
-    private betAmount: number = 10;
+    private betAmount: number = 0;
     private humanChoices: [number, number] = [1, 1];
     private activeChoice: 0 | 1 = 0;
     private onClose: (moneyChange: number) => void;
@@ -25,6 +25,7 @@ export class DadosUI implements IMinigameUI {
         this.game = game;
         this.onClose = onClose;
         this.onPlayAgain = onPlayAgain;
+        this.betAmount = game.minBet;
     }
 
     public render(ctx: CanvasRenderingContext2D, width: number, height: number) {
@@ -245,8 +246,8 @@ export class DadosUI implements IMinigameUI {
         ctx.shadowBlur = 0;
 
         const helpHint = mobile
-            ? '[DPAD] Ajustar • [RUN] Trocar • [OK] Jogar'
-            : '[SETAS] AJUSTAR • [Q] TROCA DADO • [SPACE] JOGAR';
+            ? '[RUN] Trocar • [OK] Jogar'
+            : '[Q] TROCA DADO • [SPACE] JOGAR';
         drawMinigameFooter(ctx, cx * 2, zoneTop + zoneH * 4.5, theme, helpHint);
     }
 
@@ -303,7 +304,7 @@ export class DadosUI implements IMinigameUI {
                     this.onClose(winAmount); // Exit if broke
                 } else {
                     this.onPlayAgain(winAmount);
-                    this.betAmount = 10;
+                    this.betAmount = this.game.minBet;
                     this.game.reset();
                 }
             }

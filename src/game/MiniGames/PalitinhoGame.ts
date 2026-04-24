@@ -3,201 +3,216 @@ import { BuffManager } from '../Core/BuffManager';
 import type { IMinigame } from './BaseMinigame';
 
 /**
- * Palitinho (Matchsticks)
- * 3 players. Dice roll for order. One broken matchstick = loser.
+ * Palitinho Mini-Game (Advanced 1v1 Duel)
+ * Rules:
+ * - 1v1 against a master gambler
+ * - High stakes
+ * - Each player secretly places 0-3 sticks in their hand
+ * - Players guess the total
+ * 
+ * Phases: BETTING → CHOOSING → GUESSING → REVEAL → RESULT
  */
 
-export type PalitinhoPhase = 'betting' | 'dice_roll' | 'choosing' | 'reveal' | 'result';
+export type PalitinhoPhase = 'betting' | 'choosing' | 'guessing' | 'reveal' | 'result';
 
-interface PalitinhoPlayer {
+export interface PalitinhoPlayer {
     name: string;
     isHuman: boolean;
-    diceValue: number;
-    order: number;
-    choice: number | null; // index of matchstick picked
-    isLoser: boolean;
+    sticks: number;       // 0-3
+    guess: number;        // Their guess of the total
+    money: number;
+    hasGuessed: boolean;
 }
 
 export class PalitinhoGame implements IMinigame {
     public phase: PalitinhoPhase = 'betting';
     public players: PalitinhoPlayer[] = [];
-    public betAmount: number = 20;
-    public pot: number = 0;
-    public matchsticks: { isBroken: boolean, pickedBy: string | null }[] = [];
-    public currentPlayerIdx: number = 0;
-    public diceTimer: number = 0;
-    public resultMessage: string = '';
-
-    // UI
-    public selectedBet: number = 20;
-    public minBet: number = 10;
+    public betAmount: number = 50;
+    public minBet: number = 50;
     public maxBet: number = 500;
+    public pot: number = 0;
+    public totalSticks: number = 0;
+    public winner: PalitinhoPlayer | null = null;
+    public revealTimer: number = 0;
+    public resultMessage: string = '';
+    public isFinished: boolean = false;
+
+    // Betting UI
+    public selectedBet: number = 50;
+
+    // Choosing UI
+    public selectedSticks: number = 0;
+
+    // Guessing UI
+    public selectedGuess: number = 0;
+    public maxPossibleTotal: number = 0;
+
+    // Animation
+    public revealIndex: number = -1;
 
     constructor() {
-        this.updateLimits();
-        this.setupPlayers();
-    }
+        // Human player
+        this.players.push({
+            name: 'Você',
+            isHuman: true,
+            sticks: 0,
+            guess: 0,
+            money: 0, // Injected later or ignored for logic
+            hasGuessed: false,
+        });
 
-    private setupPlayers() {
-        this.players = [
-            { name: 'Você', isHuman: true, diceValue: 0, order: 0, choice: null, isLoser: false },
-            { name: 'Soneca', isHuman: false, diceValue: 0, order: 0, choice: null, isLoser: false },
-            { name: 'Gato', isHuman: false, diceValue: 0, order: 0, choice: null, isLoser: false },
-            { name: 'Buda', isHuman: false, diceValue: 0, order: 0, choice: null, isLoser: false }
-        ];
+        // The Master NPC
+        this.players.push({
+            name: 'Mestre Paliteiro',
+            isHuman: false,
+            sticks: 0,
+            guess: 0,
+            money: 1000,
+            hasGuessed: false,
+        });
+
+        this.maxPossibleTotal = this.players.length * 3;
+        this.phase = 'betting';
+        this.updateLimits();
     }
 
     public updateLimits(isPeriphery: boolean = false) {
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
-        this.minBet = limits.min;
-        this.maxBet = Math.min(limits.max, 500); // Caps for street game
-        this.selectedBet = this.minBet;
+        // Palitinho is higher stakes than Purrinha
+        this.minBet = limits.min * 2;
+        this.maxBet = limits.max * 2;
+        this.selectedBet = Math.max(this.minBet, this.selectedBet);
     }
 
     public confirmBet(amount: number) {
         this.betAmount = amount;
-        this.pot = amount * this.players.length;
-        this.phase = 'dice_roll';
-        this.diceTimer = 0;
+        this.pot = this.betAmount * this.players.length;
+        this.phase = 'choosing';
+    }
 
-        // Roll dice
+    public chooseSticks(count: number) {
+        const human = this.players.find(p => p.isHuman);
+        if (human) {
+            human.sticks = Math.max(0, Math.min(3, count));
+        }
+
+        // NPC chooses random sticks
         for (const p of this.players) {
-            p.diceValue = Math.floor(Math.random() * 6) + 1;
-        }
-
-        // Sort by dice (highest first)
-        const sorted = [...this.players].sort((a, b) => b.diceValue - a.diceValue);
-        sorted.forEach((p, i) => {
-            const original = this.players.find(pl => pl.name === p.name);
-            if (original) original.order = i;
-        });
-
-        // Setup matchsticks (4 sticks, 2 broken)
-        this.matchsticks = [
-            { isBroken: false, pickedBy: null },
-            { isBroken: false, pickedBy: null },
-            { isBroken: false, pickedBy: null },
-            { isBroken: false, pickedBy: null }
-        ];
-
-        // Randomly pick 2 distinct indices to be broken
-        const indices = [0, 1, 2, 3];
-        for (let i = 0; i < 2; i++) {
-            const randIdx = Math.floor(Math.random() * indices.length);
-            const stickIdx = indices.splice(randIdx, 1)[0];
-            this.matchsticks[stickIdx].isBroken = true;
-        }
-    }
-
-    public update(dt: number) {
-        if (this.phase === 'dice_roll') {
-            this.diceTimer += dt;
-            if (this.diceTimer > 2.0) {
-                this.phase = 'choosing';
-                this.currentPlayerIdx = 0;
-                this.processNPCTurns();
-            }
-        } else if (this.phase === 'reveal') {
-            this.diceTimer += dt;
-            if (this.diceTimer > 2.0) {
-                this.calculateResult();
-            }
-        }
-    }
-
-    private processNPCTurns() {
-        // Find who goes next in order
-        while (this.currentPlayerIdx < this.players.length) {
-            const activePlayer = this.players.find(p => p.order === this.currentPlayerIdx);
-            if (!activePlayer) break;
-
-            if (activePlayer.isHuman) {
-                return; // Wait for human input
-            } else {
-                // NPC picks an available matchstick
-                const available = this.matchsticks.map((m, i) => m.pickedBy === null ? i : -1).filter(i => i !== -1);
-                const pick = available[Math.floor(Math.random() * available.length)];
-                this.matchsticks[pick].pickedBy = activePlayer.name;
-                activePlayer.choice = pick;
-                this.currentPlayerIdx++;
+            if (!p.isHuman) {
+                p.sticks = Math.floor(Math.random() * 4);
             }
         }
 
-        // All have picked
-        this.phase = 'reveal';
-        this.diceTimer = 0;
+        this.totalSticks = this.players.reduce((sum, p) => sum + p.sticks, 0);
+        this.phase = 'guessing';
     }
 
-    public chooseMatchstick(idx: number) {
-        if (this.phase !== 'choosing') return;
+    public makeGuess(guess: number) {
         const human = this.players.find(p => p.isHuman);
-        if (!human || human.order !== this.currentPlayerIdx) return;
+        if (human) {
+            human.guess = guess;
+            human.hasGuessed = true;
+        }
 
-        if (this.matchsticks[idx].pickedBy !== null) return;
-
-        this.matchsticks[idx].pickedBy = human.name;
-        human.choice = idx;
-        this.currentPlayerIdx++;
-        this.processNPCTurns();
-    }
-
-    public calculateResult() {
-        const human = this.players.find(p => p.isHuman);
-        if (human && human.choice !== null) {
-            const myStick = this.matchsticks[human.choice];
-            if (myStick.isBroken) {
-                const luck = BuffManager.getInstance().getLuckBonus();
-                if (luck > 0 && Math.random() < luck) {
-                    // Try to swap with a non-broken stick picked by an NPC
-                    const npcWithSafeStick = this.players.find(p => !p.isHuman && p.choice !== null && !this.matchsticks[p.choice].isBroken);
-                    if (npcWithSafeStick && npcWithSafeStick.choice !== null) {
-                        const npcChoice = npcWithSafeStick.choice;
-                        const myChoice = human.choice;
-                        
-                        // Swap ownership in matchsticks
-                        this.matchsticks[myChoice].pickedBy = npcWithSafeStick.name;
-                        this.matchsticks[npcChoice].pickedBy = human.name;
-                        
-                        // Swap choices in players
-                        human.choice = npcChoice;
-                        npcWithSafeStick.choice = myChoice;
-                    }
+        // Master NPC makes a smart guess
+        const usedGuesses = new Set<number>([guess]);
+        for (const p of this.players) {
+            if (!p.isHuman) {
+                // Master knows his own sticks and makes a tighter range guess
+                const npcGuess = Math.max(0, Math.min(this.maxPossibleTotal, p.sticks + Math.floor(Math.random() * 4)));
+                
+                let finalGuess = npcGuess;
+                while (usedGuesses.has(finalGuess) && finalGuess < this.maxPossibleTotal) {
+                    finalGuess++;
                 }
+                if (usedGuesses.has(finalGuess)) {
+                    finalGuess = Math.max(0, finalGuess - 2);
+                    while (usedGuesses.has(finalGuess) && finalGuess > 0) finalGuess--;
+                }
+
+                p.guess = finalGuess;
+                p.hasGuessed = true;
+                usedGuesses.add(p.guess);
             }
         }
 
-        const brokenSticks = this.matchsticks.filter(m => m.isBroken);
-        const losers = this.players.filter(p => brokenSticks.some(m => m.pickedBy === p.name));
+        this.phase = 'reveal';
+        this.revealTimer = 0;
+        this.revealIndex = -1;
+    }
 
-        losers.forEach(l => l.isLoser = true);
+    public update(dt: number): boolean {
+        if (this.phase === 'reveal') {
+            this.revealTimer += dt;
+            const revealInterval = 0.8;
+            const newIdx = Math.floor(this.revealTimer / revealInterval);
 
-        if (human?.isLoser) {
-            this.resultMessage = `❌ Você quebrou o palito! Perdeu R$${this.betAmount}.`;
-        } else {
-            const winnersCount = this.players.length - 2; // 2 winners, 2 losers
-            const payout = Math.floor(this.pot / (winnersCount * 10)) * 10;
-            const npcLosersNames = losers.filter(p => !p.isHuman).map(p => p.name).join(' e ');
-            this.resultMessage = `🎉 ${npcLosersNames} perderam! Você ganhou R$${payout}.`;
+            if (newIdx !== this.revealIndex && newIdx < this.players.length) {
+                this.revealIndex = newIdx;
+            }
+
+            if (this.revealTimer > this.players.length * revealInterval + 1.0) {
+                this.calculateWinner();
+                this.phase = 'result';
+                return true;
+            }
         }
-        this.phase = 'result';
+        return false;
+    }
+
+    private calculateWinner() {
+        let bestPlayer: PalitinhoPlayer | null = null;
+        let bestDiff = Infinity;
+
+        // Luck Bonus
+        const human = this.players.find(p => p.isHuman);
+        if (human) {
+            const luck = BuffManager.getInstance().getLuckBonus();
+            if (luck > 0 && Math.random() < luck * 1.5) { // Higher luck influence in duels
+                this.totalSticks = human.guess;
+            }
+        }
+
+        for (const p of this.players) {
+            const diff = Math.abs(p.guess - this.totalSticks);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestPlayer = p;
+            }
+        }
+
+        this.winner = bestPlayer;
+        if (bestPlayer) {
+            if (bestPlayer.isHuman) {
+                this.resultMessage = `DUELO VENCIDO! GANHOU R$${this.pot}!`;
+            } else {
+                this.resultMessage = `O MESTRE VENCEU. PERDEU R$${this.betAmount}.`;
+            }
+        }
     }
 
     public settle(): number {
-        const humanPlayer = this.players.find(p => p.isHuman);
-        if (!humanPlayer) return 0;
-        if (humanPlayer.isLoser) return -this.betAmount;
-
-        const winnersCount = this.players.length - 2; // 2 winners, 2 losers
-        const payout = Math.floor(this.pot / (winnersCount * 10)) * 10;
-        return payout - this.betAmount; // Net profit
+        if (!this.winner) return 0;
+        return this.winner.isHuman ? (this.pot - this.betAmount) : -this.betAmount;
     }
 
     public reset() {
         this.phase = 'betting';
-        this.setupPlayers();
-        this.matchsticks = [];
-        this.currentPlayerIdx = 0;
+        this.pot = 0;
+        this.totalSticks = 0;
+        this.winner = null;
+        this.revealTimer = 0;
         this.resultMessage = '';
+        this.isFinished = false;
+        this.selectedSticks = 0;
+        this.selectedGuess = 0;
+        this.revealIndex = -1;
+
+        for (const p of this.players) {
+            p.sticks = 0;
+            p.guess = 0;
+            p.hasGuessed = false;
+        }
         this.updateLimits();
     }
 }

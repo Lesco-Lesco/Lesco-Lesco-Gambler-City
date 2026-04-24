@@ -34,11 +34,16 @@ export class GameOverScene implements Scene {
     }
 
     public onEnter() {
+        this.input.pushContext('menu');
         this.pickRandomPhrase();
         this.time = 0;
         const sm = SoundManager.getInstance();
         sm.stopAll();
         sm.play('game_over');
+    }
+
+    public onExit() {
+        this.input.popContext();
     }
 
     public update(dt: number) {

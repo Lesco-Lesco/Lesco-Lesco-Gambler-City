@@ -84,7 +84,7 @@ const UNLOCK_TREE: Partial<Record<string, UnlockCondition>> = {
     // ── ESTAÇÃO ──
     casino_station: { requiresPlays: { game: 'domino', count: 4  } }, // Domino is slow
     blackjack:  {},   // free once casino_station is unlocked
-    poker:      { requiresMaxMoney: 1000 }, // Increased from 500 to match new economy
+    poker:      {},   // free once casino_station is unlocked
 
     // ── BAR ──
     video_bingo:  {},   // first game available in bar
@@ -135,7 +135,7 @@ const LOCKED_HINTS: Partial<Record<string, (playsLeft: number, gameName: string)
     bicho:          (n) => `${n} jogadas em qualquer Caça-Níquel ainda. A banca do Bicho é exigente.`,
     casino_station: (n) => `Dominó ${n} vez${n === 1 ? '' : 'es'} ainda. O Cassino da Estação não é pra todo mundo.`,
     blackjack:      ()  => `Entra no Cassino da Estação primeiro. Ele tem pré-requisito.`,
-    poker:          ()  => `O Poker é caro. Chega a R$1000 em caixa pra sentar nessa mesa.`,
+    poker:          ()  => `Entra no Cassino da Estação primeiro. Ele tem pré-requisito.`,
     horse_racing:   (n) => `Termina mais ${n} Bingo${n === 1 ? '' : 's'}. Os cavalos não esperam amador.`,
     dog_racing:     (n) => `${n} corrida${n === 1 ? '' : 's'} de Cavalos ainda. Os Galgos são pra veterano.`,
     arcade_faroeste:(n) => `${n} sessão${n === 1 ? '' : 'ões'} de Pong ainda. O Faroeste não liga pra novato.`,

@@ -175,7 +175,7 @@ export class BlackjackUI implements IMinigameUI {
         ctx.font = `600 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
         ctx.fillText('DEFINA SUA APOSTA', cx, cy - s(40));
 
-        const hint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? '[DPAD] Ajustar • [OK] Apostar' : '↑↓ Ajustar • Enter Confirmar');
+        const hint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? '[OK] Apostar' : 'Enter Confirmar');
         ctx.font = `600 ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
         ctx.fillText(hint, cx, cy + s(40));
     }

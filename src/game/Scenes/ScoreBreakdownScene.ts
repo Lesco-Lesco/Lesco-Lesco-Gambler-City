@@ -61,6 +61,7 @@ export class ScoreBreakdownScene implements Scene {
     // ─────────────────────────────────────────────────
 
     public onEnter(): void {
+        this.input.pushContext('menu');
         this.time             = 0;
         this.animProgress     = 0;
         this.canContinue      = false;
@@ -94,7 +95,9 @@ export class ScoreBreakdownScene implements Scene {
             });
     }
 
-    public onExit(): void {}
+    public onExit(): void {
+        this.input.popContext();
+    }
 
     public resize(w: number, h: number): void {
         this.screenW = w;
