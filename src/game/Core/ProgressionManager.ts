@@ -94,6 +94,7 @@ const UNLOCK_TREE: Partial<Record<string, UnlockCondition>> = {
     dog_racing:   { requiresPlays: { game: 'horse_racing', count: 1 } },
 
     // ── FLIPERAMA ──
+    arcade:          {},
     arcade_pong:     {},
     arcade_faroeste: { requiresPlays: { game: 'arcade_pong',     count: 1  } },
     arcade_risca:    { requiresPlays: { game: 'arcade_faroeste', count: 1  } },
@@ -146,7 +147,7 @@ const LOCKED_HINTS: Partial<Record<GameType, (n: number) => string>> = {
     poker:      ()  => `Entra no Cassino da Estação primeiro. Ele tem pré-requisito.`,
     horse_racing:   (n) => `Termina mais ${n} Bingo. Os cavalos não esperam amador.`,
     dog_racing:     (n) => `${n} corrida de Cavalos ainda. Os Galgos são pra veterano.`,
-    arcade_faroeste:(n) => `${n} sessão${n === 1 ? '' : 'ões'} de Pong ainda. O Faroeste não liga pra novato.`,
+    arcade_faroeste:(n) => `${n} sessão${n === 1 ? '' : 'ões'} de Air Pong ainda. O Faroeste não liga pra novato.`,
     arcade_risca:   (n) => `Joga mais ${n} no Faroeste. Risca Faca é pra mão firme.`,
     arcade_tank:    (n) => `${n} rodada${n === 1 ? '' : 's'} de Risca Faca ainda. O tanque tá esperando.`,
     arcade_sinuca:  (n) => `Tank Attack mais ${n} vezes. A mesa da Sinuca tem moral.`,
@@ -251,7 +252,7 @@ export class ProgressionManager {
     }
 
     public getArcadeLockedHint(): string {
-        return `Sem ficha pra amador. Termina mais partidas no Pong pra avançar.`;
+        return `Aguarde um momento, as máquinas estão sendo ligadas.`;
     }
 
     public getStationCasinoLockedHint(playsByGame: Record<string, number>): string {
