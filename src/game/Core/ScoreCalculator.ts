@@ -35,6 +35,7 @@ const ARCADE_REF_SCORES: Record<string, number> = {
     arcade_risca:    25,
     arcade_tank:     30,
     arcade_sinuca:   10,
+    resta_um:        1000,
 };
 
 // Normalization targets

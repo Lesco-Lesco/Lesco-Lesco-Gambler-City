@@ -15,7 +15,7 @@ import { ProgressionManager } from '../Core/ProgressionManager';
 
 
 export type NPCType = 'citizen' | 'homeless' | 'gambler' | 'info' | 'pedinte' | 'promoter' | 'police' | 'casino_promoter' | 'preacher';
-export type MinigameType = 'purrinha' | 'dados' | 'ronda' | 'domino' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | null;
+export type MinigameType = 'purrinha' | 'dados' | 'ronda' | 'domino' | 'ludo' | 'damas' | 'resta_um' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | null;
 
 interface NPCAppearance extends CharacterAppearance {
     // NPC-specific appearance can be extended here if needed

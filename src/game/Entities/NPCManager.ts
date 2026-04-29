@@ -36,6 +36,18 @@ export class NPCManager {
                     'domino',
                     true // isStationary
                 ));
+            } else if (poi.type === 'ludo_table') {
+                this.npcs.push(new NPC(
+                    poi.x + 0.5, poi.y + 0.5, 'gambler', poi.name, 'Ludo Valendo', 'ludo', true
+                ));
+            } else if (poi.type === 'damas_table') {
+                this.npcs.push(new NPC(
+                    poi.x + 0.5, poi.y + 0.5, 'gambler', poi.name, 'Jogo de Damas', 'damas', true
+                ));
+            } else if (poi.type === 'resta_um_table') {
+                this.npcs.push(new NPC(
+                    poi.x + 0.5, poi.y + 0.5, 'gambler', poi.name, 'Desafio Resta Um', 'resta_um', true
+                ));
             } else if (poi.type === 'dados') {
                 this.npcs.push(new NPC(poi.x, poi.y, 'gambler', `Dados ${poi.name}`, 'dados', 'dados'));
             } else if (poi.type === 'ronda') {

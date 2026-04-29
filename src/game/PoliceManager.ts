@@ -126,19 +126,25 @@ export class PoliceManager {
     public getRaidChance(x: number, y: number, isInsideBar: boolean = false): number {
         if (this.raidCooldown > 0) return 0;
 
-        if (isInsideBar) {
-            return 0;
-        }
+        // --- EXEMPTIONS (0% Chance) ---
+        // 1. Bars (Inside)
+        if (isInsideBar) return 0;
 
-        // --- STREET RAIDS (Restored to "Perfect" state) ---
+        // 2. Plazas (Domino Tables)
+        const inMarcoOnze = x >= 225 && x <= 245 && y >= 130 && y <= 149;
+        const inMarquesDeHerval = x >= 148 && x <= 168 && y >= 160 && y <= 190;
+        if (inMarcoOnze || inMarquesDeHerval) return 0;
+
+        // 3. Casinos (Shopping and Station)
+        const nearShoppingCasino = Math.sqrt((x - 130) ** 2 + (y - 125) ** 2) < 40;
+        const nearStationCasino = x >= 220 && x <= 235 && y >= 170 && y <= 185;
+        if (nearShoppingCasino || nearStationCasino) return 0;
+
+        // --- STREET RAIDS (Original Logic) ---
         let chance = 0.02; // 2% every 5 seconds ~ 24% per minute
 
         if (this.isPeriphery(x, y)) {
             chance = 0.08; // 8% every 5 seconds (High risk in periphery streets)
-        } else {
-            // Near shopping (X:130, Y:125)
-            const distToShop = Math.sqrt((x - 130) ** 2 + (y - 125) ** 2);
-            if (distToShop < 40) chance = 0.005;
         }
 
         return chance;

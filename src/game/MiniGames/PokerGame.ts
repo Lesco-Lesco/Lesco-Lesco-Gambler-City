@@ -185,9 +185,10 @@ export class PokerGame implements IMinigame {
         for (const p of activePlayers) {
             let score = this.evaluateHand(p.hand, this.communityCards);
 
-            // House Edge: NPCs get a 5% base bonus and a 15% chance to "bluff/play aggressive" (extra 10% bonus)
+            // House Edge: NPCs get a base bonus (scaled by wealth) and a 15% chance to "bluff/play aggressive"
             if (!p.isHuman) {
-                score *= 1.05; // Base 5% bonus
+                const diffFactor = EconomyManager.getInstance().getDifficultyFactor();
+                score *= (1.05 * diffFactor); // Base 5% bonus scaled by up to 20% difficulty
                 if (Math.random() < 0.15) {
                     score *= 1.10; // Aggressive/Bluff bonus
                     p.lastAction = 'Agressivo';

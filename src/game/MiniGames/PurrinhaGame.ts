@@ -125,11 +125,16 @@ export class PurrinhaGame implements IMinigame {
 
         // NPCs make guesses (semi-smart: they know their own stones)
         const usedGuesses = new Set<number>([guess]);
+        const diffFactor = EconomyManager.getInstance().getDifficultyFactor(); // 1.0 to 1.2
+        const errorReduction = 1.0 - (diffFactor - 1.0) * 2; // 1.0 (start) down to 0.6 (lategame)
+
         for (const p of this.players) {
             if (!p.isHuman) {
                 // NPCs guess based on their own stones + estimated average for others
                 const othersEstimate = (this.players.length - 1) * 1.5;
-                let npcGuess = Math.round(p.stones + othersEstimate + (Math.random() - 0.5) * 3);
+                // Base error margin is 3, reduced by errorReduction
+                const errorMargin = 3 * errorReduction;
+                let npcGuess = Math.round(p.stones + othersEstimate + (Math.random() - 0.5) * errorMargin);
                 npcGuess = Math.max(0, Math.min(this.maxPossibleTotal, npcGuess));
 
                 // Make sure no duplicate guesses

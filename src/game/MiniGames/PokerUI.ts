@@ -69,7 +69,7 @@ export class PokerUI implements IMinigameUI {
         } else {
             // Mid-game phases
             if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
-                const step = 10; // Fixo de 10 em 10
+                const { step } = EconomyManager.getInstance().getPokerBetLimits();
                 const maxRaiseForHand = (this.game.betAmount * 3) - humanCurrentBet();
                 const maxPossibleRaise = Math.max(0, Math.min(bmanager.playerMoney, maxRaiseForHand));
 

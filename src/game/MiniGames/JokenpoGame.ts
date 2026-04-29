@@ -81,15 +81,20 @@ export class JokenpoGame implements IMinigame {
         else if (pChoice === 'paper') { winningMove = 'scissors'; losingMove = 'rock'; }
         else if (pChoice === 'scissors') { winningMove = 'rock'; losingMove = 'paper'; }
 
+        const diffFactor = EconomyManager.getInstance().getDifficultyFactor();
         const luck = BuffManager.getInstance().getLuckBonus();
-        // Base: 35% win, 33% draw, 32% loss
-        // With Luck: max 40% win, 28% draw, 32% loss (luck is typically max 0.1)
-        const winThreshold = 0.35 + (luck * 0.5);
-        const drawThreshold = 0.68; // We keep total range 1.0, but shift the first cut
+        
+        // New Difficulty Scaling:
+        // Base win chance starts at ~30% (was 35%) and drops as difficulty/wealth increases.
+        const baseWinChance = 0.30 - (diffFactor - 1.1) * 0.25; 
+        const winThreshold = Math.max(0.15, baseWinChance + (luck * 0.4));
+        
+        // Draw chance remains around 33%, but we adjust thresholds
+        const drawThreshold = winThreshold + 0.33;
 
         if (r < winThreshold) return losingMove;   // Jogador ganha
         if (r < drawThreshold) return pChoice;      // Empate
-        return winningMove;                // NPC ganha
+        return winningMove;                         // NPC ganha (NPC Win chance ~37%+)
     }
 
     public determineWinner() {

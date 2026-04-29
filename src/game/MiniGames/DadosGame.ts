@@ -98,10 +98,13 @@ export class DadosGame implements IMinigame {
         // Randomly pick one winner if tie
         this.winner = winners[Math.floor(Math.random() * winners.length)];
 
-        // Luck Bonus: 10% chance to force player win if they lost
+        // Luck Bonus: 10% chance to force player win if they lost (reduced in late game)
         if (this.winner && !this.winner.isHuman) {
             const luck = BuffManager.getInstance().getLuckBonus();
-            if (luck > 0 && Math.random() < luck) {
+            const diffFactor = EconomyManager.getInstance().getDifficultyFactor();
+            const adjustedLuck = luck / diffFactor; // Reduce luck influence by up to 20%
+            
+            if (luck > 0 && Math.random() < adjustedLuck) {
                 this.winner = this.players[0];
                 bestScore = this.players[0].score;
             }

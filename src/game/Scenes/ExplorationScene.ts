@@ -32,6 +32,12 @@ import { RondaGame } from '../MiniGames/RondaGame';
 import { RondaUI } from '../MiniGames/RondaUI';
 import { DominoGame } from '../MiniGames/DominoGame';
 import { DominoUI } from '../MiniGames/DominoUI';
+import { LudoGame } from '../MiniGames/LudoGame';
+import { LudoUI } from '../MiniGames/LudoUI';
+import { DamasGame } from '../MiniGames/DamasGame';
+import { DamasUI } from '../MiniGames/DamasUI';
+import { RestaUmGame } from '../MiniGames/RestaUmGame';
+import { RestaUmUI } from '../MiniGames/RestaUmUI';
 import { CaraCoroaGame } from '../MiniGames/CaraCoroaGame';
 import { CaraCoroaUI } from '../MiniGames/CaraCoroaUI';
 import { PalitinhoGame } from '../MiniGames/PalitinhoGame';
@@ -52,6 +58,7 @@ import { AirPongGame } from '../ArcadeGames/AirPongGame';
 import { TankAttackGame } from '../ArcadeGames/TankAttackGame';
 import { FaroesteGame } from '../ArcadeGames/FaroesteGame';
 import { RiscaFacaGame } from '../ArcadeGames/RiscaFacaGame';
+import { CheatManager } from '../CheatManager';
 import { SinucaGame } from '../ArcadeGames/SinucaGame';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
@@ -92,6 +99,12 @@ export class ExplorationScene implements Scene {
     private rondaUI: RondaUI | null = null;
     private dominoGame: DominoGame;
     private dominoUI: DominoUI | null = null;
+    private ludoGame: LudoGame;
+    private ludoUI: LudoUI | null = null;
+    private damasGame: DamasGame;
+    private damasUI: DamasUI | null = null;
+    private restaUmGame: RestaUmGame;
+    private restaUmUI: RestaUmUI | null = null;
     private caraCoroaUI: CaraCoroaUI | null = null;
     private palitinhoUI: PalitinhoUI | null = null;
     private fanTanUI: FanTanUI | null = null;
@@ -103,7 +116,7 @@ export class ExplorationScene implements Scene {
     private videoBingoUI: VideoBingoUI | null = null;
     private jokenpoUI: JokenpoUI | null = null;
 
-    private activeMinigame: 'none' | 'purrinha' | 'dados' | 'ronda' | 'domino' | 'generic' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' = 'none';
+    private activeMinigame: 'none' | 'purrinha' | 'dados' | 'ronda' | 'domino' | 'ludo' | 'damas' | 'resta_um' | 'generic' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' = 'none';
     private selectedBarMenuIndex: number = 0;
     private currentBar: any | null = null;
 
@@ -161,6 +174,7 @@ export class ExplorationScene implements Scene {
     public onGameOver?: () => void;
 
     constructor(renderer: Renderer, screenW: number, screenH: number) {
+        CheatManager.getInstance().init();
         this.renderer = renderer;
         this.screenW = screenW;
         this.screenH = screenH;
@@ -197,6 +211,9 @@ export class ExplorationScene implements Scene {
         this.dadosGame = new DadosGame();
         this.rondaGame = new RondaGame();
         this.dominoGame = new DominoGame();
+        this.ludoGame = new LudoGame();
+        this.damasGame = new DamasGame();
+        this.restaUmGame = new RestaUmGame();
         this.horseRacingGame = new HorseRacingGame();
         this.dogRacingGame = new DogRacingGame();
         this.videoBingoGame = new VideoBingoGame();
@@ -252,6 +269,7 @@ export class ExplorationScene implements Scene {
     }
 
     public update(dt: number) {
+        CheatManager.getInstance().update(dt);
         this.updateMusic(dt);
         BichoManager.getInstance().update(dt);
         ProgressionManager.getInstance().updateCooldowns(dt);
@@ -370,15 +388,18 @@ export class ExplorationScene implements Scene {
         }
         if (this.activeMinigame === 'domino' && this.dominoUI) {
             this.dominoUI.update(dt);
-            if (this.input.wasPressed('Escape')) {
-                if (this.dominoGame.phase === 'playing' || this.dominoGame.phase === 'result') {
-                    BichoManager.getInstance().addNotification(`Partida abandonada! Perdeu R$${this.dominoGame.betAmount}.`, 4);
-                }
-                this.dominoGame.reset();
-                this.activeMinigame = 'none';
-                this.input.popContext();
-                this.player.nearbyInteraction = null;
-            }
+            return;
+        }
+        if (this.activeMinigame === 'ludo' && this.ludoUI) {
+            this.ludoUI.update(dt);
+            return;
+        }
+        if (this.activeMinigame === 'damas' && this.damasUI) {
+            this.damasUI.update(dt);
+            return;
+        }
+        if (this.activeMinigame === 'resta_um' && this.restaUmUI) {
+            this.restaUmUI.update(dt);
             return;
         }
 
@@ -736,7 +757,7 @@ export class ExplorationScene implements Scene {
             if (inProgress) {
                 const needsDeduction = [
                     'purrinha', 'cara_coroa', 'palitinho', 'fan_tan', 'jokenpo',
-                    'dados', 'ronda'
+                    'dados', 'ronda', 'domino', 'ludo', 'damas', 'resta_um'
                 ].includes(this.activeMinigame as string);
 
                 if (needsDeduction && game && game.betAmount) {
@@ -887,7 +908,7 @@ export class ExplorationScene implements Scene {
             const isStation = this.player.x > 200;
             const pm = ProgressionManager.getInstance();
 
-            if (isStation && !pm.isCasinoUnlocked('station')) {
+            if (isStation && !pm.isGameUnlocked('casino_station')) {      
                 const hint = `🔒 ${pm.getStationCasinoLockedHint(AchievementManager.getInstance().getPlaysByGame())}`;
                 this.player.nearbyInteraction = hint;
                 if (this.input.wasPressed('KeyE')) {
@@ -1004,6 +1025,9 @@ export class ExplorationScene implements Scene {
                     else if (type === 'dados') this.startDados(isPeriphery);
                     else if (type === 'ronda') this.startRonda(isPeriphery);
                     else if (type === 'domino') this.startDomino(isPeriphery);
+                    else if (type === 'ludo') this.startLudo(isPeriphery);
+                    else if (type === 'damas') this.startDamas(isPeriphery);
+                    else if (type === 'resta_um') this.startRestaUm(isPeriphery);
                     else if (type === 'cara_coroa') this.startCaraCoroa(isPeriphery);
                     else if (type === 'palitinho') this.startPalitinho(isPeriphery);
                     else if (type === 'fan_tan') this.startFanTan(isPeriphery);
@@ -1163,6 +1187,60 @@ export class ExplorationScene implements Scene {
             else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
             AchievementManager.getInstance().recordMinigamePlay('domino', bmanager.playerMoney);
             this.dominoGame.reset();
+        });
+    }
+
+    private startLudo(isPeriphery: boolean = false) {
+        const bmanager = BichoManager.getInstance();
+        this.activeMinigame = 'ludo';
+        this.input.pushContext('minigame');
+        this.ludoGame.reset();
+        if (isPeriphery) this.ludoGame.updateLimits(true);
+
+        this.ludoUI = new LudoUI(this.ludoGame, (payout: number) => {
+            this.handleMinigameExit(this.ludoGame, payout);
+        }, (moneyChange: number) => {
+            bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('ludo');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('ludo', bmanager.playerMoney);
+            this.ludoGame.reset();
+        });
+    }
+
+    private startDamas(isPeriphery: boolean = false) {
+        const bmanager = BichoManager.getInstance();
+        this.activeMinigame = 'damas';
+        this.input.pushContext('minigame');
+        this.damasGame.reset();
+        if (isPeriphery) this.damasGame.updateLimits(true);
+
+        this.damasUI = new DamasUI(this.damasGame, (payout: number) => {
+            this.handleMinigameExit(this.damasGame, payout);
+        }, (moneyChange: number) => {
+            bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('damas');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('damas', bmanager.playerMoney);
+            this.damasGame.reset();
+        });
+    }
+
+    private startRestaUm(isPeriphery: boolean = false) {
+        const bmanager = BichoManager.getInstance();
+        this.activeMinigame = 'resta_um';
+        this.input.pushContext('minigame');
+        this.restaUmGame.reset();
+        if (isPeriphery) this.restaUmGame.updateLimits(true);
+
+        this.restaUmUI = new RestaUmUI(this.restaUmGame, (payout: number) => {
+            this.handleMinigameExit(this.restaUmGame, payout);
+        }, (moneyChange: number) => {
+            bmanager.playerMoney += moneyChange;
+            if (moneyChange > 0) AchievementManager.getInstance().recordMinigameWin('resta_um');
+            else if (moneyChange < 0) AchievementManager.getInstance().recordMinigameLoss();
+            AchievementManager.getInstance().recordMinigamePlay('resta_um', bmanager.playerMoney);
+            this.restaUmGame.reset();
         });
     }
 
@@ -1775,6 +1853,12 @@ export class ExplorationScene implements Scene {
             this.rondaUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'domino' && this.dominoUI) {
             this.dominoUI.render(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'ludo' && this.ludoUI) {
+            this.ludoUI.render(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'damas' && this.damasUI) {
+            this.damasUI.render(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'resta_um' && this.restaUmUI) {
+            this.restaUmUI.render(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'generic' || this.activeMinigame === 'cara_coroa' || this.activeMinigame === 'palitinho' || this.activeMinigame === 'fan_tan' || this.activeMinigame === 'jokenpo') {
             if (this.caraCoroaUI) this.caraCoroaUI.render(ctx, this.screenW, this.screenH);
             if (this.palitinhoUI) this.palitinhoUI.render(ctx, this.screenW, this.screenH);

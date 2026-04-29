@@ -17,6 +17,7 @@ import { AchievementManager } from '../Core/AchievementManager';
 import { ScoreCalculator } from '../Core/ScoreCalculator';
 import type { ScoreBreakdown } from '../Core/ScoreCalculator';
 import { RankingAPI } from '../Services/RankingAPI';
+import { CheatManager } from '../CheatManager';
 
 // Bar colour per pillar
 const PILLAR_COLORS = {
@@ -80,8 +81,13 @@ export class ScoreBreakdownScene implements Scene {
         this.breakdown = ScoreCalculator.calculate(stats, count);
 
         // Check where this score lands in the global ranking.
-        // We WAIT for this to resolve before allowing the player to continue,
-        // so we never skip InitialsInput due to a race condition.
+        // We SKIP this if a cheat was used.
+        if (CheatManager.getInstance().isCheatActive()) {
+            this.rankingPosition = null;
+            this.positionResolved = true;
+            return;
+        }
+
         RankingAPI.getInstance()
             .checkPosition(this.breakdown.total)
             .then(pos => {
@@ -134,7 +140,8 @@ export class ScoreBreakdownScene implements Scene {
                 this.input.wasPressed('MouseLeft');
 
             if (pressed && this.onContinue && this.breakdown) {
-                this.onContinue(this.rankingPosition !== null);
+                const isCheat = CheatManager.getInstance().isCheatActive();
+                this.onContinue(this.rankingPosition !== null && !isCheat);
             }
         }
     }
@@ -273,10 +280,19 @@ export class ScoreBreakdownScene implements Scene {
                 ctx.fillText(`POSIÇÃO #${this.rankingPosition} NO RANKING!`, cx, posY);
                 ctx.restore();
             } else {
-                ctx.fillStyle = '#555555';
+                ctx.save();
+                const isCheat = CheatManager.getInstance().isCheatActive();
+                ctx.fillStyle = isCheat ? '#ff4422' : '#555555';
                 ctx.font      = `${r(mobile ? 11 : 9)}px "Press Start 2P", monospace`;
                 ctx.textAlign = 'center';
-                ctx.fillText('CONTINUE TENTANDO!', cx, posY);
+                if (isCheat) {
+                    ctx.shadowBlur = s(10);
+                    ctx.shadowColor = '#ff4422';
+                    ctx.fillText('! CHEAT ATIVO - RANKING BLOQUEADO !', cx, posY);
+                } else {
+                    ctx.fillText('CONTINUE TENTANDO!', cx, posY);
+                }
+                ctx.restore();
             }
 
             // Continue button — only show when both animation AND position check are ready

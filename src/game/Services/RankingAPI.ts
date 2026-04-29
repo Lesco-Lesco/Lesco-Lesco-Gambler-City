@@ -10,6 +10,7 @@
  */
 
 import type { ScoreBreakdown } from '../Core/ScoreCalculator';
+import { CheatManager } from '../CheatManager';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public interfaces
@@ -135,6 +136,8 @@ export class RankingAPI {
      * Returns null if score wouldn't make top 100.
      */
     async checkPosition(score: number): Promise<number | null> {
+        if (CheatManager.getInstance().isCheatActive()) return null;
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -184,6 +187,15 @@ export class RankingAPI {
      * Step 3: On failure, queue for later sync.
      */
     async submitScore(initials: string, breakdown: ScoreBreakdown): Promise<SubmitResult> {
+        if (CheatManager.getInstance().isCheatActive()) {
+            console.warn('[RankingAPI] Score submission blocked: Cheat is active.');
+            return {
+                accepted: false,
+                position: null,
+                ranking: this.loadStore().cachedRanking
+            };
+        }
+
         const session: LocalSession = {
             score:     breakdown.total,
             initials:  initials.toUpperCase().slice(0, 3),

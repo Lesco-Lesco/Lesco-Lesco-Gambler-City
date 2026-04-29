@@ -61,8 +61,7 @@ export class EconomyManager {
     /** Dynamic bet limits based on max wealth reached, capped by current balance (For Poker) */
     public getPokerBetLimits(): { min: number; max: number; step: number } {
         const bonusMin = Math.floor(this._maxMoneyReached * GameConfig.BET_MIN_BONUS_RATE);
-        const bonusMax = Math.floor(this._maxMoneyReached * GameConfig.BET_MAX_BONUS_RATE);
-
+        
         let min = Math.max(
             GameConfig.BET_MIN_BASE,
             Math.min(
@@ -70,21 +69,15 @@ export class EconomyManager {
                 Math.max(GameConfig.BET_MIN_BASE, Math.floor((GameConfig.BET_MIN_BASE + bonusMin) / GameConfig.MONEY_UNIT) * GameConfig.MONEY_UNIT)
             )
         );
-        let max = Math.min(
-            GameConfig.BET_MAX_CAP,
-            Math.max(GameConfig.BET_MAX_BASE, Math.floor((GameConfig.BET_MAX_BASE + bonusMax) / GameConfig.MONEY_UNIT) * GameConfig.MONEY_UNIT)
-        );
+
+        // Rule: Max is exactly 3x Min
+        let max = min * 3;
 
         // Cap by current balance
         max = Math.min(max, this._balance);
 
         // Proportional bet step (scales with player wealth)
-        let step = 10;
-        if (this._maxMoneyReached >= 50000) step = 1000;
-        else if (this._maxMoneyReached >= 20000) step = 500;
-        else if (this._maxMoneyReached >= 5000) step = 100;
-        else if (this._maxMoneyReached >= 2000) step = 50;
-        else if (this._maxMoneyReached >= 500) step = 20;
+        const step = this.calculateStep(this._maxMoneyReached);
 
         return { min, max, step };
     }
@@ -93,37 +86,56 @@ export class EconomyManager {
      * Dynamic bet limits for Periphery NPCs (High Risk / High Reward) for Poker.
      */
     public getPokerPeripheryBetLimits(): { min: number; max: number; step: number } {
-        const baseLimits = this.getPokerBetLimits();
+        const base = this.getPokerBetLimits();
+        let min = Math.min(this._balance, base.min * 2);
+        if (min === 0 && this._balance >= base.min) min = base.min; 
         
-        let min = Math.min(this._balance, baseLimits.min * 2);
-        if (min === 0 && this._balance >= baseLimits.min) min = baseLimits.min; 
-        
-        let max = Math.min(this._balance, baseLimits.max * 2);
-        let step = baseLimits.step * 2;
+        let max = Math.min(this._balance, min * 3);
+        let step = base.step * 2;
 
         return { min, max, step };
     }
 
-    /** Single bet quotes for all other minigames */
+    /** Dynamic bet limits for all other minigames (1x to 3x range) */
     public getBetLimits(): { min: number; max: number; step: number } {
-        let bet = 10;
+        let min = 10;
         const currentBalance = this._balance;
         
-        if (currentBalance >= 10000) bet = 1000;
-        else if (currentBalance >= 5000) bet = 500;
-        else if (currentBalance >= 2000) bet = 200;
-        else if (currentBalance >= 1000) bet = 100;
-        else if (currentBalance >= 500) bet = 50;
-        else if (currentBalance >= 200) bet = 20;
+        if (currentBalance >= 10000) min = 1000;
+        else if (currentBalance >= 5000) min = 500;
+        else if (currentBalance >= 2000) min = 200;
+        else if (currentBalance >= 1000) min = 100;
+        else if (currentBalance >= 500) min = 50;
+        else if (currentBalance >= 200) min = 20;
 
-        return { min: bet, max: bet, step: 0 };
+        // Rule: 3x limit
+        let max = min * 3;
+        
+        // Cap by balance
+        max = Math.min(max, currentBalance);
+        
+        const step = this.calculateStep(this._maxMoneyReached);
+
+        return { min, max, step };
     }
 
-    /** Single bet quotes for Periphery NPCs (all other minigames) */
+    /** Dynamic bet limits for Periphery NPCs (1x to 3x range, 2x base) */
     public getPeripheryBetLimits(): { min: number; max: number; step: number } {
-        const baseLimits = this.getBetLimits();
-        let bet = baseLimits.min * 2;
-        return { min: bet, max: bet, step: 0 };
+        const base = this.getBetLimits();
+        let min = Math.min(this._balance, base.min * 2);
+        let max = Math.min(this._balance, min * 3);
+        let step = base.step * 2;
+        
+        return { min, max, step };
+    }
+
+    private calculateStep(wealth: number): number {
+        if (wealth >= 50000) return 1000;
+        if (wealth >= 20000) return 500;
+        if (wealth >= 5000)  return 100;
+        if (wealth >= 2000)  return 50;
+        if (wealth >= 500)   return 20;
+        return 10;
     }
 
     /** Reset to starting state */
@@ -135,6 +147,19 @@ export class EconomyManager {
             amount: this._balance,
             delta: 0,
         });
+    }
+
+    /**
+     * Returns a difficulty multiplier between 1.1 and 1.3 based on player wealth.
+     * Max difficulty (+30%) is reached at R$ 20,000.
+     */
+    public getDifficultyFactor(): number {
+        const wealth = this._maxMoneyReached;
+        const targetWealth = 20000;
+        const maxExtraDifficulty = 0.20; // Extra 20% on top of 1.1 base
+
+        const factor = Math.min(maxExtraDifficulty, (wealth / targetWealth) * maxExtraDifficulty);
+        return 1.1 + factor;
     }
 
     /** Recovery from total bankruptcy (Vovó do Pão / Tia) */

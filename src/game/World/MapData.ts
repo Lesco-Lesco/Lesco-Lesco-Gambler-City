@@ -38,6 +38,12 @@ export const TILE_TYPES = {
 } as const;
 
 export type TileType = typeof TILE_TYPES[keyof typeof TILE_TYPES];
+export type POIType =
+    | 'purrinha' | 'ronda' | 'dados' | 'domino' | 'npc_homeless' | 'npc_info' | 'npc_casino_promoter' | 'npc_bouncer'
+    | 'npc_palitinho' | 'npc_fant_tan' | 'npc_jokenpo' | 'pedinte' | 'jokenpo'
+    | 'domino_table' | 'ludo_table' | 'damas_table' | 'resta_um_table'
+    | 'market' | 'bar_entrance' | 'casino_entrance' | 'shopping_entrance' | 'hotel'
+    | 'park' | 'alley' | 'arcade' | 'bicho_banca' | 'street_vendor' | 'street_musician' | 'monument' | 'telephone';
 
 // ... (existing code) ...
 
@@ -52,7 +58,7 @@ export const AREA_LABELS: { x: number; y: number; name: string; type: 'neighborh
 export interface POI {
     x: number;
     y: number;
-    type: 'purrinha' | 'ronda' | 'dados' | 'domino' | 'npc_homeless' | 'npc_info' | 'npc_casino_promoter' | 'bingo' | 'pedinte' | 'domino_table' | 'jokenpo' | 'cara_coroa';
+    type: POIType;
     name: string;
 }
 
@@ -915,22 +921,22 @@ export const CROSSWALKS: Crosswalk[] = [
 
 
 export const POINTS_OF_INTEREST: POI[] = [
-    { x: 128, y: 147, type: 'pedinte', name: 'Zumbi do Shopping' },
+    { x: 128, y: 147, type: 'npc_homeless', name: 'Zumbi do Shopping' },
     { x: 114, y: 121, type: 'npc_casino_promoter', name: 'Leão do Norte' },
-    // Marco Imperial Domino Players
+    // --- DOMINO & BOARD GAME TABLES ---
     { x: 229, y: 137, type: 'domino_table', name: 'Geraldo' },
     { x: 229, y: 143, type: 'domino_table', name: 'Seu Jorge' },
-    { x: 241, y: 137, type: 'domino_table', name: 'Manoel' },
+    { x: 241, y: 137, type: 'ludo_table', name: 'Manoel' },
     { x: 241, y: 143, type: 'domino_table', name: 'Tião' },
-    { x: 235, y: 133, type: 'domino_table', name: 'Vicente' },
+    { x: 235, y: 133, type: 'ludo_table', name: 'Vicente' },
     // Marques de Herval Domino Players
     { x: 152, y: 165, type: 'domino_table', name: 'Ademir' },
-    { x: 152, y: 175, type: 'domino_table', name: 'Valdir' },
+    { x: 152, y: 175, type: 'damas_table', name: 'Valdir' },
     { x: 152, y: 185, type: 'domino_table', name: 'Nelsinho' },
     { x: 164, y: 165, type: 'domino_table', name: 'Jair' },
-    { x: 164, y: 175, type: 'domino_table', name: 'Osmar' },
-    { x: 164, y: 185, type: 'domino_table', name: 'Delson' },
-    { x: 158, y: 165, type: 'domino_table', name: 'Zezé' },
+    { x: 164, y: 175, type: 'resta_um_table', name: 'Osmar' },
+    { x: 164, y: 185, type: 'resta_um_table', name: 'Delson' },
+    { x: 158, y: 165, type: 'damas_table', name: 'Zezé' },
     { x: 158, y: 185, type: 'domino_table', name: 'Carlinhos' },
 
     // North Hub: Purrinha (Near Church/North Side)
