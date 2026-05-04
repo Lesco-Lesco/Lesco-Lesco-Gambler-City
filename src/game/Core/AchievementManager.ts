@@ -455,6 +455,7 @@ export class AchievementManager {
             { id: 'barao_gado', name: 'Barão do Gado', description: 'O jóquei é teu primo? Que sorte.', reward: 50, tier: 2, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesWonByType['horse_racing'] || 0) >= 5 },
             { id: 'mao_alface', name: 'Mão de Alface', description: 'Venceu ganhando de fininho no Poker.', reward: 20, tier: 1, unlocked: false, category: 'vitoria', condition: (s) => (s.minigamesWonByType['poker'] || 0) >= 1 },
             { id: 'socio_bicho', name: 'Sócio do Bicho', description: 'O bicheiro já tá fechando a banca', reward: 30, tier: 2, unlocked: false, category: 'vitoria', condition: (s) => s.bichoWins >= 3 },
+            { id: 'mestre_pinball', name: 'Mestre do Pinball', description: 'Bateu 2000 pontos no Neon.', reward: 30, tier: 2, unlocked: false, category: 'vitoria', condition: (s) => (s.arcadeHighScores['arcade_pinball'] || 0) >= 2000 },
             
             // 🚬 Malandragem
             { id: 'papo_bar', name: 'Papo de Bar', description: 'Tu fala mais que o homem da cobra.', reward: 10, tier: 1, unlocked: false, category: 'malandragem', condition: (s) => s.uniqueMinigamesPlayed.size >= 8 },

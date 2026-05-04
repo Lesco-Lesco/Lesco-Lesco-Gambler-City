@@ -60,6 +60,7 @@ import { FaroesteGame } from '../ArcadeGames/FaroesteGame';
 import { RiscaFacaGame } from '../ArcadeGames/RiscaFacaGame';
 import { CheatManager } from '../CheatManager';
 import { SinucaGame } from '../ArcadeGames/SinucaGame';
+import { PinballGame } from '../ArcadeGames/PinballGame';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import { SoundManager } from '../Core/SoundManager';
@@ -116,7 +117,7 @@ export class ExplorationScene implements Scene {
     private videoBingoUI: VideoBingoUI | null = null;
     private jokenpoUI: JokenpoUI | null = null;
 
-    private activeMinigame: 'none' | 'purrinha' | 'dados' | 'ronda' | 'domino' | 'ludo' | 'damas' | 'resta_um' | 'generic' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' = 'none';
+    private activeMinigame: 'none' | 'purrinha' | 'dados' | 'ronda' | 'domino' | 'ludo' | 'damas' | 'resta_um' | 'generic' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' | 'arcade_pinball' = 'none';
     private selectedBarMenuIndex: number = 0;
     private currentBar: any | null = null;
 
@@ -129,6 +130,7 @@ export class ExplorationScene implements Scene {
     private faroesteGame: FaroesteGame | null = null;
     private riscaFacaGame: RiscaFacaGame | null = null;
     private sinucaGame: SinucaGame | null = null;
+    private pinballGame: PinballGame | null = null;
 
     // State
     private screenW: number;
@@ -506,6 +508,19 @@ export class ExplorationScene implements Scene {
             }
             return;
         }
+        if (this.activeMinigame === 'arcade_pinball' && this.pinballGame) {
+            this.pinballGame.update(dt);
+            if (this.pinballGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.processArcadeEnd('pinball', this.pinballGame.score);
+                this.pinballGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.pinballGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
 
         this.globalTimer += dt; // Keep a timer running for Bicho betting results
 
@@ -809,6 +824,7 @@ export class ExplorationScene implements Scene {
         else if (type === 'faroeste') mappedType = 'arcade_faroeste';
         else if (type === 'risca_faca') mappedType = 'arcade_risca';
         else if (type === 'sinuca') mappedType = 'arcade_sinuca';
+        else if (type === 'pinball') mappedType = 'arcade_pinball';
 
         // Track stats and trigger any achievement unlocks
         achManager.recordArcadeEnd(mappedType, score);
@@ -1297,6 +1313,7 @@ export class ExplorationScene implements Scene {
             'faroeste': { label: 'FAROESTE', icon: '🤠', color: '#d2691e' },
             'risca_faca': { label: 'RISCA FACA', icon: '🔪', color: '#cc0000' },
             'sinuca': { label: 'SINUCA', icon: '🎱', color: '#009966' },
+            'pinball': { label: 'PINBALL NEON', icon: '🕹️', color: '#ff00ff' },
         };
 
         const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy'; icon: string; color: string; isLocked: boolean; hint?: string }[] = [
@@ -1315,6 +1332,7 @@ export class ExplorationScene implements Scene {
             else if (game === 'faroeste') mappedType = 'arcade_faroeste';
             else if (game === 'risca_faca') mappedType = 'arcade_risca';
             else if (game === 'sinuca') mappedType = 'arcade_sinuca';
+            else if (game === 'pinball') mappedType = 'arcade_pinball';
 
             const isLocked = !pm.isGameUnlocked(mappedType);
             const hint = isLocked ? pm.getLockedHint(mappedType, am.getPlaysByGame(), am.getWinCount()) : undefined;
@@ -1348,6 +1366,7 @@ export class ExplorationScene implements Scene {
             case 'faroeste': this.faroesteGame = new FaroesteGame(); this.activeMinigame = 'arcade_faroeste'; break;
             case 'risca_faca': this.riscaFacaGame = new RiscaFacaGame(); this.activeMinigame = 'arcade_risca_faca'; break;
             case 'sinuca': this.sinucaGame = new SinucaGame(); this.activeMinigame = 'arcade_sinuca'; break;
+            case 'pinball': this.pinballGame = new PinballGame(); this.activeMinigame = 'arcade_pinball'; break;
         }
     }
 
@@ -1884,6 +1903,8 @@ export class ExplorationScene implements Scene {
             this.riscaFacaGame.draw(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'arcade_sinuca' && this.sinucaGame) {
             this.sinucaGame.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'arcade_pinball' && this.pinballGame) {
+            this.pinballGame.draw(ctx, this.screenW, this.screenH);
         }
 
         // 6. UI / HUD (Rendered AFTER minigames to be always visible)

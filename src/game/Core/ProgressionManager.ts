@@ -37,7 +37,7 @@ export type GameType = 'arcade' | 'horse_racing' | 'dog_racing' | 'video_bingo'
     | 'cara_coroa' | 'jokenpo' | 'purrinha' | 'palitinho' | 'fan_tan'
     | 'slots' | 'bicho'
     | 'casino_station' | 'blackjack' | 'poker'
-    | 'arcade_pong' | 'arcade_faroeste' | 'arcade_risca' | 'arcade_tank' | 'arcade_sinuca'
+    | 'arcade_pong' | 'arcade_faroeste' | 'arcade_risca' | 'arcade_tank' | 'arcade_pinball' | 'arcade_sinuca'
     | 'bar_games';
 
 /** Unlock condition for a single game */
@@ -99,7 +99,8 @@ const UNLOCK_TREE: Partial<Record<string, UnlockCondition>> = {
     arcade_faroeste: { requiresPlays: { game: 'arcade_pong',     count: 1  } },
     arcade_risca:    { requiresPlays: { game: 'arcade_faroeste', count: 1  } },
     arcade_tank:     { requiresPlays: { game: 'arcade_risca',    count: 1  } },
-    arcade_sinuca:   { requiresPlays: { game: 'arcade_tank',     count: 1  } },
+    arcade_pinball:  { requiresPlays: { game: 'arcade_tank',     count: 1  } },
+    arcade_sinuca:   { requiresPlays: { game: 'arcade_pinball',  count: 1  } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,6 +125,7 @@ const UNLOCK_MESSAGES: Partial<Record<GameType, string>> = {
     arcade_faroeste:'🤠 O Faroeste ligou no fliperama. Aponta e não trema.',
     arcade_risca:   '🔪 Risca Faca tá no ar. Reflexo é tudo, playboy.',
     arcade_tank:    '🪖 Tank Attack desbloqueado! Destrói tudo que aparecer.',
+    arcade_pinball: '🕹️ Pinball Neon liberado! Mostra teus reflexos na luz.',
     arcade_sinuca:  '🎱 A mesa de Sinuca tá pronta. Quem manda no taco é você.',
 };
 
@@ -150,7 +152,8 @@ const LOCKED_HINTS: Partial<Record<GameType, (n: number) => string>> = {
     arcade_faroeste:(n) => `${n} sessão${n === 1 ? '' : 'ões'} de Air Pong ainda. O Faroeste não liga pra novato.`,
     arcade_risca:   (n) => `Joga mais ${n} no Faroeste. Risca Faca é pra mão firme.`,
     arcade_tank:    (n) => `${n} rodada${n === 1 ? '' : 's'} de Risca Faca ainda. O tanque tá esperando.`,
-    arcade_sinuca:  (n) => `Tank Attack mais ${n} vezes. A mesa da Sinuca tem moral.`,
+    arcade_pinball: (n) => `Mais ${n} partida${n === 1 ? '' : 's'} de Tank Attack pro Sunset Paradise.`,
+    arcade_sinuca:  (n) => `Sunset Paradise mais ${n} vezes. A mesa da Sinuca tem moral.`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,7 +219,8 @@ export class ProgressionManager {
             'dados', 'ronda', 'domino', 'ludo', 'damas', 'resta_um',
             'cara_coroa', 'jokenpo', 'purrinha', 'palitinho', 'fan_tan',
             'slots', 'bicho', 'blackjack', 'poker', 'casino_station',
-            'arcade', 'video_bingo', 'horse_racing', 'dog_racing'
+            'arcade', 'video_bingo', 'horse_racing', 'dog_racing',
+            'arcade_pong', 'arcade_faroeste', 'arcade_risca', 'arcade_tank', 'arcade_pinball', 'arcade_sinuca'
         ];
         games.forEach(g => this.unlockedGames.add(g));
     }
@@ -328,7 +332,8 @@ export class ProgressionManager {
             blackjack: 'Blackjack', poker: 'Poker',
             slots: 'Caça-Níquel', bar_games: 'Jogos de Bar',
             arcade_pong: 'Air Pong', arcade_faroeste: 'Faroeste',
-            arcade_risca: 'Risca Faca', arcade_tank: 'Tank Attack', arcade_sinuca: 'Sinuca'
+            arcade_risca: 'Risca Faca', arcade_tank: 'Tank Attack',
+            arcade_pinball: 'Sunset Paradise', arcade_sinuca: 'Sinuca'
         };
         return names[type] || type;
     }
