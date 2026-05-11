@@ -14,6 +14,7 @@ import { TileMap } from '../World/TileMap';
 import { TileRenderer } from '../World/TileRenderer';
 import { Minimap } from '../World/Minimap';
 import { TILE_TYPES, BARS, ARCADES } from '../World/MapData';
+import { AssetManager } from '../Core/AssetManager';
 import type { ArcadeGameType } from '../World/MapData';
 import { Player } from '../Entities/Player';
 import { NPCManager } from '../Entities/NPCManager';
@@ -181,6 +182,9 @@ export class ExplorationScene implements Scene {
         this.screenW = screenW;
         this.screenH = screenH;
         this.input = InputManager.getInstance();
+
+        // Load Remastered Assets
+        AssetManager.loadAll();
 
         // Core
         this.camera = new Camera();
@@ -1832,7 +1836,10 @@ export class ExplorationScene implements Scene {
 
     public render(ctx: CanvasRenderingContext2D) {
         // Clear
-        this.renderer.clear('#06060e');
+        this.renderer.clear('#0a0a1a');
+
+        // Apply Madrugada Tint (4am Indigo) - Lightened from 0.45 to 0.3
+        this.renderer.setGlobalTint('rgba(15, 15, 40, 0.3)');
 
         // 1. Ground
         this.tileRenderer.renderGround(this.renderer, this.camera, this.tileMap);
@@ -1952,6 +1959,9 @@ export class ExplorationScene implements Scene {
         if (this.newspaper.isVisible()) {
             this.newspaper.render(ctx, this.screenW, this.screenH);
         }
+
+        // 10. Lighting Pass (Last step)
+        this.renderer.applyLightingPass();
     }
 
     private renderPoliceOverlay(ctx: CanvasRenderingContext2D) {

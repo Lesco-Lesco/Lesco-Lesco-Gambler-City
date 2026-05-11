@@ -10,6 +10,8 @@ export class Renderer {
     private ctx: CanvasRenderingContext2D;
     public width: number;
     public height: number;
+    private globalTint: string | null = null;
+    private lights: { x: number, y: number, radius: number, color: string, intensity: number }[] = [];
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -263,6 +265,81 @@ export class Renderer {
     /**
      * Draw a pixel-art sprite (simple colored rect) at iso world position.
      */
+    /**
+     * Draw a textured isometric sprite.
+     */
+    public drawTexturedIso(
+        camera: Camera,
+        tileX: number,
+        tileY: number,
+        image: HTMLImageElement,
+        anchorX: number = 0.5,
+        anchorY: number = 1.0,
+        heightOffset: number = 0
+    ) {
+        const { sx, sy } = camera.worldToScreen(tileX, tileY);
+        const z = camera.zoom;
+        const w = image.width * z;
+        const h = image.height * z;
+
+        const x = sx - w * anchorX;
+        const y = sy - h * anchorY - (heightOffset * z);
+
+        // Simple Culling
+        if (x + w < 0 || x > this.width || y + h < 0 || y > this.height) return;
+
+        this.ctx.drawImage(image, x, y, w, h);
+    }
+
+    /**
+     * Set a global color tint (e.g. for dawn/madrugada)
+     */
+    public setGlobalTint(color: string | null) {
+        this.globalTint = color;
+    }
+
+    /**
+     * Add a light point to be rendered in the lighting pass
+     */
+    public addLightPoint(x: number, y: number, radius: number, color: string, intensity: number = 1.0) {
+        this.lights.push({ x, y, radius, color, intensity });
+    }
+
+    /**
+     * Apply lighting pass: global tint + light points
+     */
+    public applyLightingPass() {
+        if (!this.globalTint && this.lights.length === 0) return;
+
+        // 1. Save state
+        this.ctx.save();
+
+        // 2. Apply Global Tint (Atmosphere)
+        if (this.globalTint) {
+            this.ctx.globalCompositeOperation = 'multiply';
+            this.ctx.fillStyle = this.globalTint;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
+
+        // 3. Apply Light Points
+        this.ctx.globalCompositeOperation = 'screen';
+        for (const light of this.lights) {
+            const grad = this.ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.radius);
+            grad.addColorStop(0, light.color);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            this.ctx.globalAlpha = light.intensity;
+            this.ctx.fillStyle = grad;
+            this.ctx.beginPath();
+            this.ctx.arc(light.x, light.y, light.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // 4. Reset
+        this.ctx.restore();
+        this.lights = []; // Clear for next frame
+    }
+
     public drawIsoSprite(
         camera: Camera,
         worldX: number,

@@ -8,6 +8,7 @@ import { Camera, TILE_WIDTH, TILE_HEIGHT } from '../Core/Camera';
 import { Renderer } from '../Core/Renderer';
 import { TileMap } from './TileMap';
 import { TILE_TYPES, STREET_SIGNS, AREA_LABELS, CROSSWALKS, LAMPPOST_POSITIONS, BARS, ARCADES } from './MapData';
+import { AssetManager } from '../Core/AssetManager';
 
 // Simple seeded random for consistent visuals per tile
 function seededRandom(x: number, y: number): number {
@@ -22,6 +23,11 @@ const isSolidType = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_T
     t === TILE_TYPES.CHURCH || t === TILE_TYPES.GRASS || t === TILE_TYPES.BAR;
 const isRes = (t: number) => t === TILE_TYPES.BUILDING_LOW || t === TILE_TYPES.BUILDING_TALL || t === TILE_TYPES.BAR;
 
+const isNobleArea = (x: number, y: number) => {
+    // Central area around Shopping Mall and Church
+    return (x >= 110 && x <= 170 && y >= 70 && y <= 200);
+};
+
 export class TileRenderer {
     /**
      * PASS 1: Render only ground tiles (flat surfaces).
@@ -32,6 +38,10 @@ export class TileRenderer {
         const mapH = tileMap.getHeight();
         const data = tileMap.getData();
         const ctx = renderer.getContext();
+        const asphaltTex = AssetManager.getImage('asphalt');
+        const sidewalkTex = AssetManager.getImage('sidewalk');
+        const nobleAsphaltTex = AssetManager.getImage('noble_asphalt');
+        const nobleSidewalkTex = AssetManager.getImage('noble_sidewalk');
 
         // View Culling for Ground using properly projected corners
         const p1 = camera.screenToWorld(0, 0);
@@ -99,23 +109,72 @@ export class TileRenderer {
                     const hh = (TILE_HEIGHT / 2) * z;
 
                     // STEP 1 — Full-width asphalt (edge-to-edge, creates continuous roads)
-                    ctx.fillStyle = isAlley ? '#2e2e38' : '#48485a';
-                    ctx.beginPath();
-                    ctx.moveTo(sx, sy - hh);
-                    ctx.lineTo(sx + hw, sy);
-                    ctx.lineTo(sx, sy + hh);
-                    ctx.lineTo(sx - hw, sy);
-                    ctx.closePath();
-                    ctx.fill();
+                    const isNoble = isNobleArea(x, y);
+                    const currentAsphalt = isNoble ? (nobleAsphaltTex || asphaltTex) : asphaltTex;
+
+                    if (currentAsphalt) {
+                        ctx.save();
+                        // Isometric transform for pattern
+                        ctx.beginPath();
+                        ctx.moveTo(sx, sy - hh);
+                        ctx.lineTo(sx + hw, sy);
+                        ctx.lineTo(sx, sy + hh);
+                        ctx.lineTo(sx - hw, sy);
+                        ctx.closePath();
+                        ctx.clip();
+
+                        // Scale pattern to match tile size
+                        const pattern = ctx.createPattern(currentAsphalt, 'repeat');
+                        if (pattern) {
+                            ctx.fillStyle = pattern;
+                            ctx.translate(sx, sy);
+                            ctx.rotate(Math.PI / 4);
+                            ctx.scale(z * 0.5, z * 0.5);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    } else {
+                        ctx.fillStyle = isAlley ? '#2e2e38' : '#48485a';
+                        ctx.beginPath();
+                        ctx.moveTo(sx, sy - hh);
+                        ctx.lineTo(sx + hw, sy);
+                        ctx.lineTo(sx, sy + hh);
+                        ctx.lineTo(sx - hw, sy);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
 
                     // STEP 2 — Per-edge sidewalk strips (ONLY on building-facing edges)
-                    // Edge→neighbor mapping (verified for this isometric projection):
-                    //   ptTop→ptRight  ↔  N neighbor (x, y-1)
-                    //   ptRight→ptBot  ↔  E neighbor (x+1, y)
-                    //   ptBot→ptLeft   ↔  S neighbor (x, y+1)
-                    //   ptLeft→ptTop   ↔  W neighbor (x-1, y)
+                    const currentSidewalk = isNoble ? (nobleSidewalkTex || sidewalkTex) : sidewalkTex;
                     const sw = isAlley ? '#5e5e64' : '#7a7a82';
                     const si = isAlley ? 0.34 : 0.24;        // sidewalk inset fraction
+
+                    // Helper to draw sidewalk with optional texture
+                    const drawSidewalkEdge = (pts: {x: number, y: number}[]) => {
+                        ctx.beginPath();
+                        ctx.moveTo(pts[0].x, pts[0].y);
+                        ctx.lineTo(pts[1].x, pts[1].y);
+                        ctx.lineTo(pts[2].x, pts[2].y);
+                        ctx.lineTo(pts[3].x, pts[3].y);
+                        ctx.closePath();
+
+                        if (currentSidewalk) {
+                            ctx.save();
+                            ctx.clip();
+                            const pattern = ctx.createPattern(currentSidewalk, 'repeat');
+                            if (pattern) {
+                                ctx.fillStyle = pattern;
+                                ctx.translate(sx, sy);
+                                ctx.rotate(Math.PI / 4);
+                                ctx.scale(z * 0.5, z * 0.5);
+                                ctx.fill();
+                            }
+                            ctx.restore();
+                        } else {
+                            ctx.fillStyle = sw;
+                            ctx.fill();
+                        }
+                    };
 
                     // North edge: faces neighbor tN (x, y-1)
                     let drawN = !nRoad && isSolidType(tN);
@@ -126,13 +185,12 @@ export class TileRenderer {
                         if (hasResN && seededRandom(x, y * 7) < 0.6) drawN = true;
                     }
                     if (drawN) {
-                        ctx.fillStyle = sw;
-                        ctx.beginPath();
-                        ctx.moveTo(sx, sy - hh);           // ptTop
-                        ctx.lineTo(sx + hw, sy);                // ptRight
-                        ctx.lineTo(sx + hw * (1 - si), sy);                // inset ptRight
-                        ctx.lineTo(sx, sy - hh * (1 - si));    // inset ptTop
-                        ctx.closePath(); ctx.fill();
+                        drawSidewalkEdge([
+                            {x: sx, y: sy - hh},
+                            {x: sx + hw, y: sy},
+                            {x: sx + hw * (1 - si), y: sy},
+                            {x: sx, y: sy - hh * (1 - si)}
+                        ]);
                     }
 
                     // East edge: faces neighbor tE (x+1, y)
@@ -144,13 +202,12 @@ export class TileRenderer {
                         if (hasResE && seededRandom(100 + x, y * 3) < 0.6) drawE = true;
                     }
                     if (drawE) {
-                        ctx.fillStyle = sw;
-                        ctx.beginPath();
-                        ctx.moveTo(sx + hw, sy);                // ptRight
-                        ctx.lineTo(sx, sy + hh);           // ptBot
-                        ctx.lineTo(sx, sy + hh * (1 - si));    // inset ptBot
-                        ctx.lineTo(sx + hw * (1 - si), sy);                // inset ptRight
-                        ctx.closePath(); ctx.fill();
+                        drawSidewalkEdge([
+                            {x: sx + hw, y: sy},
+                            {x: sx, y: sy + hh},
+                            {x: sx, y: sy + hh * (1 - si)},
+                            {x: sx + hw * (1 - si), y: sy}
+                        ]);
                     }
 
                     // South edge: faces neighbor tS (x, y+1)
@@ -162,13 +219,12 @@ export class TileRenderer {
                         if (hasResS && seededRandom(200 + x, y * 5) < 0.6) drawS = true;
                     }
                     if (drawS) {
-                        ctx.fillStyle = sw;
-                        ctx.beginPath();
-                        ctx.moveTo(sx, sy + hh);           // ptBot
-                        ctx.lineTo(sx - hw, sy);                // ptLeft
-                        ctx.lineTo(sx - hw * (1 - si), sy);                // inset ptLeft
-                        ctx.lineTo(sx, sy + hh * (1 - si));    // inset ptBot
-                        ctx.closePath(); ctx.fill();
+                        drawSidewalkEdge([
+                            {x: sx, y: sy + hh},
+                            {x: sx - hw, y: sy},
+                            {x: sx - hw * (1 - si), y: sy},
+                            {x: sx, y: sy + hh * (1 - si)}
+                        ]);
                     }
 
                     // West edge: faces neighbor tW (x-1, y)
@@ -180,13 +236,12 @@ export class TileRenderer {
                         if (hasResW && seededRandom(300 + x, y * 11) < 0.6) drawW = true;
                     }
                     if (drawW) {
-                        ctx.fillStyle = sw;
-                        ctx.beginPath();
-                        ctx.moveTo(sx - hw, sy);                // ptLeft
-                        ctx.lineTo(sx, sy - hh);           // ptTop
-                        ctx.lineTo(sx, sy - hh * (1 - si));    // inset ptTop
-                        ctx.lineTo(sx + -hw * (1 - si), sy);                // inset ptLeft
-                        ctx.closePath(); ctx.fill();
+                        drawSidewalkEdge([
+                            {x: sx - hw, y: sy},
+                            {x: sx, y: sy - hh},
+                            {x: sx, y: sy - hh * (1 - si)},
+                            {x: sx - hw * (1 - si), y: sy}
+                        ]);
                     }
 
                     // (asphalt is now full-width in STEP 1, per-edge sidewalk in STEP 2)
@@ -414,7 +469,18 @@ export class TileRenderer {
                                 top = c.top; left = c.left; right = c.right;
                             }
 
-                            renderer.drawCustomIsoBlock(camera, tileX, tileY, h, top, left, right, minX, maxX, minY, maxY);
+                            // REMASTER: Use area-specific sprites
+                            const casaLaje = AssetManager.getImage('casa_laje');
+                            const nobleBuilding = AssetManager.getImage('noble_building');
+                            const isNoble = isNobleArea(tileX, tileY);
+
+                            if (isNoble && nobleBuilding && (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL)) {
+                                renderer.drawTexturedIso(camera, tileX, tileY, nobleBuilding);
+                            } else if (!isNoble && casaLaje && (tile === TILE_TYPES.BUILDING_LOW || tile === TILE_TYPES.BUILDING_TALL)) {
+                                renderer.drawTexturedIso(camera, tileX, tileY, casaLaje);
+                            } else {
+                                renderer.drawCustomIsoBlock(camera, tileX, tileY, h, top, left, right, minX, maxX, minY, maxY);
+                            }
 
                             // Only draw details if enough space or centered
                             const width = (maxX - minX);
@@ -802,7 +868,26 @@ export class TileRenderer {
             drawables.push({
                 y: lamp.x + lamp.y + 0.5,
                 draw: () => {
-                    this.drawStreetLamp(ctx, camera, lamp.x, lamp.y);
+                    const { sx, sy } = camera.worldToScreen(lamp.x, lamp.y);
+                    const z = camera.zoom;
+                    const h = 25 * z;
+                    
+                    // Add Light Point for lighting pass (Subtle localized glow)
+                    renderer.addLightPoint(sx, sy - h, 120 * z, 'rgba(255, 180, 100, 0.25)', 0.6);
+
+                    // Draw the lamp post (simple line/rect for now)
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 2 * z;
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy);
+                    ctx.lineTo(sx, sy - h);
+                    ctx.stroke();
+
+                    // Bulb
+                    ctx.fillStyle = '#ffaa44';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy - h, 3 * z, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             });
         }
@@ -1742,46 +1827,6 @@ export class TileRenderer {
         ctx.textAlign = 'center';
         ctx.fillText(goingDown ? '\u25BC' : '\u25B2', sx, sy - 5 * z);
     }
-
-    /** Draw a pixel art street lamp */
-    private drawStreetLamp(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
-        const { sx, sy } = camera.worldToScreen(tileX, tileY);
-        const z = camera.zoom;
-        const h = 25 * z;
-
-        // Pole
-        ctx.fillStyle = '#222';
-        ctx.fillRect(sx - 1 * z, sy - h, 2 * z, h);
-
-        // Arm
-        ctx.fillRect(sx - 1 * z, sy - h, 6 * z, 1.5 * z);
-
-        // Lamp head
-        ctx.fillStyle = '#333';
-        ctx.fillRect(sx + 3 * z, sy - h + 1 * z, 4 * z, 2 * z);
-
-        // Emissive Light Source with BLOOM
-        const flicker = Math.sin(Date.now() / 150 + tileX * 10) * 0.08 + 0.92;
-        const lx = sx + 5 * z;
-        const ly = sy - h + 2.75 * z;
-
-        // Layered bloom for richness
-        const bloomSize = 12 * z * flicker;
-        // Optimized: Simplified gradient with fewer stops
-        const bloomGrad = ctx.createRadialGradient(lx, ly, 0, lx, ly, bloomSize);
-        bloomGrad.addColorStop(0, 'rgba(255, 240, 200, 0.6)');
-        bloomGrad.addColorStop(1, 'rgba(255, 200, 50, 0)');
-
-        ctx.fillStyle = bloomGrad;
-        ctx.beginPath();
-        ctx.arc(lx, ly, bloomSize, 0, Math.PI * 2);
-        ctx.fill();
-
-        // The bulb itself
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(sx + 3.5 * z, sy - h + 2 * z, 3 * z, 1.5 * z);
-    }
-
     /** Draw entrance with glowing frame */
     private drawEntrance(ctx: CanvasRenderingContext2D, camera: Camera, tileX: number, tileY: number) {
         const { sx, sy } = camera.worldToScreen(tileX, tileY);
