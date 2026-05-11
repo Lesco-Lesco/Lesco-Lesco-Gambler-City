@@ -1529,22 +1529,8 @@ export class TileRenderer {
         const gap = 2 * z * scale;
         const isShopping = tileType === TILE_TYPES.SHOPPING;
 
-        // Clip exactly to the two visible faces
-        ctx.save();
-        ctx.beginPath();
-        // Left face
-        ctx.moveTo(p01.x, p01.y);
-        ctx.lineTo(p11.x, p11.y);
-        ctx.lineTo(p11.x, p11.y - h);
-        ctx.lineTo(p01.x, p01.y - h);
-        ctx.closePath();
-        // Right face
-        ctx.moveTo(p11.x, p11.y);
-        ctx.lineTo(p10.x, p10.y);
-        ctx.lineTo(p10.x, p10.y - h);
-        ctx.lineTo(p11.x, p11.y - h);
-        ctx.closePath();
-        ctx.clip();
+        // O clip mask foi removido para extrema melhoria de performance. 
+        // As janelas já estão devidamente restritas dentro da área visível pelo cheque "if (py + winH > faceBaseY || py < faceTopY)".
 
         if (isShopping) {
             const drawShoppingPattern = (faceIndex: number) => {
@@ -1575,6 +1561,7 @@ export class TileRenderer {
                     const py = faceTopY + marginV;
 
                     if (py + curWinH > faceBaseY || py < faceTopY) continue;
+                    if (py > ctx.canvas.height + 50 || py + curWinH < -50) continue;
 
                     const vx = faceIndex === 0 ? curWinW_iso : -curWinW_iso;
                     const vy = curWinW_iso * (TILE_HEIGHT / TILE_WIDTH);
@@ -1598,7 +1585,6 @@ export class TileRenderer {
             };
             drawShoppingPattern(0);
             drawShoppingPattern(1);
-            ctx.restore();
             return;
         }
 
@@ -1627,6 +1613,7 @@ export class TileRenderer {
             const py = faceTopY + marginV + row * (winH + gap);
 
             if (py + winH > faceBaseY || py < faceTopY) return;
+            if (py > ctx.canvas.height + 50 || py + winH < -50) return;
 
             const vx = faceIndex === 0 ? winW_iso : -winW_iso;
             const vy = winW_iso * (TILE_HEIGHT / TILE_WIDTH);
@@ -1667,7 +1654,6 @@ export class TileRenderer {
             drawIsoWindow(0, r);
             drawIsoWindow(1, r);
         }
-        ctx.restore(); // End wall clip
     }
 
 
