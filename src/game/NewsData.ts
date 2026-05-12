@@ -19,12 +19,13 @@ export const LATEST_NEWS_BASE: NewsItem = {
     title: "SANTA CRUZ EM FOCO",
     date: "Atualização Oficial",
     description: [
-        "• SUNSET PARADISE: O novo Pinball de Santa Cruz! Física de precisão, luzes neon e o bônus 'Ball Saved' para salvar sua sorte no litoral.",
-        "• RANKING GLOBAL 100%: A conexão mundial estabilizou! Cada centavo ganho, conquista e aposta na cidade agora te levam ao topo do placar geral.",
-        "• ECONOMIA FIXA: Chega de negociar. As mesas agora cobram cotas únicas de aposta baseadas no volume do seu bolso.",
-        "• PROMOÇÃO NO FLIPERAMA: O dono enlouqueceu! As fichas estão em promoção, agora R$ 10 rendem 3 créditos.",
-        "• SINUCA AFIADA: Taco calibrado! Toque leve para mirar com precisão, ou segure para girar o taco mais rápido.",
+        "*** NOTA EXTRAORDINÁRIA ***",
+        "RUMORES INDICAM QUE UM FORASTEIRO DE CABEÇORRA IMENSA, DO PORTE DE UMA CAIXA D'ÁGUA, ESTÁ DESCENDO PARA LESCO LESCO. O ILUDIDO VEM 'FAZER TESTES' E TENTAR A SORTE NO RANKING GLOBAL. BOAS-VINDAS AO ABATEDOURO! APROVEITAMOS PARA AVISAR AS FARMÁCIAS: MELHOR AUMENTAREM OS COMPRIMIDOS DE DOR DE CABEÇA. VÃO PRECISAR DE ASPIRINAS DO TAMANHO DE UMA PIZZA QUANDO A REALIDADE BATER NESSA MARQUISE CRANIANA.",
         "",
+        "• SUNSET PARADISE: O novo Pinball de Santa Cruz! Física de precisão e luzes neon no litoral.",
+        "• RANKING GLOBAL 100%: Cada centavo ganho, conquista e aposta te levam ao topo do placar.",
+        "• ECONOMIA FIXA: As mesas agora cobram cotas únicas de aposta baseadas no volume do seu bolso.",
+        "• PROMOÇÃO NO FLIPERAMA: O dono enlouqueceu! Agora R$ 10 rendem 3 créditos.",
     ]
 };
 
