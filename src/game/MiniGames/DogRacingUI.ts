@@ -158,7 +158,7 @@ export class DogRacingUI implements IMinigameUI {
             ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(45));
         }
 
-        const hint = mobile ? '[DPAD] Selecionar • [OK] Correr' : '↑↓ SELECIONAR • ESPAÇO INICIAR';
+        const hint = mobile ? '[DPAD] Selecionar • [OK] Correr • [ ✕ ] Sair' : '↑↓ SELECIONAR • ESPAÇO INICIAR • ESC SAIR';
         drawMinigameFooter(ctx, w, h, theme, hint);
     }
 
@@ -338,6 +338,6 @@ export class DogRacingUI implements IMinigameUI {
         // Footer hint
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-        ctx.fillText(mobile ? '[OK] Sair' : 'ESPAÇO PARA SAIR', cx, h - s(80));
+        ctx.fillText(mobile ? '[OK] Nova Partida • [ ✕ ] Sair' : 'ESPAÇO NOVA PARTIDA • ESC SAIR', cx, h - s(80));
     }
 }

@@ -117,10 +117,10 @@ export class VideoBingoUI implements IMinigameUI {
         } else if (this.game.phase === 'betting') {
             const bmanager = (window as any).bmanager;
             const isBroke = (bmanager?.playerMoney || 0) < this.game.betAmount;
-            const hint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? `←→ Alterar (R$${this.game.betAmount}) • [OK] Comprar` : `SETAS ALTERAR VALOR (R$${this.game.betAmount}) • ESPAÇO COMPRAR ENTRADA`);
+            const hint = isBroke ? (mobile ? 'SALDO INSUFICIENTE - [ ✕ ] SAIR' : 'SALDO INSUFICIENTE - ESC PARA SAIR') : (mobile ? `[DPAD] Alterar (R$${this.game.betAmount}) • [OK] Comprar • [ ✕ ] Sair` : `SETAS ALTERAR (R$${this.game.betAmount}) • ESPAÇO COMPRAR • ESC SAIR`);
             drawMinigameFooter(ctx, w, h, theme, hint);
         } else if (this.game.phase === 'picking') {
-            const hint = mobile ? '[DPAD] Selecionar • [OK] Escolher' : 'SETAS SELECIONAR • ESPAÇO ESCOLHER';
+            const hint = mobile ? '[DPAD] Selecionar • [OK] Escolher • [ ✕ ] Sair' : 'SETAS SELECIONAR • ESPAÇO ESCOLHER • ESC SAIR';
             drawMinigameFooter(ctx, w, h, theme, hint);
         }
     }
@@ -301,6 +301,6 @@ export class VideoBingoUI implements IMinigameUI {
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
         const mobile = isMobile();
-        ctx.fillText(mobile ? '[OK] Reiniciar' : 'ESPAÇO PARA REINICIAR', w / 2, h * 0.8);
+        ctx.fillText(mobile ? '[OK] Reiniciar • [ ✕ ] Sair' : 'ESPAÇO REINICIAR • ESC SAIR', w / 2, h * 0.8);
     }
 }

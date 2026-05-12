@@ -114,7 +114,7 @@ export class PalitinhoUI implements IMinigameUI {
                 ctx.fillText(this.game.resultMessage, cx, footerTop + FOOTER_H * 0.55);
 
                 const resultHint = mobile
-                    ? '[OK] Continuar'
+                    ? '[OK] Continuar • [ ✕ ] Sair'
                     : 'ESPAÇO NOVAMENTE | ENTER SAIR';
                 drawMinigameFooter(ctx, screenW, screenH, theme, resultHint);
             }
@@ -123,7 +123,7 @@ export class PalitinhoUI implements IMinigameUI {
         // Action Hints
         if (phase !== 'result') {
             const helpHint = mobile
-                ? '[DPAD] Escolher • [OK] Confirmar'
+                ? '[DPAD] Escolher • [OK] Confirmar • [ ✕ ] Sair'
                 : '[←→] ESCOLHER  [ENTER] CONFIRMAR  [ESC] SAIR';
             drawMinigameFooter(ctx, screenW, screenH, theme, helpHint);
         }

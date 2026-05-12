@@ -77,7 +77,7 @@ export class PoliceManager {
                 this.raidCheckTimer += dt;
                 if (this.raidCheckTimer >= this.RAID_CHECK_INTERVAL) {
                     this.raidCheckTimer = 0;
-                    if (playerMoney > 10) {
+                    if (playerMoney >= 20) {
                         const chance = this.getRaidChance(x, y, isInsideBar);
                         if (Math.random() < chance) {
                             this.triggerRaid(0, isInBribedBar);

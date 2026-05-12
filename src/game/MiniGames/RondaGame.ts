@@ -19,6 +19,7 @@ export interface Card {
 }
 
 export class RondaGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public deck: Card[] = [];
     public objectiveCards: Card[] = [];
     public communityCards: Card[] = []; // Revealed cards
@@ -43,7 +44,7 @@ export class RondaGame implements IMinigame {
         this.message = 'Escolha uma carta!';
         this.winAmount = 0;
 
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
 
         // Deal 2 objectives with DIFFERENT ranks
         this.objectiveCards = [];
@@ -133,6 +134,7 @@ export class RondaGame implements IMinigame {
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;

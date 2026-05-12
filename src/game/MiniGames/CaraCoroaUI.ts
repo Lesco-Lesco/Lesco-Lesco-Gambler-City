@@ -105,7 +105,7 @@ export class CaraCoroaUI implements IMinigameUI {
             }
         }
 
-        const hint = isMobile() ? 'DPAD Selecionar • [OK] Confirmar' : '←→ ESCOLHER • ENTER CONFIRMAR • ESC SAIR';
+        const hint = isMobile() ? '[DPAD] Selecionar • [OK] Confirmar • [ ✕ ] Sair' : '←→ ESCOLHER • ENTER CONFIRMAR • ESC SAIR';
         drawMinigameFooter(ctx, screenW, screenH, theme, hint);
     }
 
@@ -259,6 +259,7 @@ export class CaraCoroaUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText('ESPAÇO PARA NOVA PARTIDA', cx, y + s(40));
+        const mobile = isMobile();
+        ctx.fillText(mobile ? '[OK] Nova Partida • [ ✕ ] Sair' : 'ESPAÇO NOVA PARTIDA • ESC SAIR', cx, y + s(40));
     }
 }

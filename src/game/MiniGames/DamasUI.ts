@@ -119,7 +119,7 @@ export class DamasUI implements IMinigameUI {
         }
 
         const hint = isMobile()
-            ? '[DPAD] Mover • [OK] Selecionar/Mover peça'
+            ? '[DPAD] Mover • [OK] Jogar • [ ✕ ] Sair'
             : '↑↓←→ Cursor • ESPAÇO Selecionar/Mover • ESC Sair';
         drawMinigameFooter(ctx, width, height, theme, hint);
     }
@@ -326,6 +326,6 @@ export class DamasUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText(isMobile() ? '[OK] Continuar' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
+        ctx.fillText(isMobile() ? '[OK] Continuar • [ ✕ ] Sair' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
     }
 }

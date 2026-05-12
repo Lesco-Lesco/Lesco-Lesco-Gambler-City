@@ -11,6 +11,7 @@ export type JokenpoChoice = 'rock' | 'paper' | 'scissors' | null;
 export type JokenpoPhase = 'betting' | 'choosing' | 'showdown' | 'result';
 
 export class JokenpoGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: JokenpoPhase = 'betting';
     public betAmount: number = 10;
     public minBet: number = 10;
@@ -26,11 +27,12 @@ export class JokenpoGame implements IMinigame {
 
     constructor(playerMoney: number) {
         this.playerMoney = playerMoney;
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
         this.selectedBet = this.minBet;
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         // Cap max bet by both economy limits and player money
@@ -136,6 +138,6 @@ export class JokenpoGame implements IMinigame {
         this.npcChoice = null;
         this.winner = null;
         this.resultMessage = '';
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

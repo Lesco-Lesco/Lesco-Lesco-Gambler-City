@@ -30,6 +30,7 @@ export interface DominoPlayer {
 export type DominoPhase = 'betting' | 'playing' | 'result';
 
 export class DominoGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public players: DominoPlayer[] = [];
     public board: DominoPiece[] = []; // Linear sequence
     public pool: DominoPiece[] = [];
@@ -44,10 +45,11 @@ export class DominoGame implements IMinigame {
 
     constructor() {
         this.initializePlayers();
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
@@ -307,6 +309,6 @@ export class DominoGame implements IMinigame {
         this.board = [];
         this.pool = [];
         this.winner = null;
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

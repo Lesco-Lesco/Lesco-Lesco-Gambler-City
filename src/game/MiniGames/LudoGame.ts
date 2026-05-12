@@ -35,6 +35,7 @@ const HOME_STRETCH_SIZE = 6;
 const PAWNS_PER_PLAYER = 2;
 
 export class LudoGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: LudoPhase = 'betting';
     public players: LudoPlayer[] = [];
     public turnIndex: number = 0;
@@ -50,10 +51,11 @@ export class LudoGame implements IMinigame {
 
     constructor() {
         this.initPlayers();
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery
             ? EconomyManager.getInstance().getPeripheryBetLimits()
             : EconomyManager.getInstance().getBetLimits();
@@ -343,6 +345,6 @@ export class LudoGame implements IMinigame {
                 pawn.isHome = false;
             }
         }
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

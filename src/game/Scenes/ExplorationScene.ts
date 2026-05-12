@@ -158,8 +158,8 @@ export class ExplorationScene implements Scene {
     private bankruptcyData: { amount: number, message: string, character: string } | null = null;
     private showBankruptcyOverlay: boolean = false;
 
-    // Zoom Stages (6 stages: 0.5x to 3.0x)
-    private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+    // Zoom Stages (8 stages: 0.5x to 4.0x)
+    private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
     private zoomStageIndex: number = 3; // Default 2.0x (reverted from 2.5x)
     // Player light source (Softened for natural look)
     private playerLight = {
@@ -226,9 +226,9 @@ export class ExplorationScene implements Scene {
 
         // Zoom inicial — maior por padrão para melhor experiência e legibilidade
         if (isMobile()) {
-            this.camera.zoom = 2.5;
-            this.camera.targetZoom = 2.5;
-            this.zoomStageIndex = 4; // aponta para zoomStages[4] = 2.5
+            this.camera.zoom = 3.5;
+            this.camera.targetZoom = 3.5;
+            this.zoomStageIndex = 6; // aponta para zoomStages[6] = 3.5
         } else {
             this.camera.zoom = 2.0; // Revertido de 2.5 para 2.0 conforme solicitação
             this.camera.targetZoom = 2.0;
@@ -603,7 +603,7 @@ export class ExplorationScene implements Scene {
 
         // Zoom Debug
         if (this.input.wasPressed('Equal') || this.input.wasPressed('NumpadAdd')) {
-            this.camera.targetZoom = Math.min(3.0, this.camera.targetZoom + 0.25);
+            this.camera.targetZoom = Math.min(4.0, this.camera.targetZoom + 0.25);
         }
         if (this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract')) {
             this.camera.targetZoom = Math.max(0.5, this.camera.targetZoom - 0.25);
@@ -728,7 +728,9 @@ export class ExplorationScene implements Scene {
                     AchievementManager.getInstance().recordRaidSurvived();
                 } else {
                     bmanager.addNotification("Você está quebrado demais até para propina!", 3);
-                    pm.phase = 'interruption';
+                    pm.currentJoke = "Liso desse jeito? SOME DAQUI antes que eu te prenda por vadiagem!";
+                    pm.phase = 'consequence';
+                    SoundManager.getInstance().play('lose');
                 }
             }
         } else if (pm.phase === 'batalha_dados') {
@@ -2041,7 +2043,7 @@ export class ExplorationScene implements Scene {
                 ctx.fillStyle = '#fff';
                 ctx.font = `bold ${UIScale.r(14)}px monospace`;
                 const hint = mobile
-                    ? "[D-Pad ↑] BANCA (150)   [D-Pad ↓] CONTRIBUIR (10)"
+                    ? "[ OK ] BANCA (150)   [ ✕ ] CONTRIBUIR (10)"
                     : "[Y] JOGAR COMO BANCA (150)   [N] PAGAR CONTRIBUIÇÃO (10)";
                 ctx.fillText(hint, cx, cy + s(120));
             } else {
@@ -2051,7 +2053,7 @@ export class ExplorationScene implements Scene {
 
                 ctx.fillStyle = '#fff';
                 ctx.font = `bold ${UIScale.r(14)}px monospace`;
-                const hint = mobile ? "[D-Pad ↓] PAGAR CONTRIBUIÇÃO (10)" : "[N] PAGAR CONTRIBUIÇÃO (10)";
+                const hint = mobile ? "[ ✕ ] PAGAR CONTRIBUIÇÃO (10)" : "[N] PAGAR CONTRIBUIÇÃO (10)";
                 ctx.fillText(hint, cx, cy + s(120));
             }
         } else if (pm.phase === 'batalha_dados' || pm.phase === 'batalha_dados_resultado') {

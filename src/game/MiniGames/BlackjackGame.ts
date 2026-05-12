@@ -19,6 +19,7 @@ export interface Card {
 }
 
 export class BlackjackGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: BlackjackPhase = 'betting';
     public betAmount: number = 10;
     public minBet: number = 10;
@@ -31,10 +32,11 @@ export class BlackjackGame implements IMinigame {
 
     constructor(initialBet: number = 10) {
         this.betAmount = initialBet;
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
@@ -159,7 +161,7 @@ export class BlackjackGame implements IMinigame {
         this.dealerHand = [];
         this.winner = null;
         this.resultMessage = '';
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
         this.betAmount = this.minBet;
     }
 }

@@ -130,7 +130,7 @@ export class DominoUI implements IMinigameUI {
             }
         }
 
-        const hint = isMobile() ? '[DPAD] Mover • [OK] Jogar • [E] Cavar' : '←→ PEÇAS • ESPAÇO JOGAR • [C] CAVAR • ESC SAIR';
+        const hint = isMobile() ? '[DPAD] Mover • [OK] Jogar • [ E ] Cavar • [ ✕ ] Sair' : '←→ PEÇAS • ESPAÇO JOGAR • [C] CAVAR • ESC SAIR';
         drawMinigameFooter(ctx, width, height, theme, hint);
     }
 
@@ -383,6 +383,6 @@ export class DominoUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText(isMobile() ? '[OK] Continuar' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
+        ctx.fillText(isMobile() ? '[OK] Continuar • [ ✕ ] Sair' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
     }
 }

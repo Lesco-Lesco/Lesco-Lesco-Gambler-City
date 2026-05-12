@@ -115,7 +115,7 @@ export class FanTanUI implements IMinigameUI {
             }
         }
 
-        const hint = isMobile() ? 'DPAD Selecionar • [OK] Confirmar' : '←→ SELECIONAR • ENTER CONFIRMAR • ESC SAIR';
+        const hint = isMobile() ? '[DPAD] Selecionar • [OK] Confirmar • [ ✕ ] Sair' : '←→ SELECIONAR • ENTER CONFIRMAR • ESC SAIR';
         drawMinigameFooter(ctx, screenW, screenH, theme, hint);
     }
 
@@ -283,6 +283,6 @@ export class FanTanUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText('ESPAÇO PARA NOVA PARTIDA • ESC PARA SAIR', cx, cy + s(80));
+        ctx.fillText(isMobile() ? '[OK] Nova Partida • [ ✕ ] Sair' : 'ESPAÇO NOVA PARTIDA • ESC SAIR', cx, cy + s(80));
     }
 }

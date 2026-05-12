@@ -19,6 +19,7 @@ interface PalitinhoPlayer {
 }
 
 export class PalitinhoGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: PalitinhoPhase = 'betting';
     public players: PalitinhoPlayer[] = [];
     public betAmount: number = 20;
@@ -34,7 +35,7 @@ export class PalitinhoGame implements IMinigame {
     public maxBet: number = 500;
 
     constructor() {
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
         this.setupPlayers();
     }
 
@@ -48,6 +49,7 @@ export class PalitinhoGame implements IMinigame {
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = Math.min(limits.max, 500); // Caps for street game
@@ -198,6 +200,6 @@ export class PalitinhoGame implements IMinigame {
         this.matchsticks = [];
         this.currentPlayerIdx = 0;
         this.resultMessage = '';
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

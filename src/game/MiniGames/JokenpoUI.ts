@@ -123,7 +123,7 @@ export class JokenpoUI implements IMinigameUI {
             this.drawResultUI(ctx, cx, cy, theme);
         }
 
-        const hint = isMobile() ? 'DPAD Selecionar • [OK] Confirmar' : '←→ SELECIONAR • ESPAÇO CONFIRMAR • ESC SAIR';
+        const hint = isMobile() ? '[DPAD] Selecionar • [OK] Confirmar • [ ✕ ] Sair' : '←→ SELECIONAR • ESPAÇO CONFIRMAR • ESC SAIR';
         drawMinigameFooter(ctx, screenW, screenH, theme, hint);
         ctx.restore();
     }
@@ -316,8 +316,8 @@ export class JokenpoUI implements IMinigameUI {
 
         // Hint de nova partida — fonte menor e separada visualmente
         const canPlayAgain = BichoManager.getInstance().playerMoney + this.game.settle() >= this.game.minBet;
-        const playNextHint = mobile ? '[OK] Nova Partida' : 'ESPAÇO PARA NOVA PARTIDA';
-        const hintText = canPlayAgain ? playNextHint : 'SALDO INSUFICIENTE - ESC PARA SAIR';
+        const playNextHint = mobile ? '[OK] Nova Partida • [ ✕ ] Sair' : 'ESPAÇO NOVA PARTIDA • ESC SAIR';
+        const hintText = canPlayAgain ? playNextHint : (mobile ? 'SALDO INSUFICIENTE - [ ✕ ] SAIR' : 'SALDO INSUFICIENTE - ESC PARA SAIR');
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(mobile ? 11 : 13)}px ${theme.bodyFont}`;
         const hintY = resultY + (line2 ? lineH * 2 : lineH) + s(mobile ? 14 : 18);

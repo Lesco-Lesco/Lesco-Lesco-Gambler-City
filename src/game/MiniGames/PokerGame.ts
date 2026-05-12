@@ -27,6 +27,7 @@ export interface PokerPlayer {
 }
 
 export class PokerGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: PokerPhase = 'betting';
     public betAmount: number = 10; // Big Blind
     public minBet: number = 10;
@@ -46,10 +47,11 @@ export class PokerGame implements IMinigame {
             { name: 'Geraldo', isHuman: false, hand: [], money: 500, currentBet: 0, folded: false, lastAction: '' },
             { name: 'Tião', isHuman: false, hand: [], money: 500, currentBet: 0, folded: false, lastAction: '' }
         ];
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPokerPeripheryBetLimits() : EconomyManager.getInstance().getPokerBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
@@ -238,7 +240,7 @@ export class PokerGame implements IMinigame {
         this.resultMessage = '';
         this.communityCards = [];
         this.pot = 0;
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
         this.betAmount = this.minBet;
     }
 }

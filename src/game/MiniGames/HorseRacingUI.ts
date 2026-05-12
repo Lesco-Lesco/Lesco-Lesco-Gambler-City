@@ -150,7 +150,7 @@ export class HorseRacingUI implements IMinigameUI {
             ctx.fillText(`R$ ${this.game.betAmount}`, cx, betY + s(40));
         }
 
-        const hint = mobile ? 'DPAD Selecionar • [OK] Apostar' : '↑↓ SELECIONAR • ESPAÇO CONFIRMAR';
+        const hint = mobile ? '[DPAD] Selecionar • [OK] Apostar • [ ✕ ] Sair' : '↑↓ SELECIONAR • ESPAÇO CONFIRMAR • ESC SAIR';
         drawMinigameFooter(ctx, w, h, theme, hint);
     }
 
@@ -324,7 +324,7 @@ export class HorseRacingUI implements IMinigameUI {
         // Footer hint
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(13)}px ${theme.bodyFont}`;
-        const footerHint = mobile ? '[OK] NOVA PARTIDA' : '[ESPAÇO] NOVA PARTIDA';
+        const footerHint = mobile ? '[OK] Nova Partida • [ ✕ ] Sair' : 'ESPAÇO NOVA PARTIDA • ESC SAIR';
         ctx.fillText(footerHint, cx, h - s(80));
     }
 }

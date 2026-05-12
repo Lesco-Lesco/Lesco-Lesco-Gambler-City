@@ -25,6 +25,7 @@ export type DamasPiece = {
 export type DamasCell = DamasPiece | null;
 
 export class DamasGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: DamasPhase = 'betting';
     public board: DamasCell[][] = [];
     public turnIndex: 0 | 1 = 0; // 0 = human, 1 = NPC
@@ -44,10 +45,11 @@ export class DamasGame implements IMinigame {
     public npcThinkTimer: number = 0;
 
     constructor() {
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery
             ? EconomyManager.getInstance().getPeripheryBetLimits()
             : EconomyManager.getInstance().getBetLimits();
@@ -440,6 +442,6 @@ export class DamasGame implements IMinigame {
         this.multiJumpFrom = null;
         this.npcThinkTimer = 0;
         this.turnIndex = 0;
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

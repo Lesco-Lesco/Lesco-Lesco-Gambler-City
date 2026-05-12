@@ -127,11 +127,11 @@ export class RondaUI implements IMinigameUI {
         let footerHint = '';
         if (this.game.phase === 'betting') {
             footerHint = mobile
-                ? '[OK] Escolher • [EXIT] Sair'
-                : '←→ ESCOLHER CARTA • ESPAÇO JOGAR';
+                ? '[DPAD] Escolher • [OK] Jogar • [ ✕ ] Sair'
+                : '←→ ESCOLHER CARTA • ESPAÇO JOGAR • ESC SAIR';
         } else {
             footerHint = mobile
-                ? '[OK] Reiniciar • [EXIT] Sair'
+                ? '[OK] Reiniciar • [ ✕ ] Sair'
                 : 'ENTER/ESPAÇO JOGAR NOVAMENTE • ESC SAIR';
         }
         drawMinigameFooter(ctx, width, height, theme, footerHint);

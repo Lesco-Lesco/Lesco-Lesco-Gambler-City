@@ -18,6 +18,7 @@ import { ProgressionManager } from '../game/Core/ProgressionManager';
 import { UIScale } from '../game/Core/UIScale';
 import { SoundManager } from '../game/Core/SoundManager';
 import { InputManager } from '../game/Core/InputManager';
+import { PoliceManager } from '../game/PoliceManager';
 import MobileControls from './MobileControls';
 import { useState } from 'react';
 
@@ -49,7 +50,7 @@ const GameCanvas = () => {
                 if (!loop) return;
                 
                 // Only allow pausing in the main exploration scene and without any sub-contexts (dialogues, etc) active
-                if (loop.getActiveScene()?.name === 'exploration' && InputManager.getInstance().getContext() === 'exploration') {
+                if (loop.getActiveScene()?.name === 'exploration' && InputManager.getInstance().getContext() === 'exploration' && PoliceManager.getInstance().phase === 'none') {
                     setIsPaused(prev => {
                         const next = !prev;
                         loop.setPaused(next);

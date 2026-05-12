@@ -146,7 +146,7 @@ export class BlackjackUI implements IMinigameUI {
         }
 
         // Shared footer
-        const footerHint = mobile ? "[EXIT] Sair" : "[ESC] Sair";
+        const footerHint = mobile ? "[ ✕ ] Sair" : "[ESC] Sair";
         drawMinigameFooter(ctx, screenW, screenH, theme, footerHint);
     }
 
@@ -175,7 +175,7 @@ export class BlackjackUI implements IMinigameUI {
         ctx.font = `600 ${r(mobile ? 10 : 12)}px ${theme.bodyFont}`;
         ctx.fillText('DEFINA SUA APOSTA', cx, cy - s(40));
 
-        const hint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? '[OK] Apostar' : 'Enter Confirmar');
+        const hint = isBroke ? (mobile ? 'SALDO INSUFICIENTE - [ ✕ ] SAIR' : 'SALDO INSUFICIENTE - ESC PARA SAIR') : (mobile ? '[OK] Apostar' : 'Enter Confirmar');
         ctx.font = `600 ${r(mobile ? 9 : 11)}px ${theme.bodyFont}`;
         ctx.fillText(hint, cx, cy + s(40));
     }
@@ -187,7 +187,7 @@ export class BlackjackUI implements IMinigameUI {
         ctx.font = `bold ${r(mobile ? 16 : 18)}px ${theme.titleFont}`;
         ctx.textAlign = 'center';
 
-        const hint = mobile ? '[OK] Pedir (Hit) • [E] Parar (Stand)' : '[H] Hit • [S] Stand';
+        const hint = mobile ? '[OK] Pedir (Hit) • [ E ] Parar (Stand)' : '[H] Hit • [S] Stand';
         ctx.fillText(hint, cx, cy);
     }
 

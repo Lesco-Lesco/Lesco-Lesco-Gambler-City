@@ -198,12 +198,12 @@ export class PokerUI implements IMinigameUI {
         const isBroke = bmanager.playerMoney < min;
 
         if (this.game.phase === 'betting') {
-            footerHint = isBroke ? 'SALDO INSUFICIENTE - ESC PARA SAIR' : (mobile ? '[OK] Iniciar' : 'ENTER Iniciar Partida • ESC Sair');
+            footerHint = isBroke ? (mobile ? 'SALDO INSUFICIENTE - [ ✕ ] SAIR' : 'SALDO INSUFICIENTE - ESC PARA SAIR') : (mobile ? '[OK] Iniciar • [ ✕ ] Sair' : 'ENTER Iniciar Partida • ESC Sair');
         } else if (this.game.phase === 'result') {
             const nextMatchBroke = (bmanager.playerMoney + (this.game.phase === 'result' ? (this.game.players[0].currentBet + this.game.settle()) : 0)) < min;
-            footerHint = nextMatchBroke ? 'SALDO INSUFICIENTE - [OK] SAIR' : (mobile ? '[OK] Continuar' : 'ENTER Continuar • ESC Sair');
+            footerHint = nextMatchBroke ? (mobile ? 'SALDO INSUFICIENTE - [ ✕ ] SAIR' : 'SALDO INSUFICIENTE - ESC SAIR') : (mobile ? '[OK] Continuar • [ ✕ ] Sair' : 'ENTER Continuar • ESC Sair');
         } else if (this.game.phase === 'pre_flop' || this.game.phase === 'flop') {
-            footerHint = mobile ? '[DPAD ↑↓] Ajustar • [OK] Confirmar' : '↑↓ Ajustar Aumento • ENTER Confirmar';
+            footerHint = mobile ? '[DPAD] Ajustar • [OK] Confirmar' : '↑↓ Ajustar Aumento • ENTER Confirmar';
         } else {
             footerHint = mobile ? '[OK] Próxima Fase' : 'ENTER Próxima Fase • ESC Sair';
         }

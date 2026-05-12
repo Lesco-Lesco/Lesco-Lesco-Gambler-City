@@ -72,7 +72,7 @@ export class DadosUI implements IMinigameUI {
             this.drawBettingInterface(ctx, cx, footerY, FOOTER_H, theme);
         } else if (this.game.phase === 'result') {
             const resultHint = mobile
-                ? '[OK] Jogar Novamente • [EXIT] Sair'
+                ? '[OK] Jogar Novamente • [ ✕ ] Sair'
                 : 'ESPAÇO JOGAR NOVAMENTE • ESC SAIR';
             drawMinigameFooter(ctx, width, height, theme, resultHint);
         }
@@ -246,8 +246,8 @@ export class DadosUI implements IMinigameUI {
         ctx.shadowBlur = 0;
 
         const helpHint = mobile
-            ? '[RUN] Trocar • [OK] Jogar'
-            : '[Q] TROCA DADO • [SPACE] JOGAR';
+            ? '[DPAD] Mudar • [RUN] Trocar Dado • [OK] Jogar • [ ✕ ] Sair'
+            : '[Q] TROCA DADO • [SPACE] JOGAR • [ESC] SAIR';
         drawMinigameFooter(ctx, cx * 2, zoneTop + zoneH * 4.5, theme, helpHint);
     }
 

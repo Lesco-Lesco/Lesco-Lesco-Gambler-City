@@ -8,6 +8,7 @@ import type { IMinigame } from './BaseMinigame';
 export type CaraCoroaPhase = 'betting' | 'choosing' | 'flipping' | 'result';
 
 export class CaraCoroaGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: CaraCoroaPhase = 'betting';
     public betAmount: number = 10;
     public minBet: number = 10;
@@ -23,11 +24,12 @@ export class CaraCoroaGame implements IMinigame {
     public selectedBet: number = 10;
 
     constructor(_playerMoney: number) {
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
         this.selectedBet = this.minBet;
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
@@ -89,6 +91,6 @@ export class CaraCoroaGame implements IMinigame {
         this.rotationSpeed = 0;
         this.currentRotation = 0;
         this.resultMessage = '';
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

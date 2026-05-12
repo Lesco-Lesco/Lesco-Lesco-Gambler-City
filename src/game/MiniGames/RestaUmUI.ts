@@ -86,7 +86,7 @@ export class RestaUmUI implements IMinigameUI {
         }
 
         const hint = isMobile()
-            ? '[DPAD] Mover • [OK] Pular/Selecionar'
+            ? '[DPAD] Mover • [OK] Pular/Selecionar • [ ✕ ] Sair'
             : '↑↓←→ Cursor • ESPAÇO Selecionar/Pular • ESC Sair';
         drawMinigameFooter(ctx, width, height, theme, hint);
     }
@@ -221,6 +221,6 @@ export class RestaUmUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText(isMobile() ? '[OK] Continuar' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
+        ctx.fillText(isMobile() ? '[OK] Nova Partida • [ ✕ ] Sair' : 'ESPAÇO NOVA PARTIDA • ESC SAIR', cx, cy + s(100));
     }
 }

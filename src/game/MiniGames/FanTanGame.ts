@@ -9,6 +9,7 @@ import type { IMinigame } from './BaseMinigame';
 export type FanTanPhase = 'betting' | 'choosing' | 'reveal' | 'counting' | 'result';
 
 export class FanTanGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: FanTanPhase = 'betting';
     public betAmount: number = 20;
     public pot: number = 0;
@@ -27,10 +28,11 @@ export class FanTanGame implements IMinigame {
     public maxBet: number = 1000;
 
     constructor() {
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
@@ -94,6 +96,6 @@ export class FanTanGame implements IMinigame {
         this.phase = 'betting';
         this.currentPlayerChoices = [];
         this.resultMessage = '';
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

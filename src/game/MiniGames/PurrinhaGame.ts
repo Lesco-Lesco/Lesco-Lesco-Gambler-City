@@ -24,6 +24,7 @@ export interface PurrinhaPlayer {
 }
 
 export class PurrinhaGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: PurrinhaPhase = 'betting';
     public players: PurrinhaPlayer[] = [];
     public betAmount: number = 10;
@@ -75,10 +76,11 @@ export class PurrinhaGame implements IMinigame {
 
         this.maxPossibleTotal = this.players.length * 3;
         this.phase = 'betting';
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
@@ -258,6 +260,6 @@ export class PurrinhaGame implements IMinigame {
         }
 
         this.maxPossibleTotal = this.players.length * 3;
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

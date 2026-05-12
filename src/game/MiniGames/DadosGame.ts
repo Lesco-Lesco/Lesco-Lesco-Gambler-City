@@ -20,6 +20,7 @@ export interface DadosPlayer {
 }
 
 export class DadosGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public players: DadosPlayer[] = [];
     public dice1: number = 1;
     public dice2: number = 1;
@@ -33,10 +34,11 @@ export class DadosGame implements IMinigame {
 
     constructor() {
         this.initializePlayers();
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 
     public updateLimits(isPeriphery: boolean = false) {
+        this.isPeriphery = isPeriphery;
         const limits = isPeriphery ? EconomyManager.getInstance().getPeripheryBetLimits() : EconomyManager.getInstance().getBetLimits();
         this.minBet = limits.min;
         this.maxBet = limits.max;
@@ -132,6 +134,6 @@ export class DadosGame implements IMinigame {
         this.message = 'Faça sua aposta!';
         this.isRolling = false;
         this.winner = null;
-        this.updateLimits();
+        this.updateLimits(this.isPeriphery);
     }
 }

@@ -133,7 +133,7 @@ export class LudoUI implements IMinigameUI {
         }
 
         const hint = isMobile()
-            ? '[OK] Rolar / Mover • [DPAD] Selecionar'
+            ? '[DPAD] Selecionar • [OK] Rolar / Mover • [ ✕ ] Sair'
             : 'ESPAÇO Rolar/Mover • ← → Selecionar peça • ESC Sair';
         drawMinigameFooter(ctx, width, height, theme, hint);
     }
@@ -365,6 +365,6 @@ export class LudoUI implements IMinigameUI {
 
         ctx.fillStyle = theme.textMuted;
         ctx.font = `600 ${r(12)}px ${theme.bodyFont}`;
-        ctx.fillText(isMobile() ? '[OK] Continuar' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
+        ctx.fillText(isMobile() ? '[OK] Continuar • [ ✕ ] Sair' : 'ESPAÇO PARA CONTINUAR', cx, cy + s(100));
     }
 }

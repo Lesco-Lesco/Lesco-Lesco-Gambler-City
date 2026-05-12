@@ -33,6 +33,7 @@ const INITIAL_BOARD: number[][] = [
 ];
 
 export class RestaUmGame implements IMinigame {
+    public isPeriphery: boolean = false;
     public phase: RestaUmPhase = 'playing';
     public board: number[][] = INITIAL_BOARD.map(row => [...row]);
     public betAmount: number = 0; // No bet
@@ -51,6 +52,7 @@ export class RestaUmGame implements IMinigame {
     }
 
     public updateLimits(_isPeriphery: boolean = false) {
+        this.isPeriphery = _isPeriphery;
         // No limits needed for arcade style
     }
 
