@@ -15,17 +15,18 @@ export interface NewsItem {
  * - Evitar descrições longas; focar no que mudou ou em pistas rápidas.
  */
 export const LATEST_NEWS_BASE: NewsItem = {
-    id: "v3.1.1",
-    title: "SANTA CRUZ EM FOCO",
-    date: "Atualização Oficial",
+    id: "v3.1.2",
+    title: "GAZETA DE LESCO-LESCO",
+    date: "Edição Especial de Apostas",
     description: [
-        "*** NOTA EXTRAORDINÁRIA ***",
-        "RUMORES INDICAM QUE UM FORASTEIRO DE CABEÇORRA IMENSA, DO PORTE DE UMA CAIXA D'ÁGUA, ESTÁ DESCENDO PARA LESCO LESCO. O ILUDIDO VEM 'FAZER TESTES' E TENTAR A SORTE NO RANKING GLOBAL. BOAS-VINDAS AO ABATEDOURO! APROVEITAMOS PARA AVISAR AS FARMÁCIAS: MELHOR AUMENTAREM OS COMPRIMIDOS DE DOR DE CABEÇA. VÃO PRECISAR DE ASPIRINAS DO TAMANHO DE UMA PIZZA QUANDO A REALIDADE BATER NESSA MARQUISE CRANIANA.",
+        "*** ALERTA GERAL: O DONO ENLOUQUECEU! ***",
+        "Coloque sua grana na mesa e encare as máquinas de Santa Cruz. O placar global não perdoa covardes: cada ficha e cada recorde batido te empurram para o topo do submundo das apostas de LLGC. A banca está aberta, faça sua jogada.",
         "",
-        "• SUNSET PARADISE: O novo Pinball de Santa Cruz! Física de precisão e luzes neon no litoral.",
-        "• RANKING GLOBAL 100%: Cada centavo ganho, conquista e aposta te levam ao topo do placar.",
-        "• ECONOMIA FIXA: As mesas agora cobram cotas únicas de aposta baseadas no volume do seu bolso.",
-        "• PROMOÇÃO NO FLIPERAMA: O dono enlouqueceu! Agora R$ 10 rendem 3 créditos.",
+        "• VALORIUM (TITAN'S FURY): Pancadaria franca com combos de 3 hits e Valkor em modo Rage no final!",
+        "• PINBALL SUNSET: Física de precisão nas bolinhas e luzes neon. Acabe com a banca!",
+        "• SINUCA & BOTÃO: Clássicos de boteco. Mostre que é o rei do giz e da palheta e fature alto.",
+        "• FACAS, DUELOS & TANKS: Risca Faca, Faroeste, Tanks e AirPong para quem tem sangue frio.",
+        "• RANKING GLOBAL: O Jogador S, oponente digno e veterano dos jogos de luta, já tá treinando combos em Valorium! Vai encarar o placar dele ou vai amarelar?",
     ]
 };
 

@@ -705,7 +705,7 @@ export const BARS: BarInfo[] = [
     { x: 202, y: 262, owner: 'Sueli', name: 'Bar da Sueli', propaganda: 'Sueli: Dedicação Total! Vote 54545', variation: 2, paysBribe: true },
 ];
 
-export type ArcadeGameType = 'air_pong' | 'tank_attack' | 'faroeste' | 'risca_faca' | 'sinuca' | 'pinball';
+export type ArcadeGameType = 'air_pong' | 'tank_attack' | 'faroeste' | 'risca_faca' | 'sinuca' | 'pinball' | 'valorium' | 'botao';
 
 export interface ArcadeInfo {
     x: number;
@@ -719,16 +719,16 @@ export interface ArcadeInfo {
 // 10 balanced combinations of 4-out-of-6 games
 // Ensures every pair of missing games appears, so nearby arcades complement each other
 const GAME_SETS: ArcadeGameType[][] = [
-    ['air_pong', 'tank_attack', 'faroeste', 'pinball'],      // set 0
-    ['air_pong', 'tank_attack', 'sinuca', 'pinball'],        // set 1
-    ['air_pong', 'faroeste', 'risca_faca', 'pinball'],       // set 2
-    ['tank_attack', 'risca_faca', 'sinuca', 'pinball'],      // set 3
-    ['air_pong', 'faroeste', 'sinuca', 'risca_faca'],        // set 4
-    ['tank_attack', 'faroeste', 'risca_faca', 'sinuca'],     // set 5
-    ['air_pong', 'risca_faca', 'sinuca', 'tank_attack'],     // set 6
-    ['tank_attack', 'faroeste', 'sinuca', 'air_pong'],       // set 7
-    ['faroeste', 'risca_faca', 'sinuca', 'pinball'],         // set 8
-    ['air_pong', 'tank_attack', 'risca_faca', 'pinball'],    // set 9
+    ['air_pong', 'tank_attack', 'faroeste', 'pinball', 'valorium'],      // set 0
+    ['air_pong', 'tank_attack', 'sinuca', 'pinball', 'botao'],           // set 1
+    ['air_pong', 'faroeste', 'risca_faca', 'valorium', 'botao'],         // set 2
+    ['tank_attack', 'risca_faca', 'sinuca', 'pinball', 'valorium'],      // set 3
+    ['air_pong', 'faroeste', 'sinuca', 'risca_faca', 'botao'],           // set 4
+    ['tank_attack', 'faroeste', 'risca_faca', 'sinuca', 'valorium'],     // set 5
+    ['air_pong', 'risca_faca', 'sinuca', 'tank_attack', 'botao'],        // set 6
+    ['tank_attack', 'faroeste', 'sinuca', 'valorium', 'botao'],          // set 7
+    ['faroeste', 'risca_faca', 'sinuca', 'pinball', 'valorium'],         // set 8
+    ['air_pong', 'tank_attack', 'pinball', 'valorium', 'botao'],         // set 9
 ];
 
 export const ARCADES: ArcadeInfo[] = [

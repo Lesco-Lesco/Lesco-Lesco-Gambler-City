@@ -36,6 +36,8 @@ const ARCADE_REF_SCORES: Record<string, number> = {
     arcade_tank:     30,
     arcade_pinball:  1000,
     arcade_sinuca:   10,
+    arcade_valorium: 5000,
+    arcade_botao:    10,
     resta_um:        1000,
 };
 
@@ -43,7 +45,7 @@ const ARCADE_REF_SCORES: Record<string, number> = {
 const TARGET_PVP       = 60;   // "very good session" PVP
 const TARGET_MONEY     = 20000; // "Dono de Santa Cruz" peak
 const TOTAL_MINIGAMES  = 15;   // Total unique minigames available
-const TOTAL_ARCADES    = 6;    // Total unique arcades available
+const TOTAL_ARCADES    = 8;    // Total unique arcades available
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Output interface

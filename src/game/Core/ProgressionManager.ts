@@ -37,7 +37,7 @@ export type GameType = 'arcade' | 'horse_racing' | 'dog_racing' | 'video_bingo'
     | 'cara_coroa' | 'jokenpo' | 'purrinha' | 'palitinho' | 'fan_tan'
     | 'slots' | 'bicho'
     | 'casino_station' | 'blackjack' | 'poker'
-    | 'arcade_pong' | 'arcade_faroeste' | 'arcade_risca' | 'arcade_tank' | 'arcade_pinball' | 'arcade_sinuca'
+    | 'arcade_pong' | 'arcade_faroeste' | 'arcade_risca' | 'arcade_tank' | 'arcade_pinball' | 'arcade_sinuca' | 'arcade_valorium' | 'arcade_botao'
     | 'bar_games';
 
 /** Unlock condition for a single game */
@@ -101,6 +101,8 @@ const UNLOCK_TREE: Partial<Record<string, UnlockCondition>> = {
     arcade_tank:     { requiresPlays: { game: 'arcade_risca',    count: 1  } },
     arcade_pinball:  { requiresPlays: { game: 'arcade_tank',     count: 1  } },
     arcade_sinuca:   { requiresPlays: { game: 'arcade_pinball',  count: 1  } },
+    arcade_valorium: { requiresPlays: { game: 'arcade_sinuca',   count: 1  } },
+    arcade_botao:    { requiresPlays: { game: 'arcade_valorium', count: 1  } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +129,8 @@ const UNLOCK_MESSAGES: Partial<Record<GameType, string>> = {
     arcade_tank:    '🪖 Tank Attack desbloqueado! Destrói tudo que aparecer.',
     arcade_pinball: '🕹️ Pinball Neon liberado! Mostra teus reflexos na luz.',
     arcade_sinuca:  '🎱 A mesa de Sinuca tá pronta. Quem manda no taco é você.',
+    arcade_valorium:'🐉 Valorium Titan\'s Fury ligado. Mostre seus combos!',
+    arcade_botao:   '⚽ Futebol de Botão liberado! Prepara o dedo e o efeito.',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,6 +158,8 @@ const LOCKED_HINTS: Partial<Record<GameType, (n: number) => string>> = {
     arcade_tank:    (n) => `${n} rodada${n === 1 ? '' : 's'} de Risca Faca ainda. O tanque tá esperando.`,
     arcade_pinball: (n) => `Mais ${n} partida${n === 1 ? '' : 's'} de Tank Attack pro Sunset Paradise.`,
     arcade_sinuca:  (n) => `Sunset Paradise mais ${n} vezes. A mesa da Sinuca tem moral.`,
+    arcade_valorium:(n) => `Mais ${n} partida${n === 1 ? '' : 's'} de Sinuca pro Valorium. O dragão dorme.`,
+    arcade_botao:   (n) => `Valorium mais ${n} vezes. O campo tá sendo polido.`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -220,7 +226,7 @@ export class ProgressionManager {
             'cara_coroa', 'jokenpo', 'purrinha', 'palitinho', 'fan_tan',
             'slots', 'bicho', 'blackjack', 'poker', 'casino_station',
             'arcade', 'video_bingo', 'horse_racing', 'dog_racing',
-            'arcade_pong', 'arcade_faroeste', 'arcade_risca', 'arcade_tank', 'arcade_pinball', 'arcade_sinuca'
+            'arcade_pong', 'arcade_faroeste', 'arcade_risca', 'arcade_tank', 'arcade_pinball', 'arcade_sinuca', 'arcade_valorium', 'arcade_botao'
         ];
         games.forEach(g => this.unlockedGames.add(g));
     }
@@ -333,7 +339,8 @@ export class ProgressionManager {
             slots: 'Caça-Níquel', bar_games: 'Jogos de Bar',
             arcade_pong: 'Air Pong', arcade_faroeste: 'Faroeste',
             arcade_risca: 'Risca Faca', arcade_tank: 'Tank Attack',
-            arcade_pinball: 'Sunset Paradise', arcade_sinuca: 'Sinuca'
+            arcade_pinball: 'Sunset Paradise', arcade_sinuca: 'Sinuca',
+            arcade_valorium: "Valorium Titan's Fury", arcade_botao: 'Futebol de Botão'
         };
         return names[type] || type;
     }

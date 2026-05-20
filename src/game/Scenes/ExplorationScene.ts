@@ -62,6 +62,8 @@ import { RiscaFacaGame } from '../ArcadeGames/RiscaFacaGame';
 import { CheatManager } from '../CheatManager';
 import { SinucaGame } from '../ArcadeGames/SinucaGame';
 import { PinballGame } from '../ArcadeGames/PinballGame';
+import { ValoriumGame } from '../ArcadeGames/ValoriumGame';
+import { FutebolBotaoGame } from '../ArcadeGames/FutebolBotaoGame';
 import { MINIGAME_THEMES } from '../Core/MinigameThemes';
 import { drawMinigameBackground, drawMinigameTitle, drawMinigameFooter } from '../Core/MinigameBackground';
 import { SoundManager } from '../Core/SoundManager';
@@ -118,7 +120,7 @@ export class ExplorationScene implements Scene {
     private videoBingoUI: VideoBingoUI | null = null;
     private jokenpoUI: JokenpoUI | null = null;
 
-    private activeMinigame: 'none' | 'purrinha' | 'dados' | 'ronda' | 'domino' | 'ludo' | 'damas' | 'resta_um' | 'generic' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' | 'arcade_pinball' = 'none';
+    private activeMinigame: 'none' | 'purrinha' | 'dados' | 'ronda' | 'domino' | 'ludo' | 'damas' | 'resta_um' | 'generic' | 'cara_coroa' | 'palitinho' | 'fan_tan' | 'jokenpo' | 'horse_racing' | 'dog_racing' | 'video_bingo' | 'bar_menu' | 'arcade_menu' | 'arcade_air_pong' | 'arcade_tank_attack' | 'arcade_faroeste' | 'arcade_risca_faca' | 'arcade_sinuca' | 'arcade_pinball' | 'arcade_valorium' | 'arcade_botao' = 'none';
     private selectedBarMenuIndex: number = 0;
     private currentBar: any | null = null;
 
@@ -132,6 +134,8 @@ export class ExplorationScene implements Scene {
     private riscaFacaGame: RiscaFacaGame | null = null;
     private sinucaGame: SinucaGame | null = null;
     private pinballGame: PinballGame | null = null;
+    private valoriumGame: ValoriumGame | null = null;
+    private botaoGame: FutebolBotaoGame | null = null;
 
     // State
     private screenW: number;
@@ -166,7 +170,7 @@ export class ExplorationScene implements Scene {
         worldX: 0,
         worldY: 0,
         radius: 200, // Reduced from 350
-        color: '#ffffff',
+        color: '#fff8cc', // changed to soft pale yellow
         intensity: 0.75,  // Reduced from 0.98
         flicker: false,
     };
@@ -525,11 +529,39 @@ export class ExplorationScene implements Scene {
             }
             return;
         }
+        
+        if (this.activeMinigame === 'arcade_valorium' && this.valoriumGame) {
+            this.valoriumGame.update(dt);
+            if (this.valoriumGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.processArcadeEnd('valorium', this.valoriumGame.score);
+                this.valoriumGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.valoriumGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
+
+        if (this.activeMinigame === 'arcade_botao' && this.botaoGame) {
+            this.botaoGame.update(dt);
+            if (this.botaoGame.phase === 'game_over' && (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('KeyE'))) {
+                this.processArcadeEnd('botao', this.botaoGame.getFinalScore());
+                this.botaoGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            if (this.input.wasPressed('Escape')) {
+                this.botaoGame = null;
+                this.activeMinigame = 'arcade_menu';
+            }
+            return;
+        }
 
         this.globalTimer += dt; // Keep a timer running for Bicho betting results
 
         // Dynamic Ambient Darkness (Soft Realistic Night)
-        this.lighting.setAmbientDarkness(isNavigating ? 0.35 : 0.15);
+        this.lighting.setAmbientDarkness(isNavigating ? 0.15 : 0.10);
 
         // PC-Only Cyclical Zoom with 'Z' key
         if (!isMobile() && isNavigating && this.input.wasPressed('KeyZ')) {
@@ -1320,6 +1352,8 @@ export class ExplorationScene implements Scene {
             'risca_faca': { label: 'RISCA FACA', icon: '🔪', color: '#cc0000' },
             'sinuca': { label: 'SINUCA', icon: '🎱', color: '#009966' },
             'pinball': { label: 'PINBALL NEON', icon: '🕹️', color: '#ff00ff' },
+            'valorium': { label: "VALORIUM TITAN'S FURY", icon: '🐉', color: '#00ff88' },
+            'botao': { label: 'FUTEBOL DE BOTÃO', icon: '⚽', color: '#ffaa00' },
         };
 
         const items: { label: string; cost: string; gameType: ArcadeGameType | 'buy'; icon: string; color: string; isLocked: boolean; hint?: string }[] = [
@@ -1339,6 +1373,8 @@ export class ExplorationScene implements Scene {
             else if (game === 'risca_faca') mappedType = 'arcade_risca';
             else if (game === 'sinuca') mappedType = 'arcade_sinuca';
             else if (game === 'pinball') mappedType = 'arcade_pinball';
+            else if (game === 'valorium') mappedType = 'arcade_valorium';
+            else if (game === 'botao') mappedType = 'arcade_botao';
 
             const isLocked = !pm.isGameUnlocked(mappedType);
             const hint = isLocked ? pm.getLockedHint(mappedType, am.getPlaysByGame(), am.getWinCount()) : undefined;
@@ -1373,6 +1409,8 @@ export class ExplorationScene implements Scene {
             case 'risca_faca': this.riscaFacaGame = new RiscaFacaGame(); this.activeMinigame = 'arcade_risca_faca'; break;
             case 'sinuca': this.sinucaGame = new SinucaGame(); this.activeMinigame = 'arcade_sinuca'; break;
             case 'pinball': this.pinballGame = new PinballGame(); this.activeMinigame = 'arcade_pinball'; break;
+            case 'valorium': this.valoriumGame = new ValoriumGame(); this.activeMinigame = 'arcade_valorium'; break;
+            case 'botao': this.botaoGame = new FutebolBotaoGame(); this.activeMinigame = 'arcade_botao'; break;
         }
     }
 
@@ -1840,8 +1878,8 @@ export class ExplorationScene implements Scene {
         // Clear
         this.renderer.clear('#0a0a1a');
 
-        // Apply Madrugada Tint (4am Indigo) - Lightened from 0.45 to 0.3
-        this.renderer.setGlobalTint('rgba(15, 15, 40, 0.3)');
+        // Apply Madrugada Tint (4am Indigo) - Lightened further for open-air casino vibe
+        this.renderer.setGlobalTint('rgba(15, 15, 40, 0.1)');
 
         // 1. Ground
         this.tileRenderer.renderGround(this.renderer, this.camera, this.tileMap);
@@ -1914,6 +1952,10 @@ export class ExplorationScene implements Scene {
             this.sinucaGame.draw(ctx, this.screenW, this.screenH);
         } else if (this.activeMinigame === 'arcade_pinball' && this.pinballGame) {
             this.pinballGame.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'arcade_valorium' && this.valoriumGame) {
+            this.valoriumGame.draw(ctx, this.screenW, this.screenH);
+        } else if (this.activeMinigame === 'arcade_botao' && this.botaoGame) {
+            this.botaoGame.draw(ctx, this.screenW, this.screenH);
         }
 
         // 6. UI / HUD (Rendered AFTER minigames to be always visible)
