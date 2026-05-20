@@ -17,16 +17,14 @@ export interface NewsItem {
 export const LATEST_NEWS_BASE: NewsItem = {
     id: "v3.1.2",
     title: "GAZETA DE LESCO-LESCO",
-    date: "Edição Especial de Apostas",
+    date: "Edição Especial",
     description: [
-        "*** ALERTA GERAL: O DONO ENLOUQUECEU! ***",
-        "Coloque sua grana na mesa e encare as máquinas de Santa Cruz. O placar global não perdoa covardes: cada ficha e cada recorde batido te empurram para o topo do submundo das apostas de LLGC. A banca está aberta, faça sua jogada.",
+        "Os moradores de Santa Cruz seguem agitados. Quem anda com os ouvidos abertos sabe que a cidade tem mais a oferecer do que aparenta.",
         "",
-        "• VALORIUM (TITAN'S FURY): Pancadaria franca com combos de 3 hits e Valkor em modo Rage no final!",
-        "• PINBALL SUNSET: Física de precisão nas bolinhas e luzes neon. Acabe com a banca!",
-        "• SINUCA & BOTÃO: Clássicos de boteco. Mostre que é o rei do giz e da palheta e fature alto.",
-        "• FACAS, DUELOS & TANKS: Risca Faca, Faroeste, Tanks e AirPong para quem tem sangue frio.",
-        "• RANKING GLOBAL: O Jogador S, oponente digno e veterano dos jogos de luta, já tá treinando combos em Valorium! Vai encarar o placar dele ou vai amarelar?",
+        "• FLIPERAMA: Oito máquinas abertas — de Valorium e Risca Faca até Sinuca e Air Pong. Cada recorde entra no placar global.",
+        "• SR. S, frequentador assíduo dos jogos de luta, foi o primeiro a perguntar quando o Valorium estaria disponível. Já tá na cidade. Vai lá encarar.",
+        "• PRAÇAS E ESQUINAS: Converse com os moradores. Quem pergunta certo descobre coisas que não estão em nenhum cartaz.",
+        "• RANKING GLOBAL: Dizem que há gente de fora de olho nos primeiros do placar. Faça seu nome antes que outro faça o dele.",
     ]
 };
 
