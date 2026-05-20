@@ -20,8 +20,8 @@
  *   video_bingo (always in bar) ──3 plays──▶ horse_racing ──4 plays──▶ dog_racing
  *
  * ── FLIPERAMA ─────────────────────────────────────────────────────────────
- *   arcade_pong (always) ──1──▶ arcade_faroeste ──1──▶ arcade_risca
- *   arcade_risca ──1──▶ arcade_tank ──1──▶ arcade_sinuca
+ *   arcade_pong (always) ──1──▶ arcade_faroeste ──1──▶ arcade_risca ──1──▶ arcade_tank
+ *   arcade_tank ──1──▶ arcade_pinball ──1──▶ arcade_valorium ──1──▶ arcade_sinuca ──1──▶ arcade_botao
  */
 
 import { GameEventEmitter } from './EventEmitter';
@@ -37,7 +37,7 @@ export type GameType = 'arcade' | 'horse_racing' | 'dog_racing' | 'video_bingo'
     | 'cara_coroa' | 'jokenpo' | 'purrinha' | 'palitinho' | 'fan_tan'
     | 'slots' | 'bicho'
     | 'casino_station' | 'blackjack' | 'poker'
-    | 'arcade_pong' | 'arcade_faroeste' | 'arcade_risca' | 'arcade_tank' | 'arcade_pinball' | 'arcade_sinuca' | 'arcade_valorium' | 'arcade_botao'
+    | 'arcade_pong' | 'arcade_faroeste' | 'arcade_risca' | 'arcade_tank' | 'arcade_pinball' | 'arcade_valorium' | 'arcade_sinuca' | 'arcade_botao'
     | 'bar_games';
 
 /** Unlock condition for a single game */
@@ -100,9 +100,9 @@ const UNLOCK_TREE: Partial<Record<string, UnlockCondition>> = {
     arcade_risca:    { requiresPlays: { game: 'arcade_faroeste', count: 1  } },
     arcade_tank:     { requiresPlays: { game: 'arcade_risca',    count: 1  } },
     arcade_pinball:  { requiresPlays: { game: 'arcade_tank',     count: 1  } },
-    arcade_sinuca:   { requiresPlays: { game: 'arcade_pinball',  count: 1  } },
-    arcade_valorium: { requiresPlays: { game: 'arcade_sinuca',   count: 1  } },
-    arcade_botao:    { requiresPlays: { game: 'arcade_valorium', count: 1  } },
+    arcade_valorium: { requiresPlays: { game: 'arcade_pinball',  count: 1  } },
+    arcade_sinuca:   { requiresPlays: { game: 'arcade_valorium', count: 1  } },
+    arcade_botao:    { requiresPlays: { game: 'arcade_sinuca',   count: 1  } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -157,9 +157,9 @@ const LOCKED_HINTS: Partial<Record<GameType, (n: number) => string>> = {
     arcade_risca:   (n) => `Joga mais ${n} no Faroeste. Risca Faca é pra mão firme.`,
     arcade_tank:    (n) => `${n} rodada${n === 1 ? '' : 's'} de Risca Faca ainda. O tanque tá esperando.`,
     arcade_pinball: (n) => `Mais ${n} partida${n === 1 ? '' : 's'} de Tank Attack pro Sunset Paradise.`,
-    arcade_sinuca:  (n) => `Sunset Paradise mais ${n} vezes. A mesa da Sinuca tem moral.`,
-    arcade_valorium:(n) => `Mais ${n} partida${n === 1 ? '' : 's'} de Sinuca pro Valorium. O dragão dorme.`,
-    arcade_botao:   (n) => `Valorium mais ${n} vezes. O campo tá sendo polido.`,
+    arcade_valorium:(n) => `Mais ${n} partida${n === 1 ? '' : 's'} de Sunset Paradise pro Valorium. O dragão dorme.`,
+    arcade_sinuca:  (n) => `Valorium Titan's Fury mais ${n} vez${n === 1 ? '' : 'es'}. A mesa da Sinuca tem moral.`,
+    arcade_botao:   (n) => `Sinuca mais ${n} vez${n === 1 ? '' : 'es'}. O campo tá sendo polido.`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ export class ProgressionManager {
             'cara_coroa', 'jokenpo', 'purrinha', 'palitinho', 'fan_tan',
             'slots', 'bicho', 'blackjack', 'poker', 'casino_station',
             'arcade', 'video_bingo', 'horse_racing', 'dog_racing',
-            'arcade_pong', 'arcade_faroeste', 'arcade_risca', 'arcade_tank', 'arcade_pinball', 'arcade_sinuca', 'arcade_valorium', 'arcade_botao'
+            'arcade_pong', 'arcade_faroeste', 'arcade_risca', 'arcade_tank', 'arcade_pinball', 'arcade_valorium', 'arcade_sinuca', 'arcade_botao'
         ];
         games.forEach(g => this.unlockedGames.add(g));
     }
@@ -339,8 +339,8 @@ export class ProgressionManager {
             slots: 'Caça-Níquel', bar_games: 'Jogos de Bar',
             arcade_pong: 'Air Pong', arcade_faroeste: 'Faroeste',
             arcade_risca: 'Risca Faca', arcade_tank: 'Tank Attack',
-            arcade_pinball: 'Sunset Paradise', arcade_sinuca: 'Sinuca',
-            arcade_valorium: "Valorium Titan's Fury", arcade_botao: 'Futebol de Botão'
+            arcade_pinball: 'Sunset Paradise', arcade_valorium: "Valorium Titan's Fury",
+            arcade_sinuca: 'Sinuca', arcade_botao: 'Futebol de Botão'
         };
         return names[type] || type;
     }
