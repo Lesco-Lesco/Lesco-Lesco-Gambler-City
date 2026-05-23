@@ -20,6 +20,7 @@ export class InputManager {
     private joystickY: number = 0;
     private activeMinigame: string | null = null;
     private contextStack: InputContext[] = ['exploration'];
+    private lastContextPushTime: number = 0;
 
     private constructor() {
         window.addEventListener('keydown', this.onKeyDown);
@@ -135,25 +136,32 @@ export class InputManager {
         this.justReleased.clear();
     }
 
+    private isActionKey(code: string): boolean {
+        return code === 'Space' || code === 'Enter' || code === 'KeyE' || code === 'Gamepad_A' || code === 'MouseLeft';
+    }
+
     public anyKeyPressed(): boolean {
         return this.justPressed.size > 0 || this.mouseDown;
     }
 
     private getAliases(code: string): string[] {
-        const aliases: Record<string, string[]> = {
-            'ArrowUp': ['KeyW'],
-            'ArrowDown': ['KeyS'],
-            'ArrowLeft': ['KeyA'],
-            'ArrowRight': ['KeyD'],
-            'KeyW': ['ArrowUp'],
-            'KeyS': ['ArrowDown'],
-            'KeyA': ['ArrowLeft'],
-            'KeyD': ['ArrowRight']
-        };
-        return aliases[code] || [];
+        if (code === 'Escape') {
+            const ctx = this.getContext();
+            // Em minigames e cassinos, apenas Gamepad_Select sai do jogo para evitar saídas acidentais
+            if (ctx === 'minigame' || ctx === 'casino') {
+                return ['Gamepad_Select'];
+            }
+            // Em menus ou outros contextos, aceitamos tanto Gamepad_B quanto Gamepad_Select
+            return ['Gamepad_B', 'Gamepad_Select'];
+        }
+        return [];
     }
 
     public isDown(code: string): boolean {
+        if (Date.now() - this.lastContextPushTime < 450) {
+            if (this.isActionKey(code)) return false;
+        }
+
         // Direct key check
         if (this.keys.get(code)) return true;
 
@@ -166,6 +174,10 @@ export class InputManager {
     }
 
     public wasPressed(code: string): boolean {
+        if (Date.now() - this.lastContextPushTime < 450) {
+            if (this.isActionKey(code)) return false;
+        }
+
         if (this.justPressed.get(code)) return true;
         for (const alias of this.getAliases(code)) {
             if (this.justPressed.get(alias)) return true;
@@ -208,6 +220,10 @@ export class InputManager {
     }
 
     public wasReleased(code: string): boolean {
+        if (Date.now() - this.lastContextPushTime < 450) {
+            if (this.isActionKey(code)) return false;
+        }
+
         if (this.justReleased.get(code)) return true;
         for (const alias of this.getAliases(code)) {
             if (this.justReleased.get(alias)) return true;
@@ -226,6 +242,9 @@ export class InputManager {
     // --- Context Management ---
     public pushContext(ctx: InputContext) {
         this.contextStack.push(ctx);
+        this.lastContextPushTime = Date.now();
+        this.keys.clear();
+        this.justPressed.clear();
     }
 
     public popContext(): InputContext | undefined {

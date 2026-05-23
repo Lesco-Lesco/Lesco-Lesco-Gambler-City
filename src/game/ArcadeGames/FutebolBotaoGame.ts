@@ -1,4 +1,5 @@
 import { InputManager } from '../Core/InputManager';
+import { GamepadManager } from '../Core/GamepadManager';
 import { UIScale } from '../Core/UIScale';
 import { getMotivationalPhrase, renderArcadeGameOver } from './ArcadeGameOver';
 import { SoundManager } from '../Core/SoundManager';
@@ -73,7 +74,7 @@ export class FutebolBotaoGame {
     
     public scorePlayer = 0;
     public scoreEnemy = 0;
-    public phase: 'positioning_goalie' | 'aiming' | 'moving' | 'goal_anim' | 'game_over' = 'aiming';
+    public phase: 'kickoff' | 'positioning_goalie' | 'aiming' | 'moving' | 'goal_anim' | 'game_over' = 'kickoff';
     private gameOverPhrase: string = '';
 
     private playerTeam: Team = TEAMS[0];
@@ -166,7 +167,8 @@ export class FutebolBotaoGame {
     public reset() {
         this.scorePlayer = 0;
         this.scoreEnemy = 0;
-        this.phase = 'aiming';
+        this.phase = 'kickoff';
+        this.stateTimer = 2.0; // 2 seconds kickoff delay
         this.currentTurn = 0;
         this.playsLeft = 3;
         this.lastPlayWasGoalie = false;
@@ -307,6 +309,9 @@ export class FutebolBotaoGame {
         if (this.phase === 'game_over') return;
 
         switch (this.phase) {
+            case 'kickoff':
+                this.updateKickoff(dt);
+                break;
             case 'positioning_goalie':
                 this.updateGoaliePositioning(dt);
                 break;
@@ -354,6 +359,14 @@ export class FutebolBotaoGame {
             }
         } else {
             this.goalParticles = [];
+        }
+    }
+
+    private updateKickoff(dt: number) {
+        this.stateTimer -= dt;
+        if (this.stateTimer <= 0) {
+            this.phase = 'aiming';
+            this.autoSelectBestButton();
         }
     }
 
@@ -434,7 +447,7 @@ export class FutebolBotaoGame {
             }
         }
 
-        if (input.wasPressed('KeyQ')) {
+        if (input.wasPressed('KeyQ') || input.wasPressed('Gamepad_X')) {
             const start = this.selectedButtonIndex;
             let next = (start + 1) % this.buttons.length;
             while (next !== start) {
@@ -452,8 +465,14 @@ export class FutebolBotaoGame {
             }
         }
 
-        // Pressing: E toggles marking on the selected piece
-        if (input.wasPressed('KeyE') && this.selectedButtonIndex !== -1) {
+        // Pressing: E or Gamepad_Y toggles marking on the selected piece
+        // We bypass KeyE if gamepad is active since Gamepad_A triggers both Space and KeyE
+        const isGamepadActive = GamepadManager.getInstance().getActiveGamepadIndex() !== null;
+        const togglePressing = isGamepadActive 
+            ? input.wasPressed('Gamepad_Y') 
+            : (input.wasPressed('KeyE') || input.wasPressed('Gamepad_Y'));
+
+        if (togglePressing && this.selectedButtonIndex !== -1) {
             const sel = this.buttons[this.selectedButtonIndex];
             if (sel && sel.team === 0) {
                 this.pressingIdx = (this.pressingIdx === this.selectedButtonIndex) ? -1 : this.selectedButtonIndex;
@@ -508,32 +527,38 @@ export class FutebolBotaoGame {
 
         for (let i = 0; i < this.buttons.length; i++) {
             const b = this.buttons[i];
-            if (b.team === 1 && !b.isGoalie) {
+            if (b.team === 1) {
+                if (b.isGoalie) {
+                    const distToBall = Math.hypot(b.x - this.ball.x, b.y - this.ball.y);
+                    if (distToBall > this.GOALIE_BALL_RANGE) continue;
+                }
                 const d = Math.hypot(b.x - this.ball.x, b.y - this.ball.y);
-                
-                // Vector from piece to ball
                 const pToBallX = this.ball.x - b.x;
                 const pToBallY = this.ball.y - b.y;
-                const pToBallDist = Math.hypot(pToBallX, pToBallY);
-                const pToBallNx = pToBallDist > 0 ? pToBallX / pToBallDist : 0;
-                
-                // How much does this piece push the ball towards the player's goal (left)?
-                // Since player's goal is at x=0, pushing left means pToBallNx < 0.
-                const pushLeftFactor = -pToBallNx; // Positive if pushing left, negative if pushing right
 
                 let score = 1000 - d;
-                
-                if (pushLeftFactor < 0) {
-                    if (this.ball.x > 500) {
-                        // Deep in own half: heavily penalize pieces that would push ball towards own goal
-                        score -= 900;
+                const isBehindBall = b.x > this.ball.x; // Piece is on the right of the ball (can push left)
+
+                if (isBehindBall) {
+                    score += 400; // Pushing towards player's goal is a good tactical choice
+                } else if (this.ball.x > 500) {
+                    // Pushing to the right (towards own goal) in own defensive half.
+                    // Let's check if the straight line trajectory goes towards the goal mouth (y between 180 and 340)
+                    const dx = pToBallX;
+                    const dy = pToBallY;
+                    if (dx > 0) {
+                        const t = (940 - this.ball.x) / dx;
+                        const yAtGoal = this.ball.y + dy * t;
+                        if (yAtGoal > 180 && yAtGoal < 340) {
+                            score -= 1500; // Massive penalty for direct own-goal danger!
+                        } else {
+                            score -= 300;  // Moderate penalty for clearing to the side walls/corners
+                        }
                     } else {
-                        // In player's half: moderate penalty
                         score -= 300;
                     }
                 } else {
-                    // Pushing towards player's goal: give bonus
-                    score += 400;
+                    score -= 100; // In opponent's half, pushing right is not dangerous, just suboptimal
                 }
 
                 if (score > bestScore) {
@@ -551,18 +576,21 @@ export class FutebolBotaoGame {
         let angle = 0;
         let power = 400 + Math.random() * 450;
         
-        // Safety check: is this piece to the left of the ball while ball is in our own defensive half?
-        const pToBallX = this.ball.x - b.x;
-        const isPushingOwnGoal = pToBallX > 0 && this.ball.x > 550;
+        const isBehindBall = b.x > this.ball.x;
+        if (!isBehindBall) {
+            // Clearance target: AI's own corner (top-right or bottom-right)
+            Tx = 930;
+            Ty = b.y < this.ball.y ? 490 : 30; // Push down to bottom-right or up to top-right
+        }
 
         if (aiLevel === 1) {
             // Level 1: Aim directly at the ball with a slow-moving time wobble
             let dx = this.ball.x - b.x;
             let dy = this.ball.y - b.y;
             
-            // Safe deflection to the side wall if pushing towards own goal
-            if (isPushingOwnGoal) {
-                dy += this.ball.y < 260 ? 35 : -35;
+            // If pushing own goal, deflect it significantly towards the walls
+            if (!isBehindBall) {
+                dy += b.y < this.ball.y ? 150 : -150;
             }
 
             angle = Math.atan2(dy, dx);
@@ -571,7 +599,7 @@ export class FutebolBotaoGame {
             angle += wobble;
             power = 320 + Math.random() * 180;
         } else {
-            // Level 2 & 3: Aim at the ideal impact position behind the ball relative to target goal
+            // Level 2 & 3: Aim at the ideal impact position behind the ball relative to target
             const targetDx = Tx - this.ball.x;
             const targetDy = Ty - this.ball.y;
             const targetDist = Math.hypot(targetDx, targetDy);
@@ -582,18 +610,14 @@ export class FutebolBotaoGame {
             const impactX = this.ball.x - targetNx * distBetween;
             const impactY = this.ball.y - targetNy * distBetween;
 
-            // Check if piece is behind the ball (meaning shooting pushes it left)
+            // Check if piece is in front of the impact position relative to target direction
             const dot = (this.ball.x - b.x) * targetNx + (this.ball.y - b.y) * targetNy;
             
-            if (dot > 0 && !isPushingOwnGoal) {
+            if (dot > 0) {
                 angle = Math.atan2(impactY - b.y, impactX - b.x);
             } else {
-                // Safe deflection clearance if on the wrong side or pushing own goal
-                let targetYOffset = this.ball.y;
-                if (isPushingOwnGoal) {
-                    targetYOffset += this.ball.y < 260 ? 35 : -35;
-                }
-                angle = Math.atan2(targetYOffset - b.y, this.ball.x - b.x);
+                // Fallback: aim at the ball but deflect it towards the target
+                angle = Math.atan2(this.ball.y - b.y, this.ball.x - b.x);
             }
 
             // Wobble/precision based on level
@@ -1213,7 +1237,11 @@ export class FutebolBotaoGame {
         ctx.font = `bold ${r(16)}px monospace`;
         let status = "";
         let color = "#fff";
-        if (this.phase === 'positioning_goalie') {
+        if (this.phase === 'kickoff') {
+            status = "PREPARE-SE PARA O KICK-OFF!";
+            color = "#ffff00";
+        }
+        else if (this.phase === 'positioning_goalie') {
             status = this.currentTurn === 1 ? "POSICIONE SEU GOLEIRO (W/S)" : "IA POSICIONANDO GOLEIRO...";
             color = "#00ffff";
         }
@@ -1294,6 +1322,29 @@ export class FutebolBotaoGame {
             // Draw double drop-shadow effect
             ctx.strokeText("GOOOOOOL!!!", 0, 0);
             ctx.fillText("GOOOOOOL!!!", 0, 0);
+            
+            ctx.restore();
+        }
+
+        if (this.phase === 'kickoff') {
+            ctx.save();
+            ctx.translate(screenW / 2, screenH / 2);
+            
+            // Pulsing scale bounce
+            const scaleBounce = 1.0 + Math.sin(Date.now() * 0.01) * 0.15;
+            ctx.scale(scaleBounce, scaleBounce);
+            
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00ff88';
+            ctx.fillStyle = '#ffaa00';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = s(5);
+            ctx.font = `italic bold ${r(60)}px Impact, Arial Black, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            ctx.strokeText("KICK-OFF!", 0, 0);
+            ctx.fillText("KICK-OFF!", 0, 0);
             
             ctx.restore();
         }

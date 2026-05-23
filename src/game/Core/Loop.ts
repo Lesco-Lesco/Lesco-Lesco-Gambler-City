@@ -5,6 +5,7 @@
 
 import { InputManager } from './InputManager';
 import { BuffManager } from './BuffManager';
+import { GamepadManager } from './GamepadManager';
 
 export interface Scene {
     name: string;
@@ -21,6 +22,7 @@ export class GameLoop {
     private scenes: Map<string, Scene> = new Map();
     private activeScene: Scene | null = null;
     private input: InputManager;
+    private gamepad: GamepadManager;
     private paused: boolean = false;
 
     // Performance
@@ -36,6 +38,7 @@ export class GameLoop {
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
         this.input = InputManager.getInstance();
+        this.gamepad = GamepadManager.getInstance();
     }
 
     public addScene(scene: Scene) {
@@ -116,6 +119,9 @@ export class GameLoop {
         // Update + Render active scene
         try {
             if (this.activeScene) {
+                // Poll gamepad FIRST so justPressed is populated before scene.update() reads it
+                this.gamepad.update();
+
                 // Se não estiver pausado, roda a lógica do jogo
                 if (!this.paused) {
                     // Global Managers Update (Sem exceção)

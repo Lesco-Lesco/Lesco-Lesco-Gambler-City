@@ -48,7 +48,7 @@ export class BlackjackUI implements IMinigameUI {
             }
         } else if (this.game.phase === 'playing') {
             const hit = this.input.wasPressed('KeyH') || (mobile && this.input.wasPressed('Space'));
-            const stand = this.input.wasPressed('KeyS') || (mobile && this.input.wasPressed('KeyE'));
+            const stand = this.input.wasPressed('KeyS') || this.input.wasPressed('Gamepad_X') || (mobile && this.input.wasPressed('KeyE'));
             if (hit) { this.game.hit(); SoundManager.getInstance().play('card_flip'); SoundManager.getInstance().playArpeggio('blackjack'); }
             if (stand) this.game.stand();
         } else if (this.game.phase === 'result') {

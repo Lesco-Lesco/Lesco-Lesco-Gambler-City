@@ -204,6 +204,13 @@ export class Minimap {
         if (input.wasPressed('KeyZ')) {
             this.zoomIndex = (this.zoomIndex + 1) % this.zoomLevels.length;
         }
+
+        if (input.wasPressed('Equal') || input.wasPressed('NumpadAdd')) {
+            this.zoomIndex = Math.min(this.zoomLevels.length - 1, this.zoomIndex + 1);
+        }
+        if (input.wasPressed('Minus') || input.wasPressed('NumpadSubtract')) {
+            this.zoomIndex = Math.max(0, this.zoomIndex - 1);
+        }
     }
 
     private renderMinimap(ctx: CanvasRenderingContext2D, screenW: number, screenH: number, playerX: number, playerY: number, _camera: Camera, npcs: any[]) {

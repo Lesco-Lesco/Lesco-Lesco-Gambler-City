@@ -162,9 +162,9 @@ export class ExplorationScene implements Scene {
     private bankruptcyData: { amount: number, message: string, character: string } | null = null;
     private showBankruptcyOverlay: boolean = false;
 
-    // Zoom Stages (8 stages: 0.5x to 4.0x)
-    private zoomStages: number[] = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
-    private zoomStageIndex: number = 3; // Default 2.0x (reverted from 2.5x)
+    // Zoom Stages (6 stages: 1.5x to 4.0x — níveis 0.5x e 1.0x removidos por prejudicarem a imersão)
+    private zoomStages: number[] = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+    private zoomStageIndex: number = 1; // Default 2.0x
     // Player light source (Softened for natural look)
     private playerLight = {
         worldX: 0,
@@ -232,11 +232,11 @@ export class ExplorationScene implements Scene {
         if (isMobile()) {
             this.camera.zoom = 3.5;
             this.camera.targetZoom = 3.5;
-            this.zoomStageIndex = 6; // aponta para zoomStages[6] = 3.5
+            this.zoomStageIndex = 4; // aponta para zoomStages[4] = 3.5
         } else {
-            this.camera.zoom = 2.0; // Revertido de 2.5 para 2.0 conforme solicitação
+            this.camera.zoom = 2.0;
             this.camera.targetZoom = 2.0;
-            this.zoomStageIndex = 3; // aponta para zoomStages[3] = 2.0
+            this.zoomStageIndex = 1; // aponta para zoomStages[1] = 2.0
         }
 
         // Snap camera to player initially to avoid "running camera" effect
@@ -298,11 +298,14 @@ export class ExplorationScene implements Scene {
 
         // Minimap Maximized Blocking
         const wasMaximized = this.minimap.getMaximized();
-        const toggleMap = isNavigating && (this.input.wasPressed('KeyM') ||
+        const toggleMap = isNavigating && (this.input.wasPressed('KeyM') || this.input.wasPressed('Gamepad_Select') ||
             (isMobile() && !wasMaximized && this.input.wasPressed('MouseLeft') &&
                 this.minimap.isPointInMinimap(this.input.getMousePos().x, this.input.getMousePos().y, this.screenW, this.screenH)));
 
-        if (toggleMap) {
+        // Allow Gamepad_Select to close map even if it's not "navigating" (because map blocks navigation)
+        const closeMap = wasMaximized && this.input.wasPressed('Gamepad_Select');
+
+        if (toggleMap || closeMap) {
             this.minimap.toggleMaximized();
             if (this.minimap.getMaximized()) {
                 this.input.pushContext('menu');
@@ -638,7 +641,7 @@ export class ExplorationScene implements Scene {
             this.camera.targetZoom = Math.min(4.0, this.camera.targetZoom + 0.25);
         }
         if (this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract')) {
-            this.camera.targetZoom = Math.max(0.5, this.camera.targetZoom - 0.25);
+            this.camera.targetZoom = Math.max(1.5, this.camera.targetZoom - 0.25);
         }
     }
 
@@ -733,7 +736,7 @@ export class ExplorationScene implements Scene {
                 }
             }
         } else if (pm.phase === 'gamble_check') {
-            const acceptBank = this.input.wasPressed('KeyY') || (mobile && this.input.wasPressed('Space'));
+            const acceptBank = this.input.wasPressed('KeyY') || this.input.wasPressed('Gamepad_Y') || (mobile && this.input.wasPressed('Space'));
             const payContrib = this.input.wasPressed('KeyN') || (mobile && this.input.wasPressed('Escape'));
 
             if (acceptBank) { // Aceitar jogar como banca (150)

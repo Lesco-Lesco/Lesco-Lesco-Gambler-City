@@ -905,13 +905,13 @@ export class ValoriumGame {
         }
 
         // Guard / Defend mechanism (holding Q)
-        if (input.isDown('KeyQ')) {
+        if (input.isDown('KeyQ') || input.isDown('Gamepad_X')) {
             if (!this.p1.defenseCooldownTimer || this.p1.defenseCooldownTimer <= 0) {
                 this.p1.state = 'defending';
                 this.p1.vx = 0;
                 
                 // Allow triggering Special Attack from guard stance if ready!
-                if ((input.wasPressed('KeyE') || input.wasPressed('ShiftLeft')) && this.p1.energy >= 100) {
+                if ((input.wasPressed('ShiftLeft') || input.wasPressed('Gamepad_Y')) && this.p1.energy >= 100) {
                     this.performSpecialAttack(this.p1, this.p2);
                 }
                 return;
@@ -923,7 +923,7 @@ export class ValoriumGame {
         }
 
         // Special Attack trigger
-        if (input.wasPressed('KeyE') || input.wasPressed('KeyQ') || input.wasPressed('ShiftLeft')) {
+        if (input.wasPressed('ShiftLeft') || input.wasPressed('Gamepad_Y')) {
             if (this.p1.energy >= 100) {
                 this.performSpecialAttack(this.p1, this.p2);
                 return;

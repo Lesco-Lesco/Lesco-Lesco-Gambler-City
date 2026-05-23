@@ -45,7 +45,7 @@ const GameCanvas = () => {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.code === 'Escape') {
+            if (e.code === 'Escape' || e.code === 'Pause') {
                 const loop = engineRef.current?.loop;
                 if (!loop) return;
                 

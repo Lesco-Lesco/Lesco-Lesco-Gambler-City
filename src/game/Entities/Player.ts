@@ -76,10 +76,10 @@ export class Player {
                 this.direction = dy > 0 ? 'down' : 'up';
             }
         } else {
-            if (this.input.isDown('KeyW') || this.input.isDown('ArrowUp')) { dy -= 1; this.direction = 'up'; }
-            if (this.input.isDown('KeyS') || this.input.isDown('ArrowDown')) { dy += 1; this.direction = 'down'; }
-            if (this.input.isDown('KeyA') || this.input.isDown('ArrowLeft')) { dx -= 1; this.direction = 'left'; }
-            if (this.input.isDown('KeyD') || this.input.isDown('ArrowRight')) { dx += 1; this.direction = 'right'; }
+            if (this.input.isDown('ArrowUp')) { dy -= 1; this.direction = 'up'; }
+            if (this.input.isDown('ArrowDown')) { dy += 1; this.direction = 'down'; }
+            if (this.input.isDown('ArrowLeft')) { dx -= 1; this.direction = 'left'; }
+            if (this.input.isDown('ArrowRight')) { dx += 1; this.direction = 'right'; }
             this.isMoving = dx !== 0 || dy !== 0;
         }
 
